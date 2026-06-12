@@ -117,7 +117,7 @@ public class SizingEngine
             StorageGb = 200, StorageType = "SSD"
         });
 
-        req.TotalStorageGb = 200 + 100 * req.MasterNodeCount + 200 * req.WorkerNodeCount;
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);
         req.TotalIops = sqlRange?.Iops ?? 500;
         req.TotalLatency = sqlRange?.Latency ?? 1;
     }
@@ -174,7 +174,7 @@ public class SizingEngine
             StorageGb = 150, StorageType = "SSD"
         });
 
-        req.TotalStorageGb = 300 + 150 * appCount + 150 * webCount;
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);
         req.TotalLatency = sqlRange?.Latency ?? 1;
     }
 

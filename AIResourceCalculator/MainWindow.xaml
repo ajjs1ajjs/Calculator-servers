@@ -324,7 +324,7 @@
                                         <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="55"/>
                                         <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="55"/>
                                         <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="55"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb}" Width="70"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="80"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </StackPanel>
