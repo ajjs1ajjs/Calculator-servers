@@ -8,3 +8,6 @@ obj/
 *.log
 .DS_Store
 Thumbs.db
+build/
+*.svg
+resources.*
