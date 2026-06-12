@@ -37,7 +37,7 @@
   "col.cpu": "vCPU",
   "col.ram": "RAM",
   "col.count": "Count",
-  "col.storage": "Storage",
+  "col.storage": "Storage (GB)",
   "col.nodeType": "Node Type",
   "col.nodes": "Nodes",
 

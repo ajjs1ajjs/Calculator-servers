@@ -16,4 +16,5 @@ public class InfrastructureNode
     public string StorageType4 { get; set; } = "";
     public int StorageGb4 { get; set; }
     public double MinVersion { get; set; }
+    public int TotalStorageGb => StorageGb * NodeCount;
 }

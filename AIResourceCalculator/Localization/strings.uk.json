@@ -37,7 +37,7 @@
   "col.cpu": "vCPU",
   "col.ram": "RAM",
   "col.count": "К-сть",
-  "col.storage": "Диски",
+  "col.storage": "Диски (ГБ)",
   "col.nodeType": "Тип вузла",
   "col.nodes": "Вузли",
 
