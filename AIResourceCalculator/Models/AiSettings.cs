@@ -1,0 +1,93 @@
+using System.Text.Json;
+
+namespace AIResourceCalculator.Models;
+
+public enum AiProvider
+{
+    None,
+    OpenAI,
+    Claude,
+    LocalOllama
+}
+
+public class AiSettings
+{
+    public AiProvider Provider { get; set; } = AiProvider.None;
+    public string ApiKey { get; set; } = "";
+    public string EndpointUrl { get; set; } = "";
+    public string ModelName { get; set; } = "";
+    public double Temperature { get; set; } = 0.3;
+    public bool EnableRealAi { get; set; } = false;
+
+    public bool IsValid()
+    {
+        if (!EnableRealAi || Provider == AiProvider.None) return false;
+        if (string.IsNullOrWhiteSpace(ModelName)) return false;
+        return Provider switch
+        {
+            AiProvider.OpenAI => !string.IsNullOrWhiteSpace(ApiKey),
+            AiProvider.Claude => !string.IsNullOrWhiteSpace(ApiKey),
+            AiProvider.LocalOllama => true,
+            _ => false
+        };
+    }
+
+    private static readonly string ConfigPath = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "AIResourceCalculator", "aisettings.json");
+
+    public void Save()
+    {
+        var dir = System.IO.Path.GetDirectoryName(ConfigPath);
+        if (dir != null && !System.IO.Directory.Exists(dir))
+            System.IO.Directory.CreateDirectory(dir);
+
+        var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+        System.IO.File.WriteAllText(ConfigPath, json);
+    }
+
+    public static AiSettings Load()
+    {
+        if (System.IO.File.Exists(ConfigPath))
+        {
+            try
+            {
+                var json = System.IO.File.ReadAllText(ConfigPath);
+                return JsonSerializer.Deserialize<AiSettings>(json) ?? new AiSettings();
+            }
+            catch { }
+        }
+        return new AiSettings();
+    }
+
+    public string ProviderDisplay()
+    {
+        return Provider switch
+        {
+            AiProvider.OpenAI => "OpenAI",
+            AiProvider.Claude => "Claude (Anthropic)",
+            AiProvider.LocalOllama => "Local (Ollama)",
+            _ => "Rule-based (offline)"
+        };
+    }
+
+    public (string endpoint, string model) GetEndpoint()
+    {
+        return Provider switch
+        {
+            AiProvider.OpenAI => (
+                string.IsNullOrEmpty(EndpointUrl) ? "https://api.openai.com/v1/chat/completions" : EndpointUrl,
+                string.IsNullOrEmpty(ModelName) ? "gpt-4o-mini" : ModelName
+            ),
+            AiProvider.Claude => (
+                string.IsNullOrEmpty(EndpointUrl) ? "https://api.anthropic.com/v1/messages" : EndpointUrl,
+                string.IsNullOrEmpty(ModelName) ? "claude-3-haiku-20240307" : ModelName
+            ),
+            AiProvider.LocalOllama => (
+                string.IsNullOrEmpty(EndpointUrl) ? "http://localhost:11434/api/generate" : EndpointUrl,
+                string.IsNullOrEmpty(ModelName) ? "llama3.2" : ModelName
+            ),
+            _ => ("", "")
+        };
+    }
+}

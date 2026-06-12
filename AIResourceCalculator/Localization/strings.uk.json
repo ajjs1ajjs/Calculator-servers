@@ -1,0 +1,93 @@
+{
+  "app.title": "AI Resource Calculator",
+  "app.subtitle": "Розрахунок · AI · Рекомендації",
+
+  "tab.matrixTitle": "1. База даних",
+  "tab.setupTitle": "2. Калькулятор",
+  "tab.resultsTitle": "3. Результати",
+  "tab.aiQueryTitle": "4. AI Помічник",
+
+  "setup.title": "Параметри розрахунку",
+  "setup.users": "Кількість користувачів:",
+  "setup.deployment": "Тип розгортання:",
+  "setup.ha": "Висока доступність:",
+  "setup.haHint": "Увімкнути HA (3+ вузли)",
+  "setup.overprov": "Коефіцієнт резервування:",
+  "setup.calculate": "Розрахувати ресурси",
+
+  "deploy.k8s": "Kubernetes",
+  "deploy.windows": "Windows",
+  "deploy.hybrid": "Гібрид (K8s + Windows)",
+  "profile.basic": "Базовий",
+  "profile.performance": "Продуктивний",
+
+  "results.title": "Результати розрахунку",
+  "results.totalVcpu": "Всього vCPU",
+  "results.totalRam": "Всього RAM",
+  "results.totalStorage": "Всього диски",
+  "results.totalIops": "Всього IOPS",
+  "results.infra": "Інфраструктура",
+  "results.compare": "Порівняти профілі",
+  "results.compareTitle": "Порівняння профілів",
+  "results.recommended": "Рекомендація",
+  "results.aiTitle": "AI Advisor — Рекомендації",
+  "results.aiAnalyzing": "AI аналізує вашу інфраструктуру...",
+
+  "col.name": "Назва",
+  "col.cpu": "vCPU",
+  "col.ram": "RAM",
+  "col.count": "К-сть",
+  "col.storage": "Диски",
+  "col.nodeType": "Тип вузла",
+  "col.nodes": "Вузли",
+
+  "status.ready": "Готово",
+  "status.calculated": "Розраховано: {0} користувачів, {1} vCPU, {2} ГБ RAM",
+  "status.imported": "Імпортовано з Excel",
+  "status.copied": "Скопійовано в буфер",
+  "status.saved": "Збережено в {0}",
+  "status.aiEnabled": "AI увімкнено: {0}",
+  "status.aiDisabled": "AI на правилах",
+
+  "tooltip.users": "Кількість активних користувачів (1-5000)",
+  "tooltip.deployment": "Kubernetes: контейнери. Windows: VM. Гібрид: обидва",
+  "tooltip.ha": "Вмикає 3+ вузли для відмовостійкості",
+  "tooltip.overprov": "Додатковий запас ресурсів",
+  "tooltip.calculate": "Запустити розрахунок ресурсів",
+  "tooltip.langSwitch": "Змінити мову",
+  "tooltip.aiSettings": "Налаштувати AI провайдера",
+
+  "matrix.info": "Редагуйте дані матриці розрахунків. Імпортуйте з Excel або вводьте вручну.",
+  "matrix.msSql": "MSSQL — діапазони ресурсів",
+  "matrix.performance": "MSSQL — продуктивний профіль",
+  "matrix.k8sComponents": "K8s компоненти",
+  "matrix.infra": "Інфраструктура",
+  "matrix.save": "Зберегти матрицю",
+  "matrix.reset": "Скинути",
+
+  "modules.title": "Модулі",
+
+  "ai.badgeEnabled": "AI Online",
+  "ai.badgeDisabled": "Правила (offline)",
+  "ai.settingsBtn": "AI Settings",
+  "ai.noData": "Запустіть розрахунок для отримання рекомендацій",
+
+  "aiQuery.title": "AI Помічник",
+  "aiQuery.desc": "Опишіть вашу інфраструктуру природною мовою. AI проаналізує та заповнить параметри.",
+  "aiQuery.analyze": "Проаналізувати",
+  "aiQuery.result": "Результат аналізу",
+  "aiQuery.apply": "Застосувати до калькулятора",
+  "aiQuery.templates": "Швидкі шаблони (без AI):",
+  "aiQuery.tpl1": "Система на 200 користувачів з LMS та HR",
+  "aiQuery.tpl2": "Високонавантажена система на 1000 користувачів",
+  "aiQuery.tpl3": "Мінімальна система на 25 користувачів",
+  "aiQuery.offline": "Увімкніть Real AI в налаштуваннях для аналізу тексту, або використайте шаблони.",
+
+  "diagram.title": "Діаграма інфраструктури",
+  "diagram.show": "Схема мережі",
+  "diagram.copyMermaid": "Копіювати Mermaid",
+
+  "dialog.matrixSaved": "Матрицю збережено",
+
+  "settings.ai": "Налаштування AI"
+}

@@ -1,0 +1,150 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using AIResourceCalculator.Models;
+
+namespace AIResourceCalculator.Services;
+
+public class AiApiService
+{
+    private readonly HttpClient _http;
+    private readonly AiSettings _settings;
+
+    public AiApiService(AiSettings settings)
+    {
+        _settings = settings;
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+    }
+
+    public async Task<string?> GetRecommendation(string prompt)
+    {
+        if (!_settings.EnableRealAi || _settings.Provider == AiProvider.None)
+            return null;
+
+        try
+        {
+            var (endpoint, model) = _settings.GetEndpoint();
+
+            return _settings.Provider switch
+            {
+                AiProvider.OpenAI => await CallOpenAi(endpoint, model, prompt),
+                AiProvider.Claude => await CallClaude(endpoint, model, prompt),
+                AiProvider.LocalOllama => await CallOllama(endpoint, model, prompt),
+                _ => null
+            };
+        }
+        catch (TaskCanceledException)
+        {
+            return "Помилка: перевищено час очікування (120 с). Перевірте з'єднання з API або спробуйте ще раз.";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Помилка мережі: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            return $"Помилка AI: {ex.Message}";
+        }
+    }
+
+    private async Task<string> CallOpenAi(string endpoint, string model, string prompt)
+    {
+        var body = new
+        {
+            model,
+            messages = new[]
+            {
+                new { role = "system", content = "You are an infrastructure architect. Give concise resource recommendations in JSON format." },
+                new { role = "user", content = prompt }
+            },
+            temperature = _settings.Temperature,
+            max_tokens = 800
+        };
+
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+
+        var response = await _http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+    }
+
+    private async Task<string> CallClaude(string endpoint, string model, string prompt)
+    {
+        var body = new
+        {
+            model,
+            max_tokens = 800,
+            messages = new[]
+            {
+                new { role = "user", content = prompt }
+            }
+        };
+
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Add("x-api-key", _settings.ApiKey);
+        request.Headers.Add("anthropic-version", "2023-06-01");
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+
+        var response = await _http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? "";
+    }
+
+    private async Task<string> CallOllama(string endpoint, string model, string prompt)
+    {
+        var body = new
+        {
+            model,
+            prompt = $"You are an infrastructure architect. Give concise resource recommendations.\n\n{prompt}",
+            stream = false,
+            options = new { temperature = _settings.Temperature }
+        };
+
+        var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+        var response = await _http.PostAsync(endpoint, content);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("response").GetString() ?? "";
+    }
+
+    public string BuildAnalysisPrompt(ResourceRequirement req, ProjectConfig config)
+    {
+        var infra = string.Join("\n", req.Infrastructure.Select(i =>
+            $"  - {i.Name}: {i.NodeCount} nodes, {i.Cpu} vCPU, {i.RamGb} GB RAM, {i.StorageGb} GB storage"));
+
+        var components = string.Join("\n", req.Components.Where(c => c.Cpu > 0).Select(c =>
+            $"  - {c.Name}: {c.Cpu} vCPU, {c.RamGb} GB RAM, {c.Replicas} replicas"));
+
+        return $@"Analyze this infrastructure configuration and provide optimization recommendations:
+
+Project: {config.ProjectName}
+Users: {config.UserCount}
+Deployment: {config.DeploymentType} ({config.LoadProfile})
+HA: {config.HaEnabled}
+
+Totals:
+- vCPU: {req.TotalCpu:F1}
+- RAM: {req.TotalRamGb:F1} GB
+- Storage: {req.TotalStorageGb} GB
+- IOPS: {req.TotalIops}
+
+Infrastructure:
+{infra}
+
+Components:
+{components}
+
+Provide 3-5 specific recommendations in JSON format with keys: category, title, description, action, severity (ok/warning/critical), potentialSavings ($/month).";
+    }
+}

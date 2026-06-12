@@ -1,0 +1,93 @@
+{
+  "app.title": "AI Resource Calculator",
+  "app.subtitle": "Sizing · AI · Recommendations",
+
+  "tab.matrixTitle": "1. Data Matrix",
+  "tab.setupTitle": "2. Calculator",
+  "tab.resultsTitle": "3. Results",
+  "tab.aiQueryTitle": "4. AI Assistant",
+
+  "setup.title": "Calculation Parameters",
+  "setup.users": "Number of Users:",
+  "setup.deployment": "Deployment Type:",
+  "setup.ha": "High Availability:",
+  "setup.haHint": "Enable HA (3+ nodes)",
+  "setup.overprov": "Overprovisioning Factor:",
+  "setup.calculate": "Calculate Resources",
+
+  "deploy.k8s": "Kubernetes",
+  "deploy.windows": "Windows",
+  "deploy.hybrid": "Hybrid (K8s + Windows)",
+  "profile.basic": "Basic",
+  "profile.performance": "Performance",
+
+  "results.title": "Resource Requirements",
+  "results.totalVcpu": "Total vCPU",
+  "results.totalRam": "Total RAM",
+  "results.totalStorage": "Total Storage",
+  "results.totalIops": "Total IOPS",
+  "results.infra": "Infrastructure",
+  "results.compare": "Compare Profiles",
+  "results.compareTitle": "Profile Comparison",
+  "results.recommended": "Recommended",
+  "results.aiTitle": "AI Advisor — Recommendations",
+  "results.aiAnalyzing": "AI is analyzing your infrastructure...",
+
+  "col.name": "Name",
+  "col.cpu": "vCPU",
+  "col.ram": "RAM",
+  "col.count": "Count",
+  "col.storage": "Storage",
+  "col.nodeType": "Node Type",
+  "col.nodes": "Nodes",
+
+  "status.ready": "Ready",
+  "status.calculated": "Calculated: {0} users, {1} vCPU, {2} GB RAM",
+  "status.imported": "Imported from Excel",
+  "status.copied": "Copied to clipboard",
+  "status.saved": "Saved to {0}",
+  "status.aiEnabled": "AI enabled: {0}",
+  "status.aiDisabled": "Rules engine",
+
+  "tooltip.users": "Number of active users (1-5000)",
+  "tooltip.deployment": "K8s: containers. Windows: VMs. Hybrid: both",
+  "tooltip.ha": "Enables 3+ nodes for high availability",
+  "tooltip.overprov": "Extra resource buffer (1.0-2.0x)",
+  "tooltip.calculate": "Run resource calculation",
+  "tooltip.langSwitch": "Switch language",
+  "tooltip.aiSettings": "Configure AI provider",
+
+  "matrix.info": "Edit the sizing matrix data. Import from Excel or edit manually.",
+  "matrix.msSql": "MSSQL — resource ranges",
+  "matrix.performance": "MSSQL — performance profile",
+  "matrix.k8sComponents": "K8s components",
+  "matrix.infra": "Infrastructure",
+  "matrix.save": "Save matrix",
+  "matrix.reset": "Reset",
+
+  "modules.title": "Modules",
+
+  "ai.badgeEnabled": "AI Online",
+  "ai.badgeDisabled": "Rules Engine",
+  "ai.settingsBtn": "AI Settings",
+  "ai.noData": "Run calculation to get AI recommendations",
+
+  "aiQuery.title": "AI Assistant",
+  "aiQuery.desc": "Describe your infrastructure in plain text. AI will analyze and fill parameters.",
+  "aiQuery.analyze": "Analyze",
+  "aiQuery.result": "Analysis Result",
+  "aiQuery.apply": "Apply to Calculator",
+  "aiQuery.templates": "Quick Templates (no AI):",
+  "aiQuery.tpl1": "System for 200 users with LMS and HR",
+  "aiQuery.tpl2": "High-load system for 1000 users",
+  "aiQuery.tpl3": "Minimal system for 25 users",
+  "aiQuery.offline": "Enable Real AI in settings for text analysis, or use templates above.",
+
+  "diagram.title": "Infrastructure Diagram",
+  "diagram.show": "Network Diagram",
+  "diagram.copyMermaid": "Copy Mermaid",
+
+  "dialog.matrixSaved": "Matrix saved",
+
+  "settings.ai": "AI Settings"
+}

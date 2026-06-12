@@ -1,0 +1,490 @@
+﻿<Window x:Class="AIResourceCalculator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:AIResourceCalculator.Converters"
+        xmlns:loc="clr-namespace:AIResourceCalculator.Localization"
+        Title="{loc:Loc app.title}" Height="850" Width="1280"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <conv:SeverityToColorConverter x:Key="SeverityToColor"/>
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="SectionHeader">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="#2c3e50"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#2c3e50" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{loc:Loc app.title}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{loc:Loc app.subtitle}" Foreground="#95a5a6" FontSize="13"/>
+                        <TextBlock Name="TxtAiBadge" Text="{loc:Loc ai.badgeDisabled}" Margin="10,0,0,0"
+                                   FontSize="11" Foreground="#f39c12" FontWeight="Bold"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Name="BtnAiSettings" Background="#8e44ad" Foreground="White" BorderThickness="0"
+                            Padding="10,5" FontSize="12" Margin="0,0,5,0" Cursor="Hand"
+                            Click="BtnAiSettings_Click"
+                            ToolTip="{loc:Loc tooltip.aiSettings}">
+                        <TextBlock Text="{loc:Loc ai.settingsBtn}"/>
+                    </Button>
+                    <Button Name="BtnThemeToggle"
+                        Background="#2c3e50" Foreground="White" BorderThickness="1" BorderBrush="#5a6a7a"
+                        Padding="8,5" FontSize="14" Margin="0,0,5,0"
+                        Click="BtnThemeToggle_Click"
+                        ToolTip="Перемкнути тему">
+                        <TextBlock Name="TxtThemeIcon" Text="&#x1F319;" FontSize="16"/>
+                    </Button>
+                    <Button Name="BtnLangSwitch"
+                        Background="#34495e" Foreground="White" BorderThickness="0"
+                        Padding="10,5" FontSize="14"
+                        Click="BtnLangSwitch_Click"
+                        ToolTip="{loc:Loc tooltip.langSwitch}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Name="TxtLangFlag" Text="&#x1F1FA;&#x1F1E6;" FontSize="18" Margin="0,0,5,0"/>
+                            <TextBlock Name="TxtLangName" Text="Українська" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Row="1" Name="MainTabControl">
+            <!-- ========== TAB 1: DATA MATRIX ========== -->
+            <TabItem Header="{loc:Loc tab.matrixTitle}" Name="TabMatrix">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="15">
+                        <Border Background="{StaticResource BgAccent}" Padding="15" CornerRadius="8" Margin="0,0,0,10">
+                            <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                       TextWrapping="Wrap"/>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Name="BtnMatrixImport" Background="{StaticResource Green}" Foreground="White" FontWeight="Bold"
+                                    Click="BtnMatrixImport_Click" Padding="16,8">
+                                <TextBlock Text="{loc:Loc setup.import}"/>
+                            </Button>
+                            <Button Name="BtnMatrixSave" Background="{StaticResource Blue}" Foreground="White" FontWeight="Bold"
+                                    Click="BtnMatrixSave_Click" Padding="16,8">
+                                <TextBlock Text="{loc:Loc matrix.save}"/>
+                            </Button>
+                            <Button Name="BtnMatrixReset" Click="BtnMatrixReset_Click" Padding="12,8">
+                                <TextBlock Text="{loc:Loc matrix.reset}"/>
+                            </Button>
+                        </StackPanel>
+                        <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True" Foreground="{StaticResource TextPrimary}">
+                            <DataGrid Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True"
+                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
+                                      Foreground="{StaticResource TextPrimary}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Expander>
+                        <Expander Header="{loc:Loc matrix.performance}" Foreground="{StaticResource TextPrimary}">
+                            <DataGrid Name="GridMatrixMsSqlPerf" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
+                                      Foreground="{StaticResource TextPrimary}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Expander>
+                        <Expander Header="{loc:Loc matrix.k8sComponents}" IsExpanded="True" Foreground="{StaticResource TextPrimary}">
+                            <DataGrid Name="GridMatrixComponents" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
+                                      Foreground="{StaticResource TextPrimary}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas, Mode=TwoWay}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Expander>
+                        <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True" Foreground="{StaticResource TextPrimary}">
+                            <DataGrid Name="GridMatrixInfra" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
+                                      Foreground="{StaticResource TextPrimary}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="120"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ========== TAB 2: CALCULATOR ========== -->
+            <TabItem Header="{loc:Loc tab.setupTitle}" Name="TabSetup">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
+                                <Border Background="#f8f9fa" Padding="15" CornerRadius="8" BorderBrush="#dee2e6" BorderThickness="1">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="180"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Name="TxtUserCount" Text="100" Margin="3" Padding="5" FontSize="14"
+                                                     PreviewTextInput="NumberValidation" ToolTip="{loc:Loc tooltip.users}"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                            <ComboBox Grid.Row="1" Grid.Column="1" Name="CmbDeployment" Margin="3" Padding="4" SelectedIndex="0"
+                                                      ToolTip="{loc:Loc tooltip.deployment}">
+                                                <ComboBoxItem Content="{loc:Loc deploy.k8s}"/>
+                                                <ComboBoxItem Content="{loc:Loc deploy.windows}"/>
+                                                <ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
+                                            </ComboBox>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.ha}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                            <CheckBox Grid.Row="2" Grid.Column="1" Name="ChkHa" IsChecked="True" Margin="3" VerticalAlignment="Center"
+                                                      Content="{loc:Loc setup.haHint}" ToolTip="{loc:Loc tooltip.ha}"/>
+
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Loc setup.overprov}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="3">
+                                                <Slider Name="SldOverprov" Minimum="1" Maximum="2" Value="1" Width="150"
+                                                        TickFrequency="0.1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                        ToolTip="{loc:Loc tooltip.overprov}"/>
+                                                <TextBlock Name="TxtOverprovVal" Text="1.0x" Margin="8,0,0,0" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#f0f4ff" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="#3498db" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc modules.title}" FontSize="16" FontWeight="Bold" Foreground="#2c3e50" Margin="0,0,0,8"/>
+                                        <ItemsControl Name="ModulesPanel">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                              Content="{Binding Name}" Margin="4,2" FontSize="13" FontWeight="SemiBold"
+                                                              ToolTip="{Binding Description}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
+                                <Border Background="#f0f4ff" Padding="15" CornerRadius="8" BorderBrush="#3498db" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Name="TxtAiQuickRec" Text="{loc:Loc ai.noData}" FontSize="13" Foreground="#7f8c8d"
+                                                   FontStyle="Italic" TextWrapping="Wrap"/>
+                                        <ItemsControl Name="QuickRecList" Visibility="Collapsed" Margin="0,8,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="White" Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
+                                                            BorderBrush="{Binding Severity, Converter={StaticResource SeverityToColor}}">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="#2c3e50"/>
+                                                            <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#7f8c8d" TextWrapping="Wrap"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                                    <Button Name="BtnCalculate" Background="#3498db" Foreground="White" FontWeight="Bold" Padding="24,12"
+                                            Click="BtnCalculate_Click" FontSize="15"
+                                            ToolTip="{loc:Loc tooltip.calculate}">
+                                        <TextBlock Text="{loc:Loc setup.calculate}"/>
+                                    </Button>
+                                    <Button Name="BtnCompare" Background="#e67e22" Foreground="White" FontWeight="Bold" Padding="24,12"
+                                            Click="BtnCompare_Click" FontSize="15"
+                                            ToolTip="Розрахувати два профілі та порівняти">
+                                        <TextBlock Text="{loc:Loc results.compare}"/>
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- Comparison quick table -->
+                                <Border Name="PanelCompareResult" Background="#e8f8f5" Padding="12" CornerRadius="8" Margin="0,10,0,0" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc results.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="#1a5276" Margin="0,0,0,8"/>
+                                        <DataGrid Name="GridCompare" Height="130" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="" Binding="{Binding Name}" Width="100"/>
+                                                <DataGridTextColumn Header="{loc:Loc profile.basic}" Binding="{Binding Basic}" Width="110"/>
+                                                <DataGridTextColumn Header="{loc:Loc profile.performance}" Binding="{Binding Performance}" Width="110"/>
+                                                <DataGridTextColumn Header="{loc:Loc results.recommended}" Binding="{Binding Recommended}" Width="110"
+                                                                    FontWeight="Bold"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ========== TAB 2: RESULTS ========== -->
+            <TabItem Header="{loc:Loc tab.resultsTitle}" Name="TabResults">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="15">
+                        <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
+
+                        <!-- KPI Cards -->
+                        <Border Background="#ecf0f1" Padding="12" CornerRadius="8" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#2980b9" CornerRadius="6" Padding="8" Margin="2">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Name="TblTotalCpu" Text="0" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalVcpu}" FontSize="11" Foreground="#ecf0f1"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Background="#27ae60" CornerRadius="6" Padding="8" Margin="2">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Name="TblTotalRam" Text="0 GB" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalRam}" FontSize="11" Foreground="#ecf0f1"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Background="#e67e22" CornerRadius="6" Padding="8" Margin="2">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Name="TblTotalStorage" Text="0 GB" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalStorage}" FontSize="11" Foreground="#ecf0f1"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="3" Background="#8e44ad" CornerRadius="6" Padding="8" Margin="2">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Name="TblTotalIops" Text="0 IOPS" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalIops}" FontSize="11" Foreground="#ecf0f1"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="4" Background="#c0392b" CornerRadius="6" Padding="8" Margin="2">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Name="TblTotalNodes" Text="0" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc col.nodes}" FontSize="11" Foreground="#ecf0f1"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Infrastructure + Comparison side by side -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="#2c3e50" Margin="0,0,0,5"/>
+                                <DataGrid Name="GridInfrastructure" Height="120" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="55"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="55"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="55"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb}" Width="60"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                <TextBlock Text="{loc:Loc results.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="#2c3e50" Margin="0,0,0,5"/>
+                                <DataGrid Name="GridCompareResults" Height="120" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="" Binding="{Binding Name}" Width="80"/>
+                                        <DataGridTextColumn Header="{loc:Loc profile.basic}" Binding="{Binding Basic}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Loc profile.performance}" Binding="{Binding Performance}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- AI Recommendations -->
+                        <Border Background="#f0f4ff" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="#3498db" BorderThickness="1">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Loc results.aiTitle}" FontSize="16" FontWeight="Bold" Foreground="#2c3e50" VerticalAlignment="Center"/>
+                                    <TextBlock Name="TxtAiBadgeResult" Text="" FontSize="12" Foreground="#7f8c8d" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <ItemsControl Name="AiRecList" Visibility="Collapsed">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
+                                                    Background="White" BorderBrush="{Binding Severity, Converter={StaticResource SeverityToColor}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Margin="0,0,10,0"
+                                                            Background="{Binding Severity, Converter={StaticResource SeverityToColor}}">
+                                                        <TextBlock Text="{Binding DirectionEmoji}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Bold" Foreground="#2c3e50"/>
+                                                        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#7f8c8d" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="{Binding PotentialSavings, StringFormat='${0:F0}/mo'}" FontSize="12" FontWeight="Bold"
+                                                                   Foreground="#27ae60" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Name="TxtAiNoData" Text="{loc:Loc ai.noData}" FontSize="13" Foreground="#7f8c8d" FontStyle="Italic"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Export + Diagram -->
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Name="BtnExportTxt" Click="BtnExportTxt_Click" Background="#34495e" Foreground="White" Content="TXT"/>
+                            <Button Name="BtnExportPdf" Click="BtnExportPdf_Click" Background="#34495e" Foreground="White" Content="PDF"/>
+                            <Button Name="BtnShowDiagram" Background="#8e44ad" Foreground="White" FontWeight="Bold"
+                                    Click="BtnShowDiagram_Click" Content="{loc:Loc diagram.show}"/>
+                            <Button Name="BtnExportMermaid" Click="BtnExportMermaid_Click" Background="#2c3e50" Foreground="White" Content="Mermaid"/>
+                        </StackPanel>
+
+                        <!-- Visual Diagram -->
+                        <Border Name="PanelDiagram" Background="#1a1a2e" Padding="15" CornerRadius="8" Margin="0,8,0,0" Visibility="Collapsed">
+                            <StackPanel>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="500">
+                                    <Border Name="DiagramContainer" Background="#1a1a2e" MinWidth="600" MinHeight="300"/>
+                                </ScrollViewer>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Name="BtnExportDiagramSvg" Click="BtnExportDiagramSvg_Click" Padding="10,5" Content="SVG"/>
+                                    <Button Name="BtnExportMermaid2" Click="BtnExportMermaid_Click" Padding="10,5" Content="Mermaid"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ========== TAB 3: AI ASSISTANT ========== -->
+            <TabItem Header="{loc:Loc tab.aiQueryTitle}" Name="TabAiQuery">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="15">
+                        <TextBlock Text="{loc:Loc aiQuery.title}" Style="{StaticResource SectionHeader}"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <Border Background="#fef9e7" Padding="15" CornerRadius="8" BorderBrush="#f39c12" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc aiQuery.desc}" FontSize="13" Foreground="#856404" TextWrapping="Wrap"/>
+                                        <TextBox Name="TxtAiQueryPrompt" Height="80" Margin="0,10,0,5" Padding="8"
+                                                 FontSize="13" TextWrapping="Wrap"
+                                                 AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                                        <Button Name="BtnAiQuerySend" Background="#3498db" Foreground="White" FontWeight="Bold"
+                                                Click="BtnAiQuerySend_Click" Padding="16,8" HorizontalAlignment="Left">
+                                            <TextBlock Text="{loc:Loc aiQuery.analyze}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <Border Name="AiQueryResultPanel" Background="#eaf2f8" Padding="15" CornerRadius="8" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc aiQuery.result}" FontSize="14" FontWeight="Bold" Foreground="#2c3e50" Margin="0,0,0,8"/>
+                                        <TextBlock Name="TxtAiQueryResult" FontSize="13" Foreground="#2c3e50" TextWrapping="Wrap"/>
+                                        <Button Name="BtnApplyAiQuery" Background="#27ae60" Foreground="White" FontWeight="Bold"
+                                                Click="BtnApplyAiQuery_Click" Padding="14,8" HorizontalAlignment="Left" Margin="0,10,0,0"
+                                                Visibility="Collapsed">
+                                            <TextBlock Text="{loc:Loc aiQuery.apply}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Quick templates for offline mode -->
+                                <Border Background="#f8f9fa" Padding="12" CornerRadius="8" BorderBrush="#dee2e6" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc aiQuery.templates}" FontSize="14" FontWeight="Bold" Foreground="#2c3e50" Margin="0,0,0,8"/>
+                                        <Button Name="BtnTemplate1" Click="BtnTemplate1_Click" Background="#ecf0f1" Padding="10,6" Margin="2"
+                                                Content="{loc:Loc aiQuery.tpl1}" HorizontalAlignment="Left"/>
+                                        <Button Name="BtnTemplate2" Click="BtnTemplate2_Click" Background="#ecf0f1" Padding="10,6" Margin="2"
+                                                Content="{loc:Loc aiQuery.tpl2}" HorizontalAlignment="Left"/>
+                                        <Button Name="BtnTemplate3" Click="BtnTemplate3_Click" Background="#ecf0f1" Padding="10,6" Margin="2"
+                                                Content="{loc:Loc aiQuery.tpl3}" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <StatusBar Grid.Row="2" Background="#34495e" Padding="5">
+            <StatusBarItem>
+                <TextBlock Name="TxtStatus" Text="{loc:Loc status.ready}" Foreground="White" FontSize="13"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>
