@@ -39,20 +39,6 @@ public class SizingEngine
         else
             CalculateWindows(req, config);
 
-        if (config.HaEnabled)
-        {
-            req.WorkerNodeCount = Math.Max(3, req.WorkerNodeCount);
-            req.MasterNodeCount = Math.Max(3, req.MasterNodeCount);
-            req.TotalCpu *= 1.2;
-            req.TotalRamGb *= 1.2;
-        }
-
-        if (config.OverprovisioningFactor > 1.0)
-        {
-            req.TotalCpu *= config.OverprovisioningFactor;
-            req.TotalRamGb *= config.OverprovisioningFactor;
-        }
-
         return req;
     }
 

@@ -168,8 +168,6 @@
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="180"/>
@@ -186,18 +184,6 @@
                                                 <ComboBoxItem Content="{loc:Loc deploy.windows}"/>
                                                 <ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
                                             </ComboBox>
-
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.ha}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                            <CheckBox Grid.Row="2" Grid.Column="1" Name="ChkHa" IsChecked="True" Margin="3" VerticalAlignment="Center"
-                                                      Content="{loc:Loc setup.haHint}" ToolTip="{loc:Loc tooltip.ha}"/>
-
-                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Loc setup.overprov}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="3">
-                                                <Slider Name="SldOverprov" Minimum="1" Maximum="2" Value="1" Width="150"
-                                                        TickFrequency="0.1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                                        ToolTip="{loc:Loc tooltip.overprov}"/>
-                                                <TextBlock Name="TxtOverprovVal" Text="1.0x" Margin="8,0,0,0" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
-                                            </StackPanel>
                                         </Grid>
                                     </StackPanel>
                                 </Border>

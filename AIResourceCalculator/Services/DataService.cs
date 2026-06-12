@@ -11,7 +11,7 @@ public static class DataService
 
     static DataService()
     {
-        var baseDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".";
+        var baseDir = Path.GetDirectoryName(Environment.ProcessPath ?? AppContext.BaseDirectory) ?? ".";
         DataDir = Path.Combine(baseDir, "data");
         MatrixPath = Path.Combine(DataDir, "matrix.json");
         Directory.CreateDirectory(DataDir);

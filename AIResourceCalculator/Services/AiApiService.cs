@@ -101,6 +101,20 @@ public class AiApiService
 
     private async Task<string> CallOllama(string endpoint, string model, string prompt)
     {
+        // Quick health check
+        var baseUrl = endpoint.Replace("/api/generate", "/api/tags").Replace("/v1/completions", "/api/tags");
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var ping = await _http.GetAsync(baseUrl, cts.Token);
+            if (!ping.IsSuccessStatusCode)
+                return "⚠️ Ollama сервер недоступний. Переконайтесь, що Ollama запущена (ollama serve).";
+        }
+        catch
+        {
+            return "⚠️ Ollama сервер не відповідає. Запустіть Ollama та перевірте http://localhost:11434";
+        }
+
         var body = new
         {
             model,

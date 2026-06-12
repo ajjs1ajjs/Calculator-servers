@@ -37,9 +37,6 @@ public partial class MainWindow : Window
 
         DataObject.AddPastingHandler(TxtUserCount, NumberPaste);
 
-        SldOverprov.ValueChanged += (_, _) =>
-            TxtOverprovVal.Text = $"{SldOverprov.Value:F1}x";
-
         var lang = LocalizationService.Instance;
         TxtLangFlag.Text = lang.Flag;
         TxtLangName.Text = lang.LangName;
@@ -182,9 +179,7 @@ public partial class MainWindow : Window
                 1 => DeploymentType.Windows,
                 _ => DeploymentType.Hybrid
             },
-            LoadProfile = LoadProfile.Basic,
-            HaEnabled = ChkHa.IsChecked ?? true,
-            OverprovisioningFactor = SldOverprov.Value
+            LoadProfile = LoadProfile.Basic
         };
     }
 
@@ -201,9 +196,7 @@ public partial class MainWindow : Window
                 ProjectName = config.ProjectName,
                 UserCount = config.UserCount,
                 DeploymentType = config.DeploymentType,
-                LoadProfile = LoadProfile.Performance,
-                HaEnabled = config.HaEnabled,
-                OverprovisioningFactor = config.OverprovisioningFactor
+                LoadProfile = LoadProfile.Performance
             };
             perfReq = _engine.Calculate(perfConfig);
         }
@@ -504,18 +497,16 @@ public partial class MainWindow : Window
         {
             m.IsEnabled = m.Name is not "Windows Infrastructure";
         }
-        ChkHa.IsChecked = true;
         ModulesPanel.ItemsSource = null;
         ModulesPanel.ItemsSource = _engine.Modules;
-        UpdateStatus("Template: 1000 users, HA, K8s");
+        UpdateStatus("Template: 1000 users, K8s");
     }
 
     private void BtnTemplate3_Click(object sender, RoutedEventArgs e)
     {
         TxtUserCount.Text = "25";
         CmbDeployment.SelectedIndex = 0;
-        ChkHa.IsChecked = false;
-        SldOverprov.Value = 1.0;
+
         foreach (var m in _engine.Modules)
         {
             m.IsEnabled = m.Name is "App Server" or "Web" or "ForceBPM";

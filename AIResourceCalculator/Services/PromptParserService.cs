@@ -22,9 +22,6 @@ public class PromptParserService
         if (Regex.IsMatch(prompt, @"performance|продуктивн|perf", RegexOptions.IgnoreCase))
             config.LoadProfile = LoadProfile.Performance;
 
-        if (Regex.IsMatch(prompt, @"ha|high avail|відмовостій|відмов", RegexOptions.IgnoreCase))
-            config.HaEnabled = true;
-
         if (Regex.IsMatch(prompt, @"app.?server|appserver|as\b", RegexOptions.IgnoreCase))
             modules.Add("App Server");
         if (Regex.IsMatch(prompt, @"robot|робот", RegexOptions.IgnoreCase))

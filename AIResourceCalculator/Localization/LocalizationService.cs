@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.IO;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -27,7 +26,7 @@ public class LocalizationService : INotifyPropertyChanged
 
     public void LoadLanguage(string lang)
     {
-        var baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
+        var baseDir = Path.GetDirectoryName(Environment.ProcessPath ?? AppContext.BaseDirectory) ?? ".";
         var path = Path.Combine(baseDir, "Localization", $"strings.{lang}.json");
         if (!File.Exists(path))
         {
