@@ -55,13 +55,6 @@
                             ToolTip="{loc:Loc tooltip.aiSettings}">
                         <TextBlock Text="{loc:Loc ai.settingsBtn}"/>
                     </Button>
-                    <Button Name="BtnThemeToggle"
-                        Background="#2c3e50" Foreground="White" BorderThickness="1" BorderBrush="#5a6a7a"
-                        Padding="8,5" FontSize="14" Margin="0,0,5,0"
-                        Click="BtnThemeToggle_Click"
-                        ToolTip="Перемкнути тему">
-                        <TextBlock Name="TxtThemeIcon" Text="&#x1F319;" FontSize="16"/>
-                    </Button>
                     <Button Name="BtnLangSwitch"
                         Background="#34495e" Foreground="White" BorderThickness="0"
                         Padding="10,5" FontSize="14"
@@ -81,16 +74,16 @@
             <TabItem Header="{loc:Loc tab.matrixTitle}" Name="TabMatrix">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="15">
-                        <Border Background="{StaticResource BgAccent}" Padding="15" CornerRadius="8" Margin="0,0,0,10">
-                            <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{StaticResource TextPrimary}"
+                        <Border Background="#eaf2f8" Padding="15" CornerRadius="8" Margin="0,0,0,10">
+                            <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="#2c3e50"
                                        TextWrapping="Wrap"/>
                         </Border>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Name="BtnMatrixImport" Background="{StaticResource Green}" Foreground="White" FontWeight="Bold"
+                            <Button Name="BtnMatrixImport" Background="#27ae60" Foreground="White" FontWeight="Bold"
                                     Click="BtnMatrixImport_Click" Padding="16,8">
                                 <TextBlock Text="{loc:Loc setup.import}"/>
                             </Button>
-                            <Button Name="BtnMatrixSave" Background="{StaticResource Blue}" Foreground="White" FontWeight="Bold"
+                            <Button Name="BtnMatrixSave" Background="#3498db" Foreground="White" FontWeight="Bold"
                                     Click="BtnMatrixSave_Click" Padding="16,8">
                                 <TextBlock Text="{loc:Loc matrix.save}"/>
                             </Button>
@@ -98,10 +91,10 @@
                                 <TextBlock Text="{loc:Loc matrix.reset}"/>
                             </Button>
                         </StackPanel>
-                        <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True" Foreground="{StaticResource TextPrimary}">
+                        <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True" Foreground="#2c3e50">
                             <DataGrid Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
-                                      Foreground="{StaticResource TextPrimary}">
+                                      Background="White" AlternatingRowBackground="#f8f9fa"
+                                      Foreground="#2c3e50">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
                                     <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
@@ -113,10 +106,10 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.performance}" Foreground="{StaticResource TextPrimary}">
+                        <Expander Header="{loc:Loc matrix.performance}" Foreground="#2c3e50">
                             <DataGrid Name="GridMatrixMsSqlPerf" Height="140" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
-                                      Foreground="{StaticResource TextPrimary}">
+                                      Background="White" AlternatingRowBackground="#f8f9fa"
+                                      Foreground="#2c3e50">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
                                     <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
@@ -128,10 +121,10 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.k8sComponents}" IsExpanded="True" Foreground="{StaticResource TextPrimary}">
+                        <Expander Header="{loc:Loc matrix.k8sComponents}" IsExpanded="True" Foreground="#2c3e50">
                             <DataGrid Name="GridMatrixComponents" Height="140" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
-                                      Foreground="{StaticResource TextPrimary}">
+                                      Background="White" AlternatingRowBackground="#f8f9fa"
+                                      Foreground="#2c3e50">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
                                     <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
@@ -141,10 +134,10 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True" Foreground="{StaticResource TextPrimary}">
+                        <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True" Foreground="#2c3e50">
                             <DataGrid Name="GridMatrixInfra" Height="140" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{StaticResource DataGridBg}" AlternatingRowBackground="{StaticResource DataGridAlt}"
-                                      Foreground="{StaticResource TextPrimary}">
+                                      Background="White" AlternatingRowBackground="#f8f9fa"
+                                      Foreground="#2c3e50">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="120"/>
                                     <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>

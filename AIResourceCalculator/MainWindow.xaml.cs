@@ -1,7 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using AIResourceCalculator.Data;
 using AIResourceCalculator.Localization;
 using AIResourceCalculator.Models;
@@ -24,11 +23,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _matrix = new SizingMatrix();
-        _engine = new SizingEngine(_matrix);
         _advisor = new AiAdvisorService();
         _validator = new ValidationEngine();
         _promptParser = new PromptParserService();
+
+        _matrix = DataService.LoadMatrix();
+        _engine = new SizingEngine(_matrix);
 
         _aiSettings = AiSettings.Load();
         _advisor.UpdateSettings(_aiSettings);
@@ -46,7 +46,6 @@ public partial class MainWindow : Window
 
         UpdateAiBadge();
         LoadMatrixGrids();
-        ApplyThemeToWindow();
     }
 
     private void LoadMatrixGrids()
@@ -62,89 +61,6 @@ public partial class MainWindow : Window
         };
     }
 
-    private void BtnThemeToggle_Click(object sender, RoutedEventArgs e)
-    {
-        ThemeManager.Toggle();
-        TxtThemeIcon.Text = ThemeManager.IsDark ? "\u2600\uFE0F" : "\U0001F319";
-        ApplyThemeToWindow();
-    }
-
-    private void ApplyThemeToWindow()
-    {
-        ApplyThemeToElement(this, 0);
-    }
-
-    private void ApplyThemeToElement(DependencyObject element, int depth)
-    {
-        if (depth > 20) return;
-
-        if (element is Border border)
-            TryApplyBorderTheme(border);
-
-        if (element is TextBlock tb)
-            TryApplyTextTheme(tb);
-
-        if (element is DataGrid dg)
-        {
-            dg.Background = ThemeManager.BgSurface;
-            dg.Foreground = ThemeManager.TextPrimary;
-        }
-
-        var count = VisualTreeHelper.GetChildrenCount(element);
-        for (int i = 0; i < count; i++)
-            ApplyThemeToElement(VisualTreeHelper.GetChild(element, i), depth + 1);
-    }
-
-    private void TryApplyBorderTheme(Border border)
-    {
-        var bg = border.Background as SolidColorBrush;
-        if (bg == null) return;
-        var c = bg.Color;
-
-        if (ThemeManager.IsDark)
-        {
-            if (c == Colors.White || c == Color.FromRgb(0xf8, 0xf9, 0xfa))
-                border.Background = ThemeManager.BgSurface;
-            else if (c == Color.FromRgb(0xec, 0xf0, 0xf1) || c == Color.FromRgb(0xea, 0xf2, 0xf8))
-                border.Background = ThemeManager.BgCard;
-            else if (c == Color.FromRgb(0xf0, 0xf4, 0xff) || c == Color.FromRgb(0xfe, 0xf9, 0xe7))
-                border.Background = ThemeManager.BgAccent;
-            else if (c == Color.FromRgb(0xe8, 0xf8, 0xf5))
-                border.Background = new SolidColorBrush(Color.FromRgb(0x1a, 0x3a, 0x2a));
-        }
-        else
-        {
-            if (c == Color.FromRgb(0x36, 0x36, 0x49) || c == Color.FromRgb(0x2d, 0x2d, 0x3f))
-                border.Background = new SolidColorBrush(Color.FromRgb(0xf8, 0xf9, 0xfa));
-            else if (c == Color.FromRgb(0x2d, 0x2d, 0x50))
-                border.Background = new SolidColorBrush(Color.FromRgb(0xf0, 0xf4, 0xff));
-            else if (c == Color.FromRgb(0x1a, 0x3a, 0x2a))
-                border.Background = new SolidColorBrush(Color.FromRgb(0xe8, 0xf8, 0xf5));
-        }
-    }
-
-    private void TryApplyTextTheme(TextBlock tb)
-    {
-        var fg = tb.Foreground as SolidColorBrush;
-        if (fg == null) return;
-        var c = fg.Color;
-
-        if (ThemeManager.IsDark)
-        {
-            if (c == Color.FromRgb(0x2c, 0x3e, 0x50))
-                tb.Foreground = ThemeManager.TextPrimary;
-            else if (c == Color.FromRgb(0x7f, 0x8c, 0x8d) || c == Color.FromRgb(0x95, 0xa5, 0xa6))
-                tb.Foreground = ThemeManager.TextSecondary;
-        }
-        else
-        {
-            if (c == Color.FromRgb(0xe0, 0xe0, 0xe0))
-                tb.Foreground = new SolidColorBrush(Color.FromRgb(0x2c, 0x3e, 0x50));
-            else if (c == Color.FromRgb(0xa0, 0xa0, 0xb0))
-                tb.Foreground = new SolidColorBrush(Color.FromRgb(0x7f, 0x8c, 0x8d));
-        }
-    }
-
     private void BtnMatrixImport_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
@@ -158,6 +74,7 @@ public partial class MainWindow : Window
             {
                 var importer = new ExcelImporter();
                 _matrix = importer.Import(dialog.FileName);
+                DataService.SaveMatrix(_matrix);
                 _engine = new SizingEngine(_matrix);
                 LoadMatrixGrids();
                 ModulesPanel.ItemsSource = _engine.Modules;
@@ -172,12 +89,14 @@ public partial class MainWindow : Window
 
     private void BtnMatrixSave_Click(object sender, RoutedEventArgs e)
     {
+        DataService.SaveMatrix(_matrix);
         var lang = LocalizationService.Instance;
         MessageBox.Show(lang["dialog.matrixSaved"], "Info", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void BtnMatrixReset_Click(object sender, RoutedEventArgs e)
     {
+        DataService.ClearMatrix();
         _matrix = new SizingMatrix();
         _engine = new SizingEngine(_matrix);
         LoadMatrixGrids();
@@ -488,13 +407,23 @@ public partial class MainWindow : Window
         var prompt = TxtAiQueryPrompt.Text.Trim();
         if (string.IsNullOrEmpty(prompt)) return;
 
-        if (_aiSettings.EnableRealAi)
+        if (_aiSettings.EnableRealAi && _aiSettings.Provider != AiProvider.None && !string.IsNullOrEmpty(_aiSettings.ApiKey))
+        {
+            var _ = AnalyzeWithRealAiAsync(prompt);
+        }
+        else if (_aiSettings.EnableRealAi && _aiSettings.Provider == AiProvider.LocalOllama)
         {
             var _ = AnalyzeWithRealAiAsync(prompt);
         }
         else
         {
-            // Try rule-based parsing
+            if (_aiSettings.EnableRealAi)
+            {
+                TxtAiQueryResult.Text = "⚠️ Real AI увімкнено, але не налаштовано API ключ.\nНатисніть «AI Settings» вгорі, оберіть провайдера та вкажіть ключ.\n\nАбо використайте шаблони нижче.";
+                AiQueryResultPanel.Visibility = Visibility.Visible;
+                BtnApplyAiQuery.Visibility = Visibility.Collapsed;
+                return;
+            }
             var (parsedConfig, modules) = _promptParser.Parse(prompt);
             ApplyParsedResult(parsedConfig, modules);
         }
