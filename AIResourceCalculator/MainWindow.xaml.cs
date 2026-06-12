@@ -480,6 +480,7 @@ public partial class MainWindow : Window
     private void BtnTemplate1_Click(object sender, RoutedEventArgs e)
     {
         TxtUserCount.Text = "200";
+        CmbDeployment.SelectedIndex = 0;
         foreach (var m in _engine.Modules)
         {
             m.IsEnabled = m.Name is "App Server" or "ROBOT" or "Web" or "ForceBPM" or "LMS" or "HR Portal";

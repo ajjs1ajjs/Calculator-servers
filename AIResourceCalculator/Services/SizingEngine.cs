@@ -136,7 +136,7 @@ public class SizingEngine
 
         foreach (var module in enabledModules)
         {
-            var (modCpu, modRam) = module.CalculateReplicas(config.UserCount);
+            var (modCpu, modRam) = module.CalculateReplicas(config.UserCount, config.LoadProfile);
             totalCpu += modCpu;
             totalRam += modRam;
         }

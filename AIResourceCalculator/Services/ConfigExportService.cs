@@ -56,7 +56,7 @@ public class ConfigExportService
         sb.AppendLine("  vars:");
         sb.AppendLine($"    project_name: {config.ProjectName}");
         sb.AppendLine($"    user_count: {config.UserCount}");
-        sb.AppendLine($"    deployment_type: {config.DeploymentType}");
+        sb.AppendLine($"    deployment_type: Enabled");
         sb.AppendLine();
         sb.AppendLine("  tasks:");
 
@@ -84,9 +84,9 @@ public class ConfigExportService
         sb.AppendLine("## 1. Project Overview");
         sb.AppendLine($"- **Project**: {config.ProjectName}");
         sb.AppendLine($"- **Expected Users**: {config.UserCount}");
-        sb.AppendLine($"- **Deployment Type**: {config.DeploymentType}");
+        sb.AppendLine($"- **Deployment Type**: Enabled");
         sb.AppendLine($"- **Load Profile**: {config.LoadProfile}");
-        sb.AppendLine($"- **HA Enabled**: {config.DeploymentType}");
+        sb.AppendLine($"- **HA Enabled**: Enabled");
         sb.AppendLine();
         sb.AppendLine("## 2. Resource Requirements");
         sb.AppendLine($"| Resource | Required |");
@@ -128,7 +128,7 @@ public class ConfigExportService
         sb.AppendLine("<style>body{font-family:Arial;margin:40px}h1{color:#2c3e50}table{border-collapse:collapse;width:100%;margin:15px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#3498db;color:white}.kpi{display:flex;gap:15px}.kpi-box{background:#2980b9;color:white;padding:15px;border-radius:6px;flex:1}</style>");
         sb.AppendLine("</head><body>");
         sb.AppendLine($"<h1>{config.ProjectName} - Resource Report</h1>");
-        sb.AppendLine($"<p>Users: {config.UserCount} | Deployment: {config.DeploymentType} | Profile: {config.LoadProfile} | HA: {config.DeploymentType}</p>");
+        sb.AppendLine($"<p>Users: {config.UserCount} | Deployment: Enabled | Profile: {config.LoadProfile} | HA: Enabled</p>");
         sb.AppendLine("<div class='kpi'>");
         sb.AppendLine($"<div class='kpi-box'><h3>vCPU</h3><p>{req.TotalCpu:F1}</p></div>");
         sb.AppendLine($"<div class='kpi-box'><h3>RAM</h3><p>{req.TotalRamGb:F1} GB</p></div>");
@@ -153,9 +153,9 @@ public class ConfigExportService
         sb.AppendLine($"  {config.ProjectName} - Resource Report");
         sb.AppendLine("========================================");
         sb.AppendLine($"  Users:       {config.UserCount}");
-        sb.AppendLine($"  Deployment:  {config.DeploymentType}");
+        sb.AppendLine($"  Deployment:  Enabled");
         sb.AppendLine($"  Profile:     {config.LoadProfile}");
-        sb.AppendLine($"  HA:          {config.DeploymentType}");
+        sb.AppendLine($"  HA:          Enabled");
         sb.AppendLine("----------------------------------------");
         sb.AppendLine($"  vCPU:        {req.TotalCpu:F1} cores");
         sb.AppendLine($"  RAM:         {req.TotalRamGb:F1} GB");

@@ -11,6 +11,12 @@ public class ExcelImporter
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         using var package = new ExcelPackage(new FileInfo(filePath));
         var matrix = new SizingMatrix();
+        matrix.MsSqlRanges.Clear();
+        matrix.MsSqlPerformanceRanges.Clear();
+        matrix.AppServerRanges.Clear();
+        matrix.WebServerRanges.Clear();
+        matrix.AppServerPerformanceRanges.Clear();
+        matrix.WebServerPerformanceRanges.Clear();
 
         foreach (var ws in package.Workbook.Worksheets)
         {
