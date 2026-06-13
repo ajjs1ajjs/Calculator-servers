@@ -278,7 +278,7 @@ public partial class MainWindow : Window
         TblTotalRam.Text = $"{req.TotalRamGb:F1} GB";
         TblTotalStorage.Text = $"{req.TotalStorageGb} GB";
         TblTotalIops.Text = $"{req.TotalIops}";
-        TblTotalNodes.Text = $"{req.MasterNodeCount + req.WorkerNodeCount}";
+        TblTotalNodes.Text = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
 
         GridInfrastructure.ItemsSource = null;
         GridInfrastructure.ItemsSource = req.Infrastructure;
