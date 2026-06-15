@@ -9,6 +9,7 @@ public enum AiProvider
     None,
     OpenAI,
     Claude,
+    Google,
     LocalOllama
 }
 
@@ -71,6 +72,7 @@ public class AiSettings
         {
             AiProvider.OpenAI => "OpenAI",
             AiProvider.Claude => "Claude (Anthropic)",
+            AiProvider.Google => "Google (Gemini)",
             AiProvider.LocalOllama => "Local (Ollama)",
             _ => "Rule-based (offline)"
         };
@@ -87,6 +89,10 @@ public class AiSettings
             AiProvider.Claude => (
                 string.IsNullOrEmpty(EndpointUrl) ? "https://api.anthropic.com/v1/messages" : EndpointUrl,
                 string.IsNullOrEmpty(ModelName) ? "claude-3-haiku-20240307" : ModelName
+            ),
+            AiProvider.Google => (
+                "https://generativelanguage.googleapis.com/v1beta",
+                string.IsNullOrEmpty(ModelName) ? "gemini-1.5-flash" : ModelName
             ),
             AiProvider.LocalOllama => (
                 string.IsNullOrEmpty(EndpointUrl) ? "http://localhost:11434/api/generate" : EndpointUrl,

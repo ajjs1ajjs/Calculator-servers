@@ -30,6 +30,7 @@ public class AiApiService
             {
                 AiProvider.OpenAI => await CallOpenAi(endpoint, model, prompt),
                 AiProvider.Claude => await CallClaude(endpoint, model, prompt),
+                AiProvider.Google => await CallGoogle(endpoint, model, prompt),
                 AiProvider.LocalOllama => await CallOllama(endpoint, model, prompt),
                 _ => null
             };
@@ -140,6 +141,25 @@ public class AiApiService
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.TryGetProperty("response", out var resp))
             return resp.GetString() ?? "";
+        return "";
+    }
+
+    private async Task<string?> CallGoogle(string endpoint, string model, string prompt)
+    {
+        var url = $"{endpoint}/models/{model}:generateContent?key={_settings.ApiKey}";
+        var body = new
+        {
+            contents = new[] { new { parts = new[] { new { text = prompt } } } }
+        };
+        var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+        var response = await _http.PostAsync(url, content);
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+        {
+            var text = candidates[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+            return text ?? "";
+        }
         return "";
     }
 
