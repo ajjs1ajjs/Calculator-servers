@@ -330,9 +330,9 @@ public class AiAdvisorService
 
             nodes.Add(new InfrastructureNode
             {
-                Name = instanceType,
+                Name = "Worker Node",
                 Os = "Ubuntu 24.04 LTS", Cpu = workerCpu, RamGb = workerRam,
-                NodeCount = aiWorkers, StorageGb = 200, StorageType = "SSD"
+                NodeCount = aiWorkers, StorageGb = 200, StorageType = instanceType
             });
         }
 
