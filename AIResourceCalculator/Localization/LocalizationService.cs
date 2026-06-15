@@ -5,44 +5,95 @@ namespace AIResourceCalculator.Localization;
 
 public class LocalizationService : INotifyPropertyChanged
 {
-    private static readonly LocalizationService _instance = new();
-    public static LocalizationService Instance => _instance;
-
-    private Dictionary<string, string> _strings;
-    private string _currentLang = "uk";
-
-    public string CurrentLang => _currentLang;
-    public string Flag => _currentLang == "uk" ? "\U0001F1FA\U0001F1E6" : "\U0001F1EC\U0001F1E7";
-    public string LangName => _currentLang == "uk" ? "Українська" : "English";
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private LocalizationService()
+    private static readonly Dictionary<string, string> StringsUk = new()
     {
-        _strings = StringsUk;
-    }
-
-    public void LoadLanguage(string lang)
-    {
-        _strings = lang == "uk" ? StringsUk : StringsEn;
-        _currentLang = lang;
-
-        OnPropertyChanged("");
-        OnPropertyChanged("Item");
-        OnPropertyChanged("Item[]");
-        OnPropertyChanged(nameof(CurrentLang));
-        OnPropertyChanged(nameof(Flag));
-        OnPropertyChanged(nameof(LangName));
-    }
-
-    public string this[string key] => _strings.TryGetValue(key, out var val) ? val : $"[{key}]";
-
-    public string Get(string key) => this[key];
-
-    private void OnPropertyChanged([CallerMemberName] string? name = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    }
+        ["app.title"] = "AI Resource Calculator",
+        ["app.subtitle"] = "Розрахунок · AI · Рекомендації",
+        ["tab.matrixTitle"] = "1. База даних",
+        ["tab.setupTitle"] = "2. Калькулятор",
+        ["tab.resultsTitle"] = "3. Результати",
+        ["tab.aiQueryTitle"] = "4. AI Помічник",
+        ["setup.title"] = "Параметри розрахунку",
+        ["setup.users"] = "Кількість користувачів:",
+        ["setup.deployment"] = "Тип розгортання:",
+        ["setup.ha"] = "Висока доступність:",
+        ["setup.haHint"] = "Увімкнути HA (3+ вузли)",
+        ["setup.overprov"] = "Коефіцієнт резервування:",
+        ["setup.calculate"] = "Розрахувати ресурси",
+        ["deploy.k8s"] = "Kubernetes",
+        ["deploy.windows"] = "Windows",
+        ["deploy.hybrid"] = "Гібрид (K8s + Windows)",
+        ["profile.basic"] = "Базовий",
+        ["profile.performance"] = "Продуктивний",
+        ["results.title"] = "Результати розрахунку",
+        ["results.totalVcpu"] = "Всього vCPU",
+        ["results.totalRam"] = "Всього RAM",
+        ["results.totalStorage"] = "Всього диски",
+        ["results.totalIops"] = "Всього IOPS",
+        ["results.infra"] = "Інфраструктура",
+        ["results.compare"] = "Порівняти профілі",
+        ["results.compareTitle"] = "Порівняння профілів",
+        ["results.recommended"] = "Рекомендація",
+        ["results.aiTitle"] = "AI Advisor — Рекомендації",
+        ["results.aiAnalyzing"] = "AI аналізує вашу інфраструктуру...",
+        ["col.name"] = "Назва",
+        ["col.cpu"] = "vCPU",
+        ["col.ram"] = "RAM",
+        ["col.count"] = "К-сть",
+        ["col.storage"] = "Диски (ГБ)",
+        ["col.nodeType"] = "Тип вузла",
+        ["col.nodes"] = "Вузли",
+        ["col.minUsers"] = "Від",
+        ["col.maxUsers"] = "До",
+        ["col.ramMin"] = "RAM Min",
+        ["col.ramRec"] = "RAM Rec",
+        ["col.iops"] = "IOPS",
+        ["col.latency"] = "Затримка",
+        ["col.category"] = "Категорія",
+        ["col.replicas"] = "Репліки",
+        ["setup.import"] = "Імпорт Excel",
+        ["status.ready"] = "Готово",
+        ["status.calculated"] = "Розраховано: {0} користувачів, {1} vCPU, {2} ГБ RAM",
+        ["status.imported"] = "Імпортовано з Excel",
+        ["status.copied"] = "Скопійовано в буфер",
+        ["status.saved"] = "Збережено в {0}",
+        ["status.aiEnabled"] = "AI увімкнено: {0}",
+        ["status.aiDisabled"] = "AI на правилах",
+        ["tooltip.users"] = "Кількість активних користувачів (1-5000)",
+        ["tooltip.deployment"] = "Kubernetes: контейнери. Windows: VM. Гібрид: обидва",
+        ["tooltip.ha"] = "Вмикає 3+ вузли для відмовостійкості",
+        ["tooltip.overprov"] = "Додатковий запас ресурсів",
+        ["tooltip.calculate"] = "Запустити розрахунок ресурсів",
+        ["tooltip.langSwitch"] = "Змінити мову",
+        ["tooltip.aiSettings"] = "Налаштувати AI провайдера",
+        ["matrix.info"] = "Редагуйте дані матриці розрахунків. Імпортуйте з Excel або вводьте вручну.",
+        ["matrix.msSql"] = "MSSQL — діапазони ресурсів",
+        ["matrix.performance"] = "MSSQL — продуктивний профіль",
+        ["matrix.k8sComponents"] = "K8s компоненти",
+        ["matrix.infra"] = "Інфраструктура",
+        ["matrix.save"] = "Зберегти матрицю",
+        ["matrix.reset"] = "Скинути",
+        ["modules.title"] = "Модулі",
+        ["ai.badgeEnabled"] = "AI Online",
+        ["ai.badgeDisabled"] = "Правила (offline)",
+        ["ai.settingsBtn"] = "AI Settings",
+        ["ai.noData"] = "Запустіть розрахунок для отримання рекомендацій",
+        ["aiQuery.title"] = "AI Помічник",
+        ["aiQuery.desc"] = "Опишіть вашу інфраструктуру природною мовою. AI проаналізує та заповнить параметри.",
+        ["aiQuery.analyze"] = "Проаналізувати",
+        ["aiQuery.result"] = "Результат аналізу",
+        ["aiQuery.apply"] = "Застосувати до калькулятора",
+        ["aiQuery.templates"] = "Швидкі шаблони (без AI):",
+        ["aiQuery.tpl1"] = "Система на 200 користувачів з LMS та HR",
+        ["aiQuery.tpl2"] = "Високонавантажена система на 1000 користувачів",
+        ["aiQuery.tpl3"] = "Мінімальна система на 25 користувачів",
+        ["aiQuery.offline"] = "Увімкніть Real AI в налаштуваннях для аналізу тексту, або використайте шаблони.",
+        ["diagram.title"] = "Діаграма інфраструктури",
+        ["diagram.show"] = "Схема мережі",
+        ["diagram.copyMermaid"] = "Копіювати Mermaid",
+        ["dialog.matrixSaved"] = "Матрицю збережено",
+        ["settings.ai"] = "Налаштування AI",
+    };
 
     private static readonly Dictionary<string, string> StringsEn = new()
     {
@@ -134,93 +185,42 @@ public class LocalizationService : INotifyPropertyChanged
         ["settings.ai"] = "AI Settings",
     };
 
-    private static readonly Dictionary<string, string> StringsUk = new()
+    private static readonly LocalizationService _instance = new();
+    public static LocalizationService Instance => _instance;
+
+    private Dictionary<string, string> _strings;
+    private string _currentLang = "uk";
+
+    public string CurrentLang => _currentLang;
+    public string Flag => _currentLang == "uk" ? "\U0001F1FA\U0001F1E6" : "\U0001F1EC\U0001F1E7";
+    public string LangName => _currentLang == "uk" ? "Українська" : "English";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private LocalizationService()
     {
-        ["app.title"] = "AI Resource Calculator",
-        ["app.subtitle"] = "Розрахунок · AI · Рекомендації",
-        ["tab.matrixTitle"] = "1. База даних",
-        ["tab.setupTitle"] = "2. Калькулятор",
-        ["tab.resultsTitle"] = "3. Результати",
-        ["tab.aiQueryTitle"] = "4. AI Помічник",
-        ["setup.title"] = "Параметри розрахунку",
-        ["setup.users"] = "Кількість користувачів:",
-        ["setup.deployment"] = "Тип розгортання:",
-        ["setup.ha"] = "Висока доступність:",
-        ["setup.haHint"] = "Увімкнути HA (3+ вузли)",
-        ["setup.overprov"] = "Коефіцієнт резервування:",
-        ["setup.calculate"] = "Розрахувати ресурси",
-        ["deploy.k8s"] = "Kubernetes",
-        ["deploy.windows"] = "Windows",
-        ["deploy.hybrid"] = "Гібрид (K8s + Windows)",
-        ["profile.basic"] = "Базовий",
-        ["profile.performance"] = "Продуктивний",
-        ["results.title"] = "Результати розрахунку",
-        ["results.totalVcpu"] = "Всього vCPU",
-        ["results.totalRam"] = "Всього RAM",
-        ["results.totalStorage"] = "Всього диски",
-        ["results.totalIops"] = "Всього IOPS",
-        ["results.infra"] = "Інфраструктура",
-        ["results.compare"] = "Порівняти профілі",
-        ["results.compareTitle"] = "Порівняння профілів",
-        ["results.recommended"] = "Рекомендація",
-        ["results.aiTitle"] = "AI Advisor — Рекомендації",
-        ["results.aiAnalyzing"] = "AI аналізує вашу інфраструктуру...",
-        ["col.name"] = "Назва",
-        ["col.cpu"] = "vCPU",
-        ["col.ram"] = "RAM",
-        ["col.count"] = "К-сть",
-        ["col.storage"] = "Диски (ГБ)",
-        ["col.nodeType"] = "Тип вузла",
-        ["col.nodes"] = "Вузли",
-        ["col.minUsers"] = "Від",
-        ["col.maxUsers"] = "До",
-        ["col.ramMin"] = "RAM Min",
-        ["col.ramRec"] = "RAM Rec",
-        ["col.iops"] = "IOPS",
-        ["col.latency"] = "Затримка",
-        ["col.category"] = "Категорія",
-        ["col.replicas"] = "Репліки",
-        ["setup.import"] = "Імпорт Excel",
-        ["status.ready"] = "Готово",
-        ["status.calculated"] = "Розраховано: {0} користувачів, {1} vCPU, {2} ГБ RAM",
-        ["status.imported"] = "Імпортовано з Excel",
-        ["status.copied"] = "Скопійовано в буфер",
-        ["status.saved"] = "Збережено в {0}",
-        ["status.aiEnabled"] = "AI увімкнено: {0}",
-        ["status.aiDisabled"] = "AI на правилах",
-        ["tooltip.users"] = "Кількість активних користувачів (1-5000)",
-        ["tooltip.deployment"] = "Kubernetes: контейнери. Windows: VM. Гібрид: обидва",
-        ["tooltip.ha"] = "Вмикає 3+ вузли для відмовостійкості",
-        ["tooltip.overprov"] = "Додатковий запас ресурсів",
-        ["tooltip.calculate"] = "Запустити розрахунок ресурсів",
-        ["tooltip.langSwitch"] = "Змінити мову",
-        ["tooltip.aiSettings"] = "Налаштувати AI провайдера",
-        ["matrix.info"] = "Редагуйте дані матриці розрахунків. Імпортуйте з Excel або вводьте вручну.",
-        ["matrix.msSql"] = "MSSQL — діапазони ресурсів",
-        ["matrix.performance"] = "MSSQL — продуктивний профіль",
-        ["matrix.k8sComponents"] = "K8s компоненти",
-        ["matrix.infra"] = "Інфраструктура",
-        ["matrix.save"] = "Зберегти матрицю",
-        ["matrix.reset"] = "Скинути",
-        ["modules.title"] = "Модулі",
-        ["ai.badgeEnabled"] = "AI Online",
-        ["ai.badgeDisabled"] = "Правила (offline)",
-        ["ai.settingsBtn"] = "AI Settings",
-        ["ai.noData"] = "Запустіть розрахунок для отримання рекомендацій",
-        ["aiQuery.title"] = "AI Помічник",
-        ["aiQuery.desc"] = "Опишіть вашу інфраструктуру природною мовою. AI проаналізує та заповнить параметри.",
-        ["aiQuery.analyze"] = "Проаналізувати",
-        ["aiQuery.result"] = "Результат аналізу",
-        ["aiQuery.apply"] = "Застосувати до калькулятора",
-        ["aiQuery.templates"] = "Швидкі шаблони (без AI):",
-        ["aiQuery.tpl1"] = "Система на 200 користувачів з LMS та HR",
-        ["aiQuery.tpl2"] = "Високонавантажена система на 1000 користувачів",
-        ["aiQuery.tpl3"] = "Мінімальна система на 25 користувачів",
-        ["aiQuery.offline"] = "Увімкніть Real AI в налаштуваннях для аналізу тексту, або використайте шаблони.",
-        ["diagram.title"] = "Діаграма інфраструктури",
-        ["diagram.show"] = "Схема мережі",
-        ["diagram.copyMermaid"] = "Копіювати Mermaid",
-        ["dialog.matrixSaved"] = "Матрицю збережено",
-        ["settings.ai"] = "Налаштування AI",
-    };
+        _strings = StringsUk;
+    }
+
+    public void LoadLanguage(string lang)
+    {
+        _strings = lang == "uk" ? StringsUk : StringsEn;
+        _currentLang = lang;
+
+        OnPropertyChanged("");
+        OnPropertyChanged("Item");
+        OnPropertyChanged("Item[]");
+        OnPropertyChanged(nameof(CurrentLang));
+        OnPropertyChanged(nameof(Flag));
+        OnPropertyChanged(nameof(LangName));
+    }
+
+    public string this[string key] => _strings.TryGetValue(key, out var val) ? val : $"[{key}]";
+
+    public string Get(string key) => this[key];
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }
