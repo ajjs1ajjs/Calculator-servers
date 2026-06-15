@@ -26,8 +26,6 @@ public partial class MainWindow : Window
         GridCompareResults.ItemsSource = _vm.CompareResults;
         AiRecList.ItemsSource = _vm.AiRecommendations;
         QuickRecList.ItemsSource = _vm.AiRecommendations;
-        GridComponentsDetail.ItemsSource = _vm.ResultComponents;
-        ValidationList.ItemsSource = _vm.ValidationResults;
 
         DataObject.AddPastingHandler(TxtUserCount, NumberPaste);
 
@@ -63,10 +61,6 @@ public partial class MainWindow : Window
             { GridMatrixInfra.ItemsSource = null; GridMatrixInfra.ItemsSource = _vm.InfraNodes; }
         else if (e.PropertyName == nameof(MainViewModel.Modules))
             { ModulesPanel.ItemsSource = null; ModulesPanel.ItemsSource = _vm.Modules; }
-        else if (e.PropertyName == nameof(MainViewModel.ResultComponents))
-            { GridComponentsDetail.ItemsSource = null; GridComponentsDetail.ItemsSource = _vm.ResultComponents; }
-        else if (e.PropertyName == nameof(MainViewModel.ValidationResults))
-            { ValidationList.ItemsSource = null; ValidationList.ItemsSource = _vm.ValidationResults; }
     }
 
     private void NumberValidation(object sender, TextCompositionEventArgs e) =>
