@@ -360,13 +360,7 @@
                                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5,0">
                                                     <TextBlock Text="{Binding Required, StringFormat='Need: {0:F1}'}" Foreground="{DynamicResource TextMuted}" Margin="0,0,10,0"/>
                                                     <TextBlock Text="{Binding Allocated, StringFormat='Have: {0:F1}'}" Foreground="{DynamicResource TextMuted}" Margin="0,0,10,0"/>
-                                                    <TextBlock Foreground="{DynamicResource AccentBg}">
-                                                        <TextBlock.Text>
-                                                            <MultiBinding StringFormat="{}{0:F1}%">
-                                                                <Binding Path="DeltaPercent"/>
-                                                            </MultiBinding>
-                                                        </TextBlock.Text>
-                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding DeltaPercent, StringFormat='{}{0:F1}%'}" Foreground="{DynamicResource AccentBg}"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{Binding Severity}" FontWeight="Bold"
                                                            Foreground="{Binding Severity, Converter={StaticResource SeverityToColor}}"/>
