@@ -94,7 +94,8 @@
                             Command="{Binding ToggleThemeCommand}" ToolTip="Toggle theme">
                         <TextBlock Text="{Binding ThemeIcon}"/>
                     </Button>
-                    <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" Padding="10,5" FontSize="12"
+                    <Button Background="{DynamicResource DangerBg}" Foreground="{DynamicResource TextWhite}"
+                            Padding="10,5" FontSize="12" FontWeight="Bold"
                             Command="{Binding AiSettingsCommand}" ToolTip="{loc:Loc tooltip.aiSettings}">
                         <TextBlock Text="{loc:Loc ai.settingsBtn}"/>
                     </Button>
