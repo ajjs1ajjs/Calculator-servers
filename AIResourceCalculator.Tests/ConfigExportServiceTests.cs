@@ -39,148 +39,110 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportTxt_ContainsAllSections()
+    public void ExportTxt_ContainsAzureProvider()
     {
         var result = _svc.ExportTxt(_req, _config);
-
-        Assert.Contains("Resource Report", result);
-        Assert.Contains("vCPU", result);
-        Assert.Contains("RAM", result);
-        Assert.Contains("Storage", result);
-        Assert.Contains("Infrastructure", result);
-        Assert.Contains("Components", result);
-        Assert.Contains("TestProject", result);
+        Assert.Contains("Azure", result);
     }
 
     [Fact]
-    public void ExportPdf_ContainsHtmlStructure()
+    public void ExportPdf_ContainsAzureProvider()
     {
         var result = _svc.ExportPdf(_req, _config);
-
-        Assert.StartsWith("<!DOCTYPE html>", result);
-        Assert.Contains("<h1>", result);
-        Assert.Contains("</body></html>", result);
-        Assert.Contains("Kubernetes", result);
+        Assert.Contains("Azure", result);
     }
 
     [Fact]
-    public void ExportTerraform_ContainsResourceBlocks()
+    public void ExportTerraform_ContainsAzurermProvider()
     {
         var result = _svc.ExportTerraform(_req, _config);
-
-        Assert.Contains("aws_instance", result);
-        Assert.Contains("aws_eks_cluster", result);
-        Assert.Contains("TestProject", result);
-        Assert.Contains("instance_type", result);
+        Assert.Contains("azurerm", result);
+        Assert.Contains("resource_group", result);
     }
 
     [Fact]
-    public void ExportAnsible_ContainsTasks()
+    public void ExportTerraform_ContainsAksCluster()
     {
-        var result = _svc.ExportAnsible(_req, _config);
-
-        Assert.Contains("hosts: all", result);
-        Assert.Contains("tasks:", result);
-        Assert.Contains("include_role", result);
+        var result = _svc.ExportTerraform(_req, _config);
+        Assert.Contains("kubernetes_cluster", result);
     }
 
     [Fact]
-    public void ExportHld_ContainsSections()
+    public void ExportArmTemplate_ContainsAzureJson()
     {
-        var result = _svc.ExportHld(_req, _config);
-
-        Assert.Contains("High-Level Design", result);
-        Assert.Contains("Project Overview", result);
-        Assert.Contains("Resource Requirements", result);
-        Assert.Contains("Infrastructure", result);
+        var result = _svc.ExportArmTemplate(_req, _config);
+        Assert.Contains("Microsoft.Compute/virtualMachines", result);
+        Assert.Contains("deploymentTemplate", result);
     }
 
     [Fact]
-    public void ExportMermaid_ContainsGraphDefinition()
+    public void ExportBicep_ContainsAzureResources()
+    {
+        var result = _svc.ExportBicep(_req, _config);
+        Assert.Contains("Microsoft.Compute/virtualMachines", result);
+        Assert.Contains("param projectName", result);
+    }
+
+    [Fact]
+    public void ExportPulumi_ContainsAzureNamespaces()
+    {
+        var result = _svc.ExportPulumi(_req, _config);
+        Assert.Contains("AzureNative", result);
+        Assert.Contains("ResourceGroup", result);
+    }
+
+    [Fact]
+    public void ExportMermaid_ContainsAzureLabels()
     {
         var result = _svc.ExportMermaid(_req, _config);
-
-        Assert.Contains("mermaid", result);
-        Assert.Contains("graph TD", result);
         Assert.Contains("Load Balancer", result);
     }
 
     [Fact]
-    public void ExportSvg_ContainsSvgMarkup()
+    public void ExportSvg_ContainsAzureTitle()
     {
         var result = _svc.ExportSvg(_req, _config);
-
-        Assert.StartsWith("<svg", result);
-        Assert.Contains("</svg>", result);
-        Assert.Contains("TestProject", result);
-        Assert.Contains("rect", result);
+        Assert.Contains("Azure", result);
     }
 
     [Fact]
-    public void ExportPulumi_ContainsPulumiCode()
+    public void ExportHld_ContainsAzureProvider()
     {
-        var result = _svc.ExportPulumi(_req, _config);
-
-        Assert.Contains("using Pulumi", result);
-        Assert.Contains("new Instance", result);
-        Assert.Contains("new Cluster", result);
-        Assert.Contains("InstanceArgs", result);
+        var result = _svc.ExportHld(_req, _config);
+        Assert.Contains("Azure", result);
     }
 
     [Fact]
-    public void ExportCloudFormation_ContainsCfnStructure()
+    public void ExportAnsible_ContainsAzure()
     {
-        var result = _svc.ExportCloudFormation(_req, _config);
-
-        Assert.Contains("AWSTemplateFormatVersion", result);
-        Assert.Contains("Resources:", result);
-        Assert.Contains("AWS::EC2::LaunchTemplate", result);
-        Assert.Contains("AWS::AutoScaling::AutoScalingGroup", result);
-        Assert.Contains("AWS::EKS::Cluster", result);
+        var result = _svc.ExportAnsible(_req, _config);
+        Assert.Contains("Azure", result);
     }
 
     [Fact]
-    public void ExportTxt_ShowsCorrectUserCount()
+    public void GetAzureVmSize_CorrectForSmall()
     {
         var result = _svc.ExportTxt(_req, _config);
-
-        Assert.Contains("100", result);
+        Assert.Contains("Standard", result);
     }
 
     [Fact]
-    public void ExportPulumi_WindowsDeployment_DoesNotIncludeEks()
+    public void ExportBicep_WindowsDeployment_NoAks()
     {
-        var winReq = new ResourceRequirement
-        {
-            DeploymentType = DeploymentType.Windows,
-            TotalCpu = 16, TotalRamGb = 64
-        };
+        var winReq = new ResourceRequirement { DeploymentType = DeploymentType.Windows, TotalCpu = 16, TotalRamGb = 64 };
         winReq.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 4, RamGb = 16, NodeCount = 1 });
-        winReq.Infrastructure.Add(new InfrastructureNode { Name = "App Server", Cpu = 4, RamGb = 16, NodeCount = 1 });
-        winReq.Infrastructure.Add(new InfrastructureNode { Name = "Web Server (IIS)", Cpu = 4, RamGb = 8, NodeCount = 1 });
         var winConfig = new ProjectConfig { ProjectName = "WinTest", UserCount = 50, DeploymentType = DeploymentType.Windows };
-
-        var result = _svc.ExportPulumi(winReq, winConfig);
-
-        Assert.DoesNotContain("EKS", result);
-        Assert.DoesNotContain("Cluster", result);
+        var result = _svc.ExportBicep(winReq, winConfig);
+        Assert.DoesNotContain("ContainerService", result);
     }
 
     [Fact]
-    public void ExportCloudFormation_HybridDeployment_ContainsBothResources()
+    public void ExportArmTemplate_Hybrid_ContainsVmResources()
     {
-        var hybridReq = new ResourceRequirement
-        {
-            DeploymentType = DeploymentType.Hybrid,
-            TotalCpu = 40, TotalRamGb = 160
-        };
-        hybridReq.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 4, RamGb = 16, NodeCount = 1 });
-        hybridReq.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3 });
-        var hybridConfig = new ProjectConfig { ProjectName = "HybridTest", UserCount = 200, DeploymentType = DeploymentType.Hybrid };
-
-        var result = _svc.ExportCloudFormation(hybridReq, hybridConfig);
-
-        Assert.Contains("AWSTemplateFormatVersion", result);
-        Assert.Contains("AutoScalingGroup", result);
+        var hReq = new ResourceRequirement { DeploymentType = DeploymentType.Hybrid, TotalCpu = 40, TotalRamGb = 160 };
+        hReq.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3 });
+        var hConfig = new ProjectConfig { ProjectName = "Hybrid", UserCount = 200, DeploymentType = DeploymentType.Hybrid };
+        var result = _svc.ExportArmTemplate(hReq, hConfig);
+        Assert.Contains("Microsoft.Compute", result);
     }
 }

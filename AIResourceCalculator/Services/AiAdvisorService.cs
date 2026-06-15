@@ -304,14 +304,15 @@ public class AiAdvisorService
     {
         return (cpu, ram) switch
         {
-            (<= 2, <= 4) => ("t3.medium", Loc("Burstable, low traffic", "Бurstable, низький трафік"), 30),
-            (<= 4, <= 16) => ("m5.large", Loc("General purpose, balanced", "Загального призначення"), 70),
-            (<= 8, <= 32) => ("m5.xlarge", Loc("General purpose, most workloads", "Загального призначення"), 140),
-            (<= 16, <= 64) => ("m5.2xlarge", Loc("General purpose, high perf", "Продуктивний"), 280),
-            (<= 32, <= 128) => ("m5.4xlarge", Loc("General purpose, heavy", "Важкі навантаження"), 560),
-            (<= 48, <= 192) => ("m5.8xlarge", Loc("General purpose, enterprise", "Корпоративний"), 1120),
-            (<= 64, <= 256) => ("c5.9xlarge", Loc("Compute optimized, CPU", "Оптимізований CPU"), 1300),
-            _ => ("m5.4xlarge", Loc("General purpose", "Загального призначення"), 560)
+            (<= 2, <= 4) => ("Standard_B2s", Loc("Burstable, dev/test", "Burstable, розробка/тест"), 30),
+            (<= 2, <= 8) => ("Standard_D2s_v5", Loc("General purpose, small", "Загальне, мале"), 70),
+            (<= 4, <= 16) => ("Standard_D4s_v5", Loc("General purpose, balanced", "Загальне, збалансоване"), 140),
+            (<= 8, <= 32) => ("Standard_D8s_v5", Loc("General purpose, most workloads", "Більшість навантажень"), 280),
+            (<= 16, <= 64) => ("Standard_D16s_v5", Loc("General purpose, high perf", "Продуктивне"), 560),
+            (<= 32, <= 128) => ("Standard_D32s_v5", Loc("General purpose, heavy", "Важкі навантаження"), 1120),
+            (<= 48, <= 192) => ("Standard_D48s_v5", Loc("General purpose, large", "Велике"), 1680),
+            (<= 64, <= 256) => ("Standard_F16s_v2", Loc("Compute optimized, CPU", "Оптимізоване CPU"), 1300),
+            _ => ("Standard_D32s_v5", Loc("General purpose", "Загальне призначення"), 1120)
         };
     }
 

@@ -12,17 +12,47 @@ public class ConfigExportService
         sb.AppendLine($"# Project: {config.ProjectName}, Users: {config.UserCount}");
         sb.AppendLine();
 
+        sb.AppendLine("provider \"azurerm\" {");
+        sb.AppendLine("  features {}");
+        sb.AppendLine("}");
+        sb.AppendLine();
+
+        sb.AppendLine($"resource \"azurerm_resource_group\" \"rg\" {{");
+        sb.AppendLine($"  name     = \"rg-{config.ProjectName.ToLower().Replace(" ", "-")}\"");
+        sb.AppendLine("  location = \"West Europe\"");
+        sb.AppendLine("}");
+        sb.AppendLine();
+
+        sb.AppendLine($"resource \"azurerm_virtual_network\" \"vnet\" {{");
+        sb.AppendLine("  name                = \"vnet-main\"");
+        sb.AppendLine("  resource_group_name = azurerm_resource_group.rg.name");
+        sb.AppendLine("  location            = azurerm_resource_group.rg.location");
+        sb.AppendLine("  address_space       = [\"10.0.0.0/16\"]");
+        sb.AppendLine("}");
+        sb.AppendLine();
+
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.ToLower().Replace(" ", "_").Replace("(", "").Replace(")", "");
-            sb.AppendLine($"resource \"aws_instance\" \"{name}\" {{");
-            sb.AppendLine($"  count         = {infra.NodeCount}");
-            sb.AppendLine($"  ami           = \"ami-0c55b159cbfafe1f0\"");
-            sb.AppendLine($"  instance_type = \"{GetInstanceType(infra.Cpu, infra.RamGb)}\"");
-            sb.AppendLine();
+            var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            sb.AppendLine($"resource \"azurerm_linux_virtual_machine\" \"{name}\" {{");
+            sb.AppendLine($"  name                = \"vm-{name}\"");
+            sb.AppendLine("  resource_group_name = azurerm_resource_group.rg.name");
+            sb.AppendLine("  location            = azurerm_resource_group.rg.location");
+            sb.AppendLine($"  size                = \"{GetAzureVmSize(infra.Cpu, infra.RamGb)}\"");
+            sb.AppendLine("  admin_username      = \"azureuser\"");
+            sb.AppendLine("  network_interface_ids = [azurerm_network_interface.nic_${count.index}.id]");
+            sb.AppendLine("  admin_ssh_key {");
+            sb.AppendLine("    username   = \"azureuser\"");
+            sb.AppendLine("    public_key = file(\"~/.ssh/id_rsa.pub\")");
+            sb.AppendLine("  }");
+            sb.AppendLine("  os_disk {");
+            sb.AppendLine("    caching              = \"ReadWrite\"");
+            sb.AppendLine("    storage_account_type = \"Premium_LRS\"");
+            sb.AppendLine("  }");
+            sb.AppendLine($"  count = {infra.NodeCount}");
             sb.AppendLine("  tags = {");
             sb.AppendLine($"    Name        = \"{config.ProjectName}-{name}\"");
-            sb.AppendLine($"    Environment = \"production\"");
+            sb.AppendLine("    Environment = \"production\"");
             sb.AppendLine("  }");
             sb.AppendLine("}");
             sb.AppendLine();
@@ -30,17 +60,90 @@ public class ConfigExportService
 
         if (config.DeploymentType == DeploymentType.Kubernetes)
         {
-            sb.AppendLine("# Kubernetes cluster definition");
-            sb.AppendLine($"resource \"aws_eks_cluster\" \"{config.ProjectName.ToLower().Replace(" ", "_")}\" {{");
-            sb.AppendLine($"  name     = \"{config.ProjectName}\"");
-            sb.AppendLine($"  role_arn = aws_iam_role.eks.arn");
-            sb.AppendLine();
-            sb.AppendLine("  vpc_config {");
-            sb.AppendLine("    subnet_ids = aws_subnet.public[*].id");
+            sb.AppendLine($"resource \"azurerm_kubernetes_cluster\" \"aks\" {{");
+            sb.AppendLine($"  name                = \"aks-{config.ProjectName.ToLower().Replace(" ", "-")}\"");
+            sb.AppendLine("  location            = azurerm_resource_group.rg.location");
+            sb.AppendLine("  resource_group_name = azurerm_resource_group.rg.name");
+            sb.AppendLine("  dns_prefix          = \"${var.prefix}-aks\"");
+            sb.AppendLine("  default_node_pool {");
+            sb.AppendLine($"    name       = \"default\"");
+            sb.AppendLine($"    node_count = {Math.Max(1, req.WorkerNodeCount)}");
+            sb.AppendLine($"    vm_size    = \"{GetAzureVmSize(8, 32)}\"");
             sb.AppendLine("  }");
+            sb.AppendLine("  identity { type = \"SystemAssigned\" }");
             sb.AppendLine("}");
         }
 
+        return sb.ToString();
+    }
+
+    public string ExportArmTemplate(ResourceRequirement req, ProjectConfig config)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine("  \"$schema\": \"https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#\",");
+        sb.AppendLine("  \"contentVersion\": \"1.0.0.0\",");
+        sb.AppendLine("  \"parameters\": {");
+        sb.AppendLine($"    \"projectName\": {{ \"type\": \"string\", \"defaultValue\": \"{config.ProjectName}\" }},");
+        sb.AppendLine($"    \"userCount\": {{ \"type\": \"int\", \"defaultValue\": {config.UserCount} }},");
+        sb.AppendLine("    \"adminUsername\": { \"type\": \"string\", \"defaultValue\": \"azureuser\" }");
+        sb.AppendLine("  },");
+        sb.AppendLine("  \"variables\": { \"location\": \"[resourceGroup().location]\" },");
+        sb.AppendLine("  \"resources\": [");
+
+        int i = 0;
+        foreach (var infra in req.Infrastructure)
+        {
+            var name = infra.Name.Replace(" ", "").Replace("(", "").Replace(")", "");
+            var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
+
+            sb.AppendLine("    {");
+            sb.AppendLine($"      \"type\": \"Microsoft.Compute/virtualMachines\",");
+            sb.AppendLine($"      \"name\": \"[concat('vm-{name.ToLower()}', copyIndex())]\",");
+            sb.AppendLine("      \"apiVersion\": \"2023-07-01\",");
+            sb.AppendLine("      \"location\": \"[variables('location')]\",");
+            sb.AppendLine($"      \"copy\": {{ \"name\": \"{name}Loop\", \"count\": {infra.NodeCount} }},");
+            sb.AppendLine("      \"properties\": {");
+            sb.AppendLine("        \"hardwareProfile\": {");
+            sb.AppendLine($"          \"vmSize\": \"{size}\"");
+            sb.AppendLine("        },");
+            sb.AppendLine("        \"osProfile\": {");
+            sb.AppendLine("          \"computerName\": \"[concat('vm-', copyIndex())]\",");
+            sb.AppendLine("          \"adminUsername\": \"[parameters('adminUsername')]\"");
+            sb.AppendLine("        },");
+            sb.AppendLine("        \"storageProfile\": {");
+            sb.AppendLine("          \"osDisk\": {");
+            sb.AppendLine("            \"createOption\": \"FromImage\",");
+            sb.AppendLine("            \"managedDisk\": { \"storageAccountType\": \"Premium_LRS\" }");
+            sb.AppendLine("          }");
+            sb.AppendLine("        }");
+            sb.AppendLine("      },");
+            sb.AppendLine("      \"tags\": { \"Name\": \"[parameters('projectName')]\", \"Environment\": \"production\" }");
+            sb.Append("    }");
+            if (++i < req.Infrastructure.Count) sb.Append(",");
+            sb.AppendLine();
+        }
+
+        if (config.DeploymentType == DeploymentType.Kubernetes)
+        {
+            sb.AppendLine("    ,{");
+            sb.AppendLine("      \"type\": \"Microsoft.ContainerService/managedClusters\",");
+            sb.AppendLine($"      \"name\": \"[parameters('projectName')]\",");
+            sb.AppendLine("      \"apiVersion\": \"2023-07-01\",");
+            sb.AppendLine("      \"location\": \"[variables('location')]\",");
+            sb.AppendLine("      \"properties\": {");
+            sb.AppendLine("        \"dnsPrefix\": \"[toLower(parameters('projectName'))]\",");
+            sb.AppendLine("        \"agentPoolProfiles\": [{");
+            sb.AppendLine("          \"name\": \"default\",");
+            sb.AppendLine($"          \"count\": {Math.Max(1, req.WorkerNodeCount)},");
+            sb.AppendLine($"          \"vmSize\": \"{GetAzureVmSize(8, 32)}\"");
+            sb.AppendLine("        }]");
+            sb.AppendLine("      }");
+            sb.AppendLine("    }");
+        }
+
+        sb.AppendLine("  ]");
+        sb.AppendLine("}");
         return sb.ToString();
     }
 
@@ -50,28 +153,19 @@ public class ConfigExportService
         sb.AppendLine("# Generated by AI Resource Calculator");
         sb.AppendLine($"# Project: {config.ProjectName}");
         sb.AppendLine("---");
-        sb.AppendLine($"- name: Deploy {config.ProjectName} infrastructure");
+        sb.AppendLine($"- name: Deploy {config.ProjectName} infrastructure on Azure");
         sb.AppendLine("  hosts: all");
         sb.AppendLine("  become: yes");
         sb.AppendLine("  vars:");
         sb.AppendLine($"    project_name: {config.ProjectName}");
         sb.AppendLine($"    user_count: {config.UserCount}");
         sb.AppendLine($"    deployment_type: {config.DeploymentType}");
-        sb.AppendLine();
-        sb.AppendLine("  tasks:");
-
         foreach (var infra in req.Infrastructure)
         {
-            sb.AppendLine($"    - name: Configure {infra.Name}");
+            sb.AppendLine($"    - name: Configure {infra.Name} on Azure");
             sb.AppendLine("      ansible.builtin.include_role:");
             sb.AppendLine($"        name: \"setup_{infra.Name.ToLower().Replace(" ", "_")}\"");
-            sb.AppendLine("      vars:");
-            sb.AppendLine($"        cpu_cores: {infra.Cpu}");
-            sb.AppendLine($"        ram_gb: {infra.RamGb}");
-            sb.AppendLine($"        instance_count: {infra.NodeCount}");
-            sb.AppendLine();
         }
-
         return sb.ToString();
     }
 
@@ -79,45 +173,28 @@ public class ConfigExportService
     {
         var sb = new StringBuilder();
         sb.AppendLine("# High-Level Design Document");
-        sb.AppendLine($"# Project: {config.ProjectName}");
+        sb.AppendLine($"# Project: {config.ProjectName} (Azure)");
         sb.AppendLine();
         sb.AppendLine("## 1. Project Overview");
         sb.AppendLine($"- **Project**: {config.ProjectName}");
+        sb.AppendLine($"- **Cloud Provider**: Microsoft Azure");
         sb.AppendLine($"- **Expected Users**: {config.UserCount}");
         sb.AppendLine($"- **Deployment Type**: {config.DeploymentType}");
         sb.AppendLine($"- **Load Profile**: {config.LoadProfile}");
-        sb.AppendLine($"- **HA Enabled**: Enabled");
         sb.AppendLine();
         sb.AppendLine("## 2. Resource Requirements");
-        sb.AppendLine($"| Resource | Required |");
-        sb.AppendLine($"|----------|----------|");
+        sb.AppendLine("| Resource | Required |");
+        sb.AppendLine("|----------|----------|");
         sb.AppendLine($"| vCPU     | {req.TotalCpu:F1} cores |");
         sb.AppendLine($"| RAM      | {req.TotalRamGb:F1} GB |");
         sb.AppendLine($"| Storage  | {req.TotalStorageGb} GB |");
         sb.AppendLine($"| IOPS     | {req.TotalIops} |");
         sb.AppendLine();
-        sb.AppendLine("## 3. Infrastructure");
-        sb.AppendLine("| Node Type | Count | vCPU | RAM (GB) | Storage (GB) |");
-        sb.AppendLine("|-----------|-------|------|----------|--------------|");
-
+        sb.AppendLine("## 3. Infrastructure (Azure VMs)");
+        sb.AppendLine("| Node | Count | VM Size | vCPU | RAM (GB) | Storage (GB) |");
+        sb.AppendLine("|------|-------|---------|------|----------|--------------|");
         foreach (var infra in req.Infrastructure)
-        {
-            sb.AppendLine($"| {infra.Name} | {infra.NodeCount} | {infra.Cpu} | {infra.RamGb} | {infra.StorageGb} |");
-        }
-
-        sb.AppendLine();
-        sb.AppendLine("## 4. Components");
-
-        foreach (var comp in req.Components)
-        {
-            if (!string.IsNullOrEmpty(comp.Category))
-                sb.AppendLine($"### {comp.Category}");
-            sb.AppendLine($"- **{comp.Name}**: CPU={comp.Cpu}, RAM={comp.RamGb}GB, Replicas={comp.Replicas}");
-        }
-
-        sb.AppendLine();
-        sb.AppendLine("## 5. Compliance Validation");
-
+            sb.AppendLine($"| {infra.Name} | {infra.NodeCount} | {GetAzureVmSize(infra.Cpu, infra.RamGb)} | {infra.Cpu} | {infra.RamGb} | {infra.StorageGb} |");
         return sb.ToString();
     }
 
@@ -125,21 +202,20 @@ public class ConfigExportService
     {
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
-        sb.AppendLine("<style>body{font-family:Arial;margin:40px}h1{color:#2c3e50}table{border-collapse:collapse;width:100%;margin:15px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#3498db;color:white}.kpi{display:flex;gap:15px}.kpi-box{background:#2980b9;color:white;padding:15px;border-radius:6px;flex:1}</style>");
+        sb.AppendLine("<style>body{font-family:Arial;margin:40px;background:#eff1f5;color:#4c4f69}h1{color:#1e66f5}table{border-collapse:collapse;width:100%;margin:15px 0}th,td{border:1px solid #acb0be;padding:8px;text-align:left}th{background:#1e66f5;color:white}.kpi{display:flex;gap:15px}.kpi-box{color:white;padding:15px;border-radius:6px;flex:1}</style>");
         sb.AppendLine("</head><body>");
-        sb.AppendLine($"<h1>{config.ProjectName} - Resource Report</h1>");
-        sb.AppendLine($"<p>Users: {config.UserCount} | Deployment: {config.DeploymentType} | Profile: {config.LoadProfile} | HA: Enabled</p>");
+        sb.AppendLine($"<h1>{config.ProjectName} — Azure Resource Report</h1>");
+        sb.AppendLine($"<p>Users: {config.UserCount} | Deployment: {config.DeploymentType} | Profile: {config.LoadProfile} | Provider: Azure</p>");
         sb.AppendLine("<div class='kpi'>");
-        sb.AppendLine($"<div class='kpi-box'><h3>vCPU</h3><p>{req.TotalCpu:F1}</p></div>");
-        sb.AppendLine($"<div class='kpi-box'><h3>RAM</h3><p>{req.TotalRamGb:F1} GB</p></div>");
-        sb.AppendLine($"<div class='kpi-box'><h3>Storage</h3><p>{req.TotalStorageGb} GB</p></div>");
-        sb.AppendLine($"<div class='kpi-box'><h3>IOPS</h3><p>{req.TotalIops}</p></div>");
+        sb.AppendLine($"<div class='kpi-box' style='background:#1e66f5'><h3>vCPU</h3><p>{req.TotalCpu:F1}</p></div>");
+        sb.AppendLine($"<div class='kpi-box' style='background:#40a02b'><h3>RAM</h3><p>{req.TotalRamGb:F1} GB</p></div>");
+        sb.AppendLine($"<div class='kpi-box' style='background:#fe640b'><h3>Storage</h3><p>{req.TotalStorageGb} GB</p></div>");
+        sb.AppendLine($"<div class='kpi-box' style='background:#8839ef'><h3>IOPS</h3><p>{req.TotalIops}</p></div>");
         sb.AppendLine("</div>");
-        sb.AppendLine("<h2>Infrastructure</h2><table><tr><th>Node</th><th>vCPU</th><th>RAM</th><th>Count</th><th>Storage</th></tr>");
+        sb.AppendLine("<h2>Infrastructure</h2><table><tr><th>Node</th><th>VM Size</th><th>vCPU</th><th>RAM</th><th>Count</th><th>Storage</th></tr>");
         foreach (var i in req.Infrastructure)
-            sb.AppendLine($"<tr><td>{i.Name}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{i.StorageGb} GB</td></tr>");
-        sb.AppendLine("</table>");
-        sb.AppendLine("<h2>Components</h2><table><tr><th>Name</th><th>vCPU</th><th>RAM</th><th>Replicas</th></tr>");
+            sb.AppendLine($"<tr><td>{i.Name}</td><td>{GetAzureVmSize(i.Cpu, i.RamGb)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{i.StorageGb} GB</td></tr>");
+        sb.AppendLine("</table><h2>Components</h2><table><tr><th>Name</th><th>vCPU</th><th>RAM</th><th>Replicas</th></tr>");
         foreach (var c in req.Components.Where(c => c.Cpu > 0))
             sb.AppendLine($"<tr><td>{c.Name}</td><td>{c.Cpu:F1}</td><td>{c.RamGb:F1}</td><td>{c.Replicas}</td></tr>");
         sb.AppendLine("</table></body></html>");
@@ -150,12 +226,12 @@ public class ConfigExportService
     {
         var sb = new StringBuilder();
         sb.AppendLine("========================================");
-        sb.AppendLine($"  {config.ProjectName} - Resource Report");
+        sb.AppendLine($"  {config.ProjectName} — Azure Resource Report");
         sb.AppendLine("========================================");
         sb.AppendLine($"  Users:       {config.UserCount}");
         sb.AppendLine($"  Deployment:  {config.DeploymentType}");
         sb.AppendLine($"  Profile:     {config.LoadProfile}");
-        sb.AppendLine($"  HA:          Enabled");
+        sb.AppendLine($"  Provider:    Microsoft Azure");
         sb.AppendLine("----------------------------------------");
         sb.AppendLine($"  vCPU:        {req.TotalCpu:F1} cores");
         sb.AppendLine($"  RAM:         {req.TotalRamGb:F1} GB");
@@ -164,7 +240,7 @@ public class ConfigExportService
         sb.AppendLine("----------------------------------------");
         sb.AppendLine("  Infrastructure:");
         foreach (var i in req.Infrastructure)
-            sb.AppendLine($"    {i.Name}: {i.NodeCount}x ({i.Cpu} vCPU, {i.RamGb} GB, {i.StorageGb} GB)");
+            sb.AppendLine($"    {i.Name}: {i.NodeCount}x ({i.Cpu} vCPU, {i.RamGb} GB, {i.StorageGb} GB) — {GetAzureVmSize(i.Cpu, i.RamGb)}");
         sb.AppendLine("----------------------------------------");
         sb.AppendLine("  Components:");
         foreach (var c in req.Components.Where(c => c.Cpu > 0))
@@ -180,23 +256,24 @@ public class ConfigExportService
         sb.AppendLine("graph TD");
         if (config.DeploymentType == DeploymentType.Kubernetes || config.DeploymentType == DeploymentType.Hybrid)
         {
-            var lb = "LB[Load Balancer]";
-            var masters = string.Join(" & ", req.Infrastructure.Where(n => n.Name.Contains("Master")).Select(n => $"M{n.Name.Replace(" ", "")}[{n.Name}]"));
-            var workers = string.Join(" & ", req.Infrastructure.Where(n => n.Name.Contains("Worker")).Select(n => $"W{n.Name.Replace(" ", "")}[{n.Name}]"));
+            sb.AppendLine("  LB[Azure Load Balancer]");
+            var masters = string.Join(" & ", req.Infrastructure.Where(n => n.Name.Contains("Master"))
+                .Select(n => $"M{n.Name.Replace(" ", "")}[{n.Name}]"));
+            var workers = string.Join(" & ", req.Infrastructure.Where(n => n.Name.Contains("Worker"))
+                .Select(n => $"W{n.Name.Replace(" ", "")}[{n.Name}]"));
             var sql = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("SQL"));
-            var sqlNode = sql != null ? $"SQL[{sql.Name}]" : "SQL[SQL Server]";
-            sb.AppendLine($"  {lb} --> {masters}");
-            sb.AppendLine($"  {masters} --> {workers}");
-            sb.AppendLine($"  {workers} --> {sqlNode}");
+            if (!string.IsNullOrEmpty(masters)) sb.AppendLine($"  LB --> {masters}");
+            if (!string.IsNullOrEmpty(masters) && !string.IsNullOrEmpty(workers)) sb.AppendLine($"  {masters} --> {workers}");
+            if (sql != null && !string.IsNullOrEmpty(workers)) sb.AppendLine($"  {workers} --> SQL[Azure SQL DB]");
         }
         else
         {
-            var sql = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("SQL"));
-            var app = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("App"));
             var web = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("Web"));
-            if (sql != null) sb.AppendLine($"  SQL[SQL Server] --> APP[App Server]");
-            if (app != null && web != null) sb.AppendLine($"  APP[App Server] --> WEB[{web.Name}]");
-            if (sql != null && web == null) sb.AppendLine($"  SQL[SQL Server] --> APP[App Server]");
+            var app = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("App"));
+            if (web != null) sb.AppendLine($"  WEB[{web.Name}]");
+            if (web != null && app != null) sb.AppendLine($"  WEB --> APP[{app.Name}]");
+            var sql = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("SQL"));
+            if (app != null && sql != null) sb.AppendLine($"  APP --> SQL[Azure SQL DB]");
         }
         sb.AppendLine("```");
         return sb.ToString();
@@ -204,41 +281,24 @@ public class ConfigExportService
 
     public string ExportSvg(ResourceRequirement req, ProjectConfig config)
     {
-        var x = 50;
-        var y = 50;
-        var bw = 180;
-        var bh = 60;
-        var gap = 40;
-        var w = 800;
-        var h = 500;
+        var x = 50; var y = 50; var bw = 200; var bh = 70; var gap = 50;
         var sb = new StringBuilder();
-        sb.AppendLine($"<svg xmlns='http://www.w3.org/2000/svg' width='{w}' height='{h}'>");
-        sb.AppendLine($"<rect width='{w}' height='{h}' fill='#f5f6fa' rx='10'/>");
-        sb.AppendLine($"<text x='20' y='30' font-size='20' font-weight='bold' fill='#2c3e50'>{config.ProjectName} - Infrastructure</text>");
-
+        sb.AppendLine($"<svg xmlns='http://www.w3.org/2000/svg' width='900' height='500'>");
+        sb.AppendLine("<rect width='900' height='500' fill='#eff1f5' rx='10'/>");
+        sb.AppendLine($"<text x='20' y='30' font-size='18' font-weight='bold' fill='#4c4f69'>{config.ProjectName} — Azure Infrastructure</text>");
         var nodes = req.Infrastructure.ToList();
         var cols = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(nodes.Count)));
-
         for (int i = 0; i < nodes.Count; i++)
         {
             var cx = x + (i % cols) * (bw + gap);
             var cy = y + 60 + (i / cols) * (bh + gap);
             var n = nodes[i];
-            var color = n.Name.Contains("SQL") ? "#e74c3c" : n.Name.Contains("Master") ? "#3498db" : n.Name.Contains("Worker") ? "#2ecc71" : n.Name.Contains("App") ? "#9b59b6" : "#f39c12";
+            var color = n.Name.Contains("SQL") ? "#d20f39" : n.Name.Contains("Master") ? "#1e66f5" : n.Name.Contains("Worker") ? "#40a02b" : n.Name.Contains("App") ? "#8839ef" : "#fe640b";
             sb.AppendLine($"<rect x='{cx}' y='{cy}' width='{bw}' height='{bh}' rx='8' fill='{color}' opacity='0.9'/>");
             sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 22}' text-anchor='middle' font-size='13' font-weight='bold' fill='white'>{n.Name}</text>");
-            sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 40}' text-anchor='middle' font-size='11' fill='white'>{n.Cpu} vCPU | {n.RamGb} GB | {n.NodeCount}x</text>");
+            sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 42}' text-anchor='middle' font-size='11' fill='white'>{n.Cpu} vCPU | {n.RamGb} GB | {n.NodeCount}x</text>");
+            sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 58}' text-anchor='middle' font-size='10' fill='white'>{GetAzureVmSize(n.Cpu, n.RamGb)}</text>");
         }
-
-        for (int i = 1; i < nodes.Count; i++)
-        {
-            var px1 = x + (0 % cols) * (bw + gap) + bw / 2;
-            var py1 = y + 60 + (0 / cols) * (bh + gap) + bh;
-            var px2 = x + (i % cols) * (bw + gap) + bw / 2;
-            var py2 = y + 60 + (i / cols) * (bh + gap);
-            sb.AppendLine($"<line x1='{px1}' y1='{py1}' x2='{px2}' y2='{py2}' stroke='#95a5a6' stroke-width='2' stroke-dasharray='5,5'/>");
-        }
-
         sb.AppendLine("</svg>");
         return sb.ToString();
     }
@@ -249,40 +309,50 @@ public class ConfigExportService
         sb.AppendLine("// Generated by AI Resource Calculator");
         sb.AppendLine($"// Project: {config.ProjectName}, Users: {config.UserCount}");
         sb.AppendLine("using Pulumi;");
-        sb.AppendLine("using Pulumi.Aws.Ec2;");
-        sb.AppendLine("using Pulumi.Aws.Eks;");
+        sb.AppendLine("using Pulumi.AzureNative.Resources;");
+        sb.AppendLine("using Pulumi.AzureNative.Compute;");
+        if (config.DeploymentType == DeploymentType.Kubernetes)
+            sb.AppendLine("using Pulumi.AzureNative.ContainerService;");
         sb.AppendLine();
         sb.AppendLine($"var projectName = \"{config.ProjectName}\";");
         sb.AppendLine();
+        sb.AppendLine("var resourceGroup = new ResourceGroup(\"rg\", new ResourceGroupArgs");
+        sb.AppendLine("{");
+        sb.AppendLine("    ResourceGroupName = \"rg-\" + projectName.ToLower().Replace(\" \", \"-\"),");
+        sb.AppendLine("    Location = \"WestEurope\"");
+        sb.AppendLine("});");
+        sb.AppendLine();
 
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.ToLower().Replace(" ", "_").Replace("(", "").Replace(")", "");
-            var instanceType = GetInstanceType(infra.Cpu, infra.RamGb);
-            sb.AppendLine($"var {name} = new Instance(\"{name}\", new InstanceArgs");
+            var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
+            sb.AppendLine($"var {name.Replace("-", "")}Vm = new VirtualMachine(\"vm-{name}\", new VirtualMachineArgs");
             sb.AppendLine("{");
-            sb.AppendLine($"    Count = {infra.NodeCount},");
-            sb.AppendLine($"    Ami = \"ami-0c55b159cbfafe1f0\",");
-            sb.AppendLine($"    InstanceType = \"{instanceType}\",");
-            sb.AppendLine("    Tags = new InputMap<string>");
-            sb.AppendLine("    {");
-            sb.AppendLine($"        {{\"Name\", $\"{{projectName}}-{name}\"}},");
-            sb.AppendLine("        {\"Environment\", \"production\"}");
-            sb.AppendLine("    }");
+            sb.AppendLine("    ResourceGroupName = resourceGroup.Name,");
+            sb.AppendLine("    Location = resourceGroup.Location,");
+            sb.AppendLine($"    VmSize = \"{size}\",");
+            sb.AppendLine("    HardwareProfile = new HardwareProfileArgs { VmSize = \"" + size + "\" },");
+            sb.AppendLine("    Tags = { { \"Name\", projectName }, { \"Environment\", \"production\" } }");
             sb.AppendLine("});");
             sb.AppendLine();
         }
 
         if (config.DeploymentType == DeploymentType.Kubernetes)
         {
-            sb.AppendLine("// EKS Cluster");
-            sb.AppendLine($"var cluster = new Cluster(\"{config.ProjectName.ToLower().Replace(" ", "_")}\", new ClusterArgs");
+            sb.AppendLine("var cluster = new ManagedCluster(\"aks\", new ManagedClusterArgs");
             sb.AppendLine("{");
-            sb.AppendLine("    Name = projectName,");
-            sb.AppendLine("    RoleArn = eksRole.Apply(r => r.Arn),");
-            sb.AppendLine("    VpcConfig = new ClusterVpcConfigArgs");
+            sb.AppendLine("    ResourceGroupName = resourceGroup.Name,");
+            sb.AppendLine("    Location = resourceGroup.Location,");
+            sb.AppendLine("    DnsPrefix = projectName.ToLower().Replace(\" \", \"-\"),");
+            sb.AppendLine("    AgentPoolProfiles = new[]");
             sb.AppendLine("    {");
-            sb.AppendLine("        SubnetIds = publicSubnets.Apply(s => s.Select(sub => sub.Id).ToList())");
+            sb.AppendLine("        new ManagedClusterAgentPoolProfileArgs");
+            sb.AppendLine("        {");
+            sb.AppendLine("            Name = \"default\",");
+            sb.AppendLine($"            Count = {Math.Max(1, req.WorkerNodeCount)},");
+            sb.AppendLine($"            VmSize = \"{GetAzureVmSize(8, 32)}\"");
+            sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("});");
         }
@@ -290,85 +360,66 @@ public class ConfigExportService
         return sb.ToString();
     }
 
-    public string ExportCloudFormation(ResourceRequirement req, ProjectConfig config)
+    public string ExportBicep(ResourceRequirement req, ProjectConfig config)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("---");
-        sb.AppendLine("AWSTemplateFormatVersion: '2010-09-09'");
-        sb.AppendLine("Description: 'AI Resource Calculator - Infrastructure Stack'");
+        sb.AppendLine("// Generated by AI Resource Calculator");
+        sb.AppendLine($"// Project: {config.ProjectName}, Users: {config.UserCount}");
         sb.AppendLine();
-        sb.AppendLine("Parameters:");
-        sb.AppendLine($"  ProjectName: {{ Type: String, Default: \"{config.ProjectName}\" }}");
-        sb.AppendLine($"  UserCount: {{ Type: Number, Default: {config.UserCount} }}");
+        sb.AppendLine($"param projectName string = '{config.ProjectName}'");
+        sb.AppendLine($"param userCount int = {config.UserCount}");
+        sb.AppendLine("param location string = resourceGroup().location");
         sb.AppendLine();
-        sb.AppendLine("Resources:");
 
-        int i = 0;
         foreach (var infra in req.Infrastructure)
         {
             var name = infra.Name.Replace(" ", "").Replace("(", "").Replace(")", "");
-            var instanceType = GetInstanceType(infra.Cpu, infra.RamGb);
-            sb.AppendLine($"  {name}LaunchTemplate:");
-            sb.AppendLine("    Type: AWS::EC2::LaunchTemplate");
-            sb.AppendLine("    Properties:");
-            sb.AppendLine("      LaunchTemplateData:");
-            sb.AppendLine($"        InstanceType: \"{instanceType}\"");
-            sb.AppendLine("        TagSpecifications:");
-            sb.AppendLine("          - ResourceType: \"instance\"");
-            sb.AppendLine("            Tags:");
-            sb.AppendLine("              - { Key: Name, Value: !Sub \"${ProjectName}-" + infra.Name.ToLower().Replace(" ", "-") + "\" }");
-            sb.AppendLine("              - { Key: Environment, Value: \"production\" }");
+            var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
+            sb.AppendLine($"resource {name}Vm 'Microsoft.Compute/virtualMachines@{DateTime.Now.Year}-07-01' = [for i in range(0, {infra.NodeCount}): {{");
+            sb.AppendLine($"  name: 'vm-{name.ToLower()}-${{i}}'");
+            sb.AppendLine("  location: location");
+            sb.AppendLine("  properties: {");
+            sb.AppendLine($"    hardwareProfile: {{ vmSize: '{size}' }}");
+            sb.AppendLine("    storageProfile: {");
+            sb.AppendLine("      osDisk: { createOption: 'FromImage', managedDisk: { storageAccountType: 'Premium_LRS' } }");
+            sb.AppendLine("    }");
+            sb.AppendLine("  }");
+            sb.AppendLine("}]");
             sb.AppendLine();
-            sb.AppendLine($"  {name}AutoScalingGroup:");
-            sb.AppendLine("    Type: AWS::AutoScaling::AutoScalingGroup");
-            sb.AppendLine("    Properties:");
-            sb.AppendLine($"      MinSize: '{infra.NodeCount}'");
-            sb.AppendLine($"      MaxSize: '{Math.Max(infra.NodeCount * 3, 3)}'");
-            sb.AppendLine($"      DesiredCapacity: '{infra.NodeCount}'");
-            sb.AppendLine("      LaunchTemplate:");
-            sb.AppendLine($"        LaunchTemplateId: !Ref {name}LaunchTemplate");
-            sb.AppendLine("        Version: !GetAtt {name}LaunchTemplate.LatestVersionNumber");
-            sb.AppendLine("      VPCZoneIdentifier: !Ref SubnetIds");
-            sb.AppendLine();
-            i++;
         }
 
         if (config.DeploymentType == DeploymentType.Kubernetes)
         {
-            sb.AppendLine("  EKSCluster:");
-            sb.AppendLine("    Type: AWS::EKS::Cluster");
-            sb.AppendLine("    Properties:");
-            sb.AppendLine($"      Name: !Ref ProjectName");
-            sb.AppendLine("      RoleArn: !GetAtt EKSClusterRole.Arn");
-            sb.AppendLine("      ResourcesVpcConfig:");
-            sb.AppendLine("        SubnetIds: !Ref SubnetIds");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("Outputs:");
-        sb.AppendLine("  StackName:");
-        sb.AppendLine("    Value: !Ref AWS::StackName");
-        foreach (var infra in req.Infrastructure)
-        {
-            var name = infra.Name.Replace(" ", "").Replace("(", "").Replace(")", "");
-            sb.AppendLine($"  {name}ASG:");
-            sb.AppendLine($"    Value: !Ref {name}AutoScalingGroup");
+            sb.AppendLine("resource aks 'Microsoft.ContainerService/managedClusters@2023-07-01' = {");
+            sb.AppendLine("  name: toLower(projectName)");
+            sb.AppendLine("  location: location");
+            sb.AppendLine("  properties: {");
+            sb.AppendLine("    dnsPrefix: toLower(projectName)");
+            sb.AppendLine("    agentPoolProfiles: [{");
+            sb.AppendLine("      name: 'default'");
+            sb.AppendLine($"      count: {Math.Max(1, req.WorkerNodeCount)}");
+            sb.AppendLine($"      vmSize: '{GetAzureVmSize(8, 32)}'");
+            sb.AppendLine("    }]");
+            sb.AppendLine("  }");
+            sb.AppendLine("}");
         }
 
         return sb.ToString();
     }
 
-    private string GetInstanceType(double cpu, double ram)
+    private static string GetAzureVmSize(double cpu, double ram)
     {
         return (cpu, ram) switch
         {
-            (<= 2, <= 4) => "t3.medium",
-            (<= 4, <= 16) => "t3.large",
-            (<= 8, <= 32) => "m5.xlarge",
-            (<= 16, <= 64) => "m5.2xlarge",
-            (<= 32, <= 128) => "m5.4xlarge",
-            (<= 64, <= 256) => "m5.8xlarge",
-            _ => "m5.4xlarge"
+            (<= 1, <= 2) => "Standard_B1s",
+            (<= 2, <= 4) => "Standard_B2s",
+            (<= 2, <= 8) => "Standard_D2s_v5",
+            (<= 4, <= 16) => "Standard_D4s_v5",
+            (<= 8, <= 32) => "Standard_D8s_v5",
+            (<= 16, <= 64) => "Standard_D16s_v5",
+            (<= 32, <= 128) => "Standard_D32s_v5",
+            (<= 64, <= 256) => "Standard_F16s_v2",
+            _ => "Standard_D32s_v5"
         };
     }
 }
