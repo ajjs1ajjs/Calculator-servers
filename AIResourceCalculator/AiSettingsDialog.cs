@@ -262,33 +262,57 @@ public class AiSettingsDialog : Window
     {
         try
         {
-            var resp = await _http.GetAsync("http://localhost:11434/api/tags");
-            if (resp.IsSuccessStatusCode)
-            {
-                var json = await resp.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                var models = doc.RootElement.GetProperty("models").EnumerateArray()
-                    .Select(m => m.GetProperty("name").GetString() ?? "").Where(m => !string.IsNullOrEmpty(m)).ToList();
+            _txtStatus.Text = "Connecting to Ollama...";
+            _txtStatus.Foreground = Brushes.Gray;
 
-                if (models.Count > 0)
-                {
-                    _cmbModel.Items.Clear();
-                    foreach (var m in models) _cmbModel.Items.Add(m);
-                    _cmbModel.Text = models[0];
-                    _txtStatus.Text = $"Found {models.Count} model(s)";
-                    _txtStatus.Foreground = Brushes.Green;
-                }
-            }
-        }
-        catch
-        {
-            if (_cmbProvider.SelectedIndex == 3 && _cmbModel.Items.Count == 0)
+            var resp = await _http.GetAsync("http://localhost:11434/api/tags");
+            if (!resp.IsSuccessStatusCode)
             {
-                foreach (var m in new[] { "llama3.2", "llama3.1", "mistral", "codellama", "gemma2" })
-                    _cmbModel.Items.Add(m);
-                _cmbModel.Text = "llama3.2";
+                throw new Exception($"Server returned {resp.StatusCode}");
             }
+
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var models = doc.RootElement.GetProperty("models").EnumerateArray()
+                .Select(m => m.GetProperty("name").GetString() ?? "")
+                .Where(m => !string.IsNullOrEmpty(m))
+                .ToList();
+
+            if (models.Count == 0)
+            {
+                _txtStatus.Text = "No models found. Pull one: ollama pull llama3.2";
+                _txtStatus.Foreground = Brushes.Orange;
+                AddFallbackModels();
+                return;
+            }
+
+            _cmbModel.Items.Clear();
+            foreach (var m in models) _cmbModel.Items.Add(m);
+            _cmbModel.Text = models[0];
+            _txtStatus.Text = $"Found {models.Count} local model(s)";
+            _txtStatus.Foreground = Brushes.Green;
         }
+        catch (HttpRequestException)
+        {
+            _txtStatus.Text = "Ollama not running. Start it: ollama serve";
+            _txtStatus.Foreground = Brushes.Orange;
+            AddFallbackModels();
+        }
+        catch (Exception ex)
+        {
+            _txtStatus.Text = $"Error: {ex.Message}";
+            _txtStatus.Foreground = Brushes.Red;
+            AddFallbackModels();
+        }
+    }
+
+    private void AddFallbackModels()
+    {
+        if (_cmbModel.Items.Count > 0) return;
+        foreach (var m in new[] { "llama3.2", "llama3.1", "mistral", "codellama", "gemma2" })
+            _cmbModel.Items.Add(m);
+        if (string.IsNullOrEmpty(_cmbModel.Text))
+            _cmbModel.Text = "llama3.2";
     }
 
     private void UpdateUi()
