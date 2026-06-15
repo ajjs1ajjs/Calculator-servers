@@ -11,26 +11,24 @@ public class AiSettingsDialog : Window
 {
     public AiSettings Settings { get; private set; }
 
-    private ComboBox _cmbProvider;
-    private PasswordBox _txtApiKey;
-    private TextBox _txtEndpoint;
-    private ComboBox _cmbModel;
-    private Slider _sliderTemp;
-    private CheckBox _chkEnabled;
-    private TextBlock _txtStatus;
-    private Button _btnTest;
-    private Button _btnSave;
-    private StackPanel _modelPanel;
-    private StackPanel _apiKeyPanel;
-    private StackPanel _endpointPanel;
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private ComboBox _cmbProvider = null!;
+    private PasswordBox _txtApiKey = null!;
+    private TextBox _txtEndpoint = null!;
+    private ComboBox _cmbModel = null!;
+    private Slider _sliderTemp = null!;
+    private TextBlock _txtTempVal = null!;
+    private CheckBox _chkEnabled = null!;
+    private TextBlock _txtStatus = null!;
+    private StackPanel _configPanel = null!;
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
 
     public AiSettingsDialog(AiSettings current)
     {
         Title = "AI Settings / Налаштування AI";
-        Width = 560; Height = 500;
+        Width = 560; Height = 520;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
+        Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xF9, 0xFA));
 
         Settings = new AiSettings
         {
@@ -42,146 +40,137 @@ public class AiSettingsDialog : Window
             EnableRealAi = current.EnableRealAi
         };
 
-        var grid = new Grid { Margin = new Thickness(15) };
-        for (int i = 0; i < 12; i++)
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var outer = new StackPanel { Margin = new Thickness(20, 15, 20, 15) };
 
-        int row = 0;
+        // Title
+        outer.Children.Add(new TextBlock
+        {
+            Text = "\u2699 AI Configuration",
+            FontSize = 20, FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 15),
+            Foreground = new SolidColorBrush(Color.FromRgb(0x2c, 0x3e, 0x50))
+        });
 
-        // Чекбокс увімкнення AI
+        // Enable checkbox
+        var headerPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
         _chkEnabled = new CheckBox
         {
             Content = "Enable Real AI / Увімкнути AI",
             IsChecked = Settings.EnableRealAi,
-            Margin = new Thickness(5),
-            FontSize = 14,
-            FontWeight = FontWeights.Bold
+            FontSize = 14, FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 5)
         };
         _chkEnabled.Checked += (_, _) => UpdateUi();
         _chkEnabled.Unchecked += (_, _) => UpdateUi();
-        Grid.SetRow(_chkEnabled, row); Grid.SetColumnSpan(_chkEnabled, 2);
-        grid.Children.Add(_chkEnabled);
-        row++;
-
-        // Вибір провайдера
-        AddLabel(grid, row, 0, "Provider:");
-        _cmbProvider = new ComboBox
-        {
-            Margin = new Thickness(5), Padding = new Thickness(4),
-            SelectedIndex = (int)Settings.Provider
-        };
-        _cmbProvider.Items.Add("Rule-based (offline)");
-        _cmbProvider.Items.Add("OpenAI");
-        _cmbProvider.Items.Add("Claude (Anthropic)");
-        _cmbProvider.Items.Add("Local (Ollama)");
-        _cmbProvider.SelectionChanged += (_, _) => { UpdateUi(); AutoDetectOllama(); };
-        Grid.SetRow(_cmbProvider, row); Grid.SetColumn(_cmbProvider, 1);
-        grid.Children.Add(_cmbProvider);
-        row++;
-
-        // Панель API ключа
-        _apiKeyPanel = new StackPanel { Margin = new Thickness(0) };
-        AddLabel(_apiKeyPanel, 0, 0, "API Key:");
-        _txtApiKey = new PasswordBox
-        {
-            Password = Settings.ApiKey, Margin = new Thickness(5), Padding = new Thickness(4),
-            ToolTip = "Required for OpenAI / Claude"
-        };
-        _txtApiKey.PasswordChanged += (_, _) => UpdateUi();
-        Grid.SetRow(_txtApiKey, 0); Grid.SetColumn(_txtApiKey, 1);
-        _apiKeyPanel.Children.Add(_txtApiKey);
-        Grid.SetRow(_apiKeyPanel, row); Grid.SetColumnSpan(_apiKeyPanel, 2);
-        grid.Children.Add(_apiKeyPanel);
-        row++;
-
-        // Панель адреси endpoint
-        _endpointPanel = new StackPanel { Margin = new Thickness(0) };
-        AddLabel(_endpointPanel, 0, 0, "Endpoint URL:");
-        _txtEndpoint = new TextBox
-        {
-            Text = Settings.EndpointUrl, Margin = new Thickness(5), Padding = new Thickness(4),
-            ToolTip = "Leave empty for default"
-        };
-        Grid.SetRow(_txtEndpoint, 0); Grid.SetColumn(_txtEndpoint, 1);
-        _endpointPanel.Children.Add(_txtEndpoint);
-        Grid.SetRow(_endpointPanel, row); Grid.SetColumnSpan(_endpointPanel, 2);
-        grid.Children.Add(_endpointPanel);
-        row++;
-
-        // Панель моделі
-        _modelPanel = new StackPanel { Margin = new Thickness(0) };
-        AddLabel(_modelPanel, 0, 0, "Model:");
-        _cmbModel = new ComboBox
-        {
-            Margin = new Thickness(5), Padding = new Thickness(4),
-            IsEditable = true, Text = Settings.ModelName
-        };
-        Grid.SetRow(_cmbModel, 0); Grid.SetColumn(_cmbModel, 1);
-        _modelPanel.Children.Add(_cmbModel);
-        Grid.SetRow(_modelPanel, row); Grid.SetColumnSpan(_modelPanel, 2);
-        grid.Children.Add(_modelPanel);
-        row++;
-
-        // Температура
-        AddLabel(grid, row, 0, "Temperature:");
-        _sliderTemp = new Slider
-        {
-            Minimum = 0, Maximum = 1, Value = Settings.Temperature,
-            TickFrequency = 0.1, IsSnapToTickEnabled = true, Margin = new Thickness(5)
-        };
-        Grid.SetRow(_sliderTemp, row); Grid.SetColumn(_sliderTemp, 1);
-        grid.Children.Add(_sliderTemp);
-        row++;
-
-        // Кнопка тесту з'єднання + статус
-        var testPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(5) };
-        _btnTest = new Button
-        {
-            Content = "Test Connection / Тест", Width = 160, Height = 28,
-            Cursor = System.Windows.Input.Cursors.Hand
-        };
-        _btnTest.Click += BtnTest_Click;
-        testPanel.Children.Add(_btnTest);
+        headerPanel.Children.Add(_chkEnabled);
 
         _txtStatus = new TextBlock
         {
-            Text = "", Margin = new Thickness(10, 0, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            FontWeight = FontWeights.Bold
+            Text = "", FontSize = 12, FontWeight = FontWeights.Bold,
+            Margin = new Thickness(20, 0, 0, 0)
         };
-        testPanel.Children.Add(_txtStatus);
-        Grid.SetRow(testPanel, row); Grid.SetColumnSpan(testPanel, 2);
-        grid.Children.Add(testPanel);
-        row++;
+        headerPanel.Children.Add(_txtStatus);
+        outer.Children.Add(headerPanel);
 
-        // Підказки
-        var hints = new TextBlock
-        {
-            Text = "💡 OpenAI: gpt-4o-mini | Claude: claude-3-haiku | Ollama: needs server running",
-            FontSize = 11, Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(5)
-        };
-        Grid.SetRow(hints, row); Grid.SetColumnSpan(hints, 2);
-        grid.Children.Add(hints);
-        row++;
+        // Configuration panel
+        _configPanel = new StackPanel { IsEnabled = false };
 
-        // Кнопки
-        var btnPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 10, 0, 0)
-        };
+        // Provider
+        _configPanel.Children.Add(MakeLabel("Provider / Провайдер:"));
+        _cmbProvider = new ComboBox { Margin = new Thickness(0, 2, 0, 10), Padding = new Thickness(6, 4, 6, 4), FontSize = 13 };
+        _cmbProvider.Items.Add("Rule-based (offline)");
+        _cmbProvider.Items.Add("OpenAI (GPT-4o, GPT-4o-mini)");
+        _cmbProvider.Items.Add("Claude (Anthropic)");
+        _cmbProvider.Items.Add("Local (Ollama)");
+        _cmbProvider.SelectedIndex = (int)Settings.Provider;
+        _cmbProvider.SelectionChanged += OnProviderChanged;
+        _configPanel.Children.Add(_cmbProvider);
 
-        _btnSave = new Button
+        // API Key
+        _configPanel.Children.Add(MakeLabel("API Key:"));
+        _txtApiKey = new PasswordBox
         {
-            Content = "Save / Зберегти", Width = 130, Height = 30,
-            Padding = new Thickness(6), Cursor = System.Windows.Input.Cursors.Hand,
-            IsDefault = true
+            Password = Settings.ApiKey, Margin = new Thickness(0, 2, 0, 10),
+            Padding = new Thickness(6, 4, 6, 4), FontSize = 13,
+            ToolTip = "Required for OpenAI / Claude"
         };
-        _btnSave.Click += (s, e) =>
+        _txtApiKey.PasswordChanged += (_, _) => UpdateUi();
+        _configPanel.Children.Add(_txtApiKey);
+
+        // Endpoint
+        _configPanel.Children.Add(MakeLabel("Endpoint URL:"));
+        _txtEndpoint = new TextBox
+        {
+            Text = Settings.EndpointUrl, Margin = new Thickness(0, 2, 0, 10),
+            Padding = new Thickness(6, 4, 6, 4), FontSize = 13,
+            ToolTip = "Leave empty for default"
+        };
+        _configPanel.Children.Add(_txtEndpoint);
+
+        // Model
+        _configPanel.Children.Add(MakeLabel("Model:"));
+        _cmbModel = new ComboBox
+        {
+            Margin = new Thickness(0, 2, 0, 10), Padding = new Thickness(6, 4, 6, 4),
+            IsEditable = true, Text = Settings.ModelName, FontSize = 13
+        };
+        _configPanel.Children.Add(_cmbModel);
+
+        // Temperature
+        var tempPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+        _sliderTemp = new Slider
+        {
+            Minimum = 0, Maximum = 1, Value = Settings.Temperature, Width = 200,
+            TickFrequency = 0.1, IsSnapToTickEnabled = true, VerticalAlignment = VerticalAlignment.Center
+        };
+        _sliderTemp.ValueChanged += (_, _) => _txtTempVal.Text = $"{(int)(_sliderTemp.Value * 100)}%";
+        tempPanel.Children.Add(new TextBlock
+        {
+            Text = "Temperature:", VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 10, 0), FontSize = 13
+        });
+        tempPanel.Children.Add(_sliderTemp);
+        _txtTempVal = new TextBlock
+        {
+            Text = $"{(int)(Settings.Temperature * 100)}%", VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(10, 0, 0, 0), FontSize = 13, FontWeight = FontWeights.Bold,
+            Width = 40
+        };
+        tempPanel.Children.Add(_txtTempVal);
+        _configPanel.Children.Add(tempPanel);
+
+        // Test button
+        var btnTest = new Button
+        {
+            Content = "\u26A1 Test Connection / Тест з'єднання",
+            Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 5, 0, 5),
+            FontSize = 13, Cursor = System.Windows.Input.Cursors.Hand,
+            Background = new SolidColorBrush(Color.FromRgb(0x34, 0x98, 0xDB)),
+            Foreground = Brushes.White, BorderThickness = new Thickness(0)
+        };
+        btnTest.Click += BtnTest_Click;
+        _configPanel.Children.Add(btnTest);
+
+        outer.Children.Add(_configPanel);
+
+        // Separator
+        outer.Children.Add(new Border
+        {
+            Height = 1, Background = new SolidColorBrush(Color.FromRgb(0xDE, 0xE2, 0xE6)),
+            Margin = new Thickness(0, 5, 0, 10)
+        });
+
+        // Buttons
+        var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var btnSave = new Button
+        {
+            Content = "\u2714 Save / Зберегти", Width = 140, Height = 32,
+            Padding = new Thickness(8, 4, 8, 4), FontSize = 13, FontWeight = FontWeights.Bold,
+            IsDefault = true, Cursor = System.Windows.Input.Cursors.Hand,
+            Background = new SolidColorBrush(Color.FromRgb(0x27, 0xAE, 0x60)),
+            Foreground = Brushes.White, BorderThickness = new Thickness(0)
+        };
+        btnSave.Click += (s, e) =>
         {
             if (!Validate()) return;
             Settings.Provider = (AiProvider)_cmbProvider.SelectedIndex;
@@ -194,23 +183,45 @@ public class AiSettingsDialog : Window
             DialogResult = true;
             Close();
         };
-        btnPanel.Children.Add(_btnSave);
+        btnPanel.Children.Add(btnSave);
 
         var cancelBtn = new Button
         {
-            Content = "Cancel / Скасувати", Width = 130, Height = 30,
-            Padding = new Thickness(6), Cursor = System.Windows.Input.Cursors.Hand,
-            IsCancel = true
+            Content = "Cancel / Скасувати", Width = 140, Height = 32,
+            Padding = new Thickness(8, 4, 8, 4), FontSize = 13,
+            IsCancel = true, Cursor = System.Windows.Input.Cursors.Hand,
+            Margin = new Thickness(8, 0, 0, 0)
         };
         cancelBtn.Click += (s, e) => { DialogResult = false; Close(); };
         btnPanel.Children.Add(cancelBtn);
+        outer.Children.Add(btnPanel);
 
-        Grid.SetRow(btnPanel, row); Grid.SetColumnSpan(btnPanel, 2);
-        grid.Children.Add(btnPanel);
-
-        Content = grid;
+        Content = outer;
         UpdateUi();
+        SetModelPresets();
         Loaded += (_, _) => AutoDetectOllama();
+    }
+
+    private void OnProviderChanged(object s, SelectionChangedEventArgs e)
+    {
+        SetModelPresets();
+        UpdateUi();
+        AutoDetectOllama();
+    }
+
+    private void SetModelPresets()
+    {
+        _cmbModel.Items.Clear();
+        var models = (AiProvider)_cmbProvider.SelectedIndex switch
+        {
+            AiProvider.OpenAI => new[] { "gpt-4o-mini", "gpt-4o", "gpt-4-turbo" },
+            AiProvider.Claude => new[] { "claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229" },
+            AiProvider.LocalOllama => new[] { "llama3.2", "llama3.1", "mistral", "codellama", "gemma2" },
+            _ => Array.Empty<string>()
+        };
+        foreach (var m in models) _cmbModel.Items.Add(m);
+        if (models.Length > 0 && (string.IsNullOrWhiteSpace(_cmbModel.Text) || !models.Contains(_cmbModel.Text)))
+            _cmbModel.Text = models[0];
     }
 
     private void UpdateUi()
@@ -218,188 +229,144 @@ public class AiSettingsDialog : Window
         var enabled = _chkEnabled.IsChecked ?? false;
         var provider = (AiProvider)_cmbProvider.SelectedIndex;
         var isApi = provider == AiProvider.OpenAI || provider == AiProvider.Claude;
+        var isCloud = provider != AiProvider.None && provider != AiProvider.LocalOllama;
 
-        _txtApiKey.IsEnabled = enabled && isApi;
-        _txtEndpoint.IsEnabled = enabled && provider != AiProvider.None;
-        _cmbModel.IsEnabled = enabled && provider != AiProvider.None;
-        _sliderTemp.IsEnabled = enabled && provider != AiProvider.None;
-        _btnTest.IsEnabled = enabled && provider != AiProvider.None;
-        _btnSave.IsEnabled = enabled;
-
-        _apiKeyPanel.Visibility = isApi && enabled ? Visibility.Visible : Visibility.Collapsed;
-        _endpointPanel.Visibility = provider != AiProvider.None && enabled ? Visibility.Visible : Visibility.Collapsed;
-        _modelPanel.Visibility = provider != AiProvider.None && enabled ? Visibility.Visible : Visibility.Collapsed;
+        _configPanel.IsEnabled = enabled && provider != AiProvider.None;
+        _txtApiKey.Visibility = (isApi && enabled) ? Visibility.Visible : Visibility.Collapsed;
+        _txtEndpoint.Visibility = (enabled && provider != AiProvider.None) ? Visibility.Visible : Visibility.Collapsed;
+        _cmbModel.Visibility = (enabled && provider != AiProvider.None) ? Visibility.Visible : Visibility.Collapsed;
+        _sliderTemp.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
 
         var hasKey = !string.IsNullOrWhiteSpace(_txtApiKey.Password);
-        var hasModel = !string.IsNullOrWhiteSpace(_cmbModel.Text);
-
-        if (!enabled) _txtStatus.Text = "⏸ AI disabled";
-        else if (provider == AiProvider.None) _txtStatus.Text = "⏸ Rule-based mode";
-        else if (provider == AiProvider.LocalOllama) _txtStatus.Text = "⏳ Check Ollama...";
-        else if (isApi && !hasKey) _txtStatus.Text = "⚠️ API Key required";
-        else if (!hasModel) _txtStatus.Text = "⚠️ Model required";
-        else _txtStatus.Text = "✓ Configured";
+        if (!enabled) _txtStatus.Text = "\u23F8 AI disabled / AI вимкнено";
+        else if (provider == AiProvider.None) _txtStatus.Text = "\u23F8 Rule-based mode / Локальні правила";
+        else if (provider == AiProvider.LocalOllama) _txtStatus.Text = "\u23F3 Local Ollama mode";
+        else if (isApi && !hasKey) _txtStatus.Text = "\u26A0 API Key required / Потрібен ключ";
+        else _txtStatus.Text = "\u2714 Ready / Готово";
     }
 
     private bool Validate()
     {
         if (!(_chkEnabled.IsChecked ?? false)) return true;
-
         var provider = (AiProvider)_cmbProvider.SelectedIndex;
         if (provider == AiProvider.None) return true;
 
         if ((provider == AiProvider.OpenAI || provider == AiProvider.Claude) &&
             string.IsNullOrWhiteSpace(_txtApiKey.Password))
         {
-            MessageBox.Show("API Key is required for this provider.", "Validation Error",
+            MessageBox.Show("API Key is required for this provider.\nПотрібен API ключ.", "Validation / Валідація",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             _txtApiKey.Focus();
             return false;
         }
-
         if (string.IsNullOrWhiteSpace(_cmbModel.Text))
         {
-            MessageBox.Show("Model name is required.", "Validation Error",
+            MessageBox.Show("Model name is required.\nВкажіть назву моделі.", "Validation / Валідація",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             _cmbModel.Focus();
             return false;
         }
-
         return true;
     }
 
     private async void BtnTest_Click(object sender, RoutedEventArgs e)
     {
         var provider = (AiProvider)_cmbProvider.SelectedIndex;
-        _txtStatus.Text = "⏳ Testing...";
-        _btnTest.IsEnabled = false;
+        _txtStatus.Text = "\u23F3 Testing... / Тестування...";
+        _txtStatus.Foreground = Brushes.Gray;
 
         try
         {
             if (provider == AiProvider.LocalOllama)
             {
-                var endpoint = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
+                var ep = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
                     ? "http://localhost:11434" : _txtEndpoint.Text.Trim().TrimEnd('/');
-
-                var resp = await _http.GetAsync($"{endpoint}/api/tags");
-                if (resp.IsSuccessStatusCode)
-                {
-                    var json = await resp.Content.ReadAsStringAsync();
-                    _txtStatus.Text = "✓ Ollama connected!";
-                    _txtStatus.Foreground = Brushes.Green;
-                }
-                else
-                {
-                    _txtStatus.Text = "✗ Ollama not responding";
-                    _txtStatus.Foreground = Brushes.Red;
-                }
+                var resp = await _http.GetAsync($"{ep}/api/tags");
+                _txtStatus.Text = resp.IsSuccessStatusCode ? "\u2714 Ollama connected / Під'єднано" : "\u2717 Not responding / Немає відповіді";
+                _txtStatus.Foreground = resp.IsSuccessStatusCode ? Brushes.Green : Brushes.Red;
             }
             else if (provider == AiProvider.OpenAI)
             {
-                var endpoint = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
+                var ep = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
                     ? "https://api.openai.com/v1/models" : _txtEndpoint.Text.Trim().TrimEnd('/') + "/models";
                 var key = _txtApiKey.Password.Trim();
+                if (string.IsNullOrWhiteSpace(key)) { _txtStatus.Text = "\u2717 Enter API Key first / Введіть ключ"; _txtStatus.Foreground = Brushes.Red; return; }
 
-                if (string.IsNullOrWhiteSpace(key))
-                {
-                    _txtStatus.Text = "✗ Enter API Key first";
-                    _txtStatus.Foreground = Brushes.Red;
-                    return;
-                }
-
-                var req = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                var req = new HttpRequestMessage(HttpMethod.Get, ep);
                 req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
                 var resp = await _http.SendAsync(req);
-
-                _txtStatus.Text = resp.IsSuccessStatusCode ? "✓ OpenAI connected!" : "✗ Invalid API Key";
+                _txtStatus.Text = resp.IsSuccessStatusCode ? "\u2714 OpenAI connected / Під'єднано" : "\u2717 Invalid API Key / Невірний ключ";
                 _txtStatus.Foreground = resp.IsSuccessStatusCode ? Brushes.Green : Brushes.Red;
             }
             else if (provider == AiProvider.Claude)
             {
-                var endpoint = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
+                var ep = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
                     ? "https://api.anthropic.com/v1/messages" : _txtEndpoint.Text.Trim();
                 var key = _txtApiKey.Password.Trim();
+                if (string.IsNullOrWhiteSpace(key)) { _txtStatus.Text = "\u2717 Enter API Key first / Введіть ключ"; _txtStatus.Foreground = Brushes.Red; return; }
 
-                if (string.IsNullOrWhiteSpace(key))
-                {
-                    _txtStatus.Text = "✗ Enter API Key first";
-                    _txtStatus.Foreground = Brushes.Red;
-                    return;
-                }
-
-                var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                var req = new HttpRequestMessage(HttpMethod.Post, ep);
                 req.Headers.Add("x-api-key", key);
                 req.Headers.Add("anthropic-version", "2023-06-01");
                 req.Content = new StringContent(
                     JsonSerializer.Serialize(new { model = "claude-3-haiku-20240307", max_tokens = 10, messages = new[] { new { role = "user", content = "hi" } } }),
                     System.Text.Encoding.UTF8, "application/json");
-
                 var resp = await _http.SendAsync(req);
-                _txtStatus.Text = resp.IsSuccessStatusCode ? "✓ Claude connected!" : "✗ Invalid API Key";
+                _txtStatus.Text = resp.IsSuccessStatusCode ? "\u2714 Claude connected / Під'єднано" : "\u2717 Invalid Key / Невірний ключ";
                 _txtStatus.Foreground = resp.IsSuccessStatusCode ? Brushes.Green : Brushes.Red;
             }
         }
         catch (Exception ex)
         {
-            _txtStatus.Text = $"✗ {ex.Message}";
+            _txtStatus.Text = $"\u2717 Error: {ex.Message}";
             _txtStatus.Foreground = Brushes.Red;
         }
-
-        _btnTest.IsEnabled = true;
     }
 
     private async void AutoDetectOllama()
     {
-        var provider = (AiProvider)_cmbProvider.SelectedIndex;
-        if (provider != AiProvider.LocalOllama || !(_chkEnabled.IsChecked ?? false)) return;
+        if ((AiProvider)_cmbProvider.SelectedIndex != AiProvider.LocalOllama) return;
+        if (!(_chkEnabled.IsChecked ?? false)) return;
 
         try
         {
-            var endpoint = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
+            var ep = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
                 ? "http://localhost:11434" : _txtEndpoint.Text.Trim().TrimEnd('/');
-
-            var resp = await _http.GetAsync($"{endpoint}/api/tags");
+            var resp = await _http.GetAsync($"{ep}/api/tags");
             if (resp.IsSuccessStatusCode)
             {
                 var json = await resp.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(json);
                 var models = doc.RootElement.GetProperty("models").EnumerateArray()
-                    .Select(m => m.GetProperty("name").GetString() ?? "")
-                    .Where(m => !string.IsNullOrEmpty(m))
-                    .ToList();
+                    .Select(m => m.GetProperty("name").GetString() ?? "").Where(m => !string.IsNullOrEmpty(m)).ToList();
 
-                _cmbModel.Items.Clear();
-                foreach (var m in models)
-                    _cmbModel.Items.Add(m);
-
-                if (models.Count > 0 && string.IsNullOrWhiteSpace(_cmbModel.Text))
+                if (models.Count > 0)
+                {
+                    _cmbModel.Items.Clear();
+                    foreach (var m in models) _cmbModel.Items.Add(m);
                     _cmbModel.Text = models[0];
-
-                _txtStatus.Text = $"✓ Ollama: {models.Count} model(s) found";
-                _txtStatus.Foreground = Brushes.Green;
+                    _txtStatus.Text = $"\u2714 Found {models.Count} model(s) / Знайдено {models.Count} моделей";
+                    _txtStatus.Foreground = Brushes.Green;
+                }
             }
         }
         catch (HttpRequestException)
         {
-            _cmbModel.Items.Clear();
-            _cmbModel.Items.Add("llama3.2");
-            _cmbModel.Items.Add("llama3.1");
-            _cmbModel.Items.Add("mistral");
-            _cmbModel.Items.Add("codellama");
-            _cmbModel.Items.Add("gemma2");
-            if (string.IsNullOrWhiteSpace(_cmbModel.Text))
+            if (_cmbModel.Items.Count == 0)
+            {
+                foreach (var m in new[] { "llama3.2", "llama3.1", "mistral" }) _cmbModel.Items.Add(m);
                 _cmbModel.Text = "llama3.2";
-            _txtStatus.Text = "⚠️ Ollama not found — enter model manually";
+            }
+            _txtStatus.Text = "\u26A0 Ollama not found / Не знайдено";
             _txtStatus.Foreground = Brushes.Orange;
         }
-        catch (JsonException) { }
-        catch (TaskCanceledException) { }
+        catch { }
     }
 
-    private void AddLabel(Panel panel, int row, int col, string text)
+    private static TextBlock MakeLabel(string text) => new()
     {
-        var tb = new TextBlock { Text = text, Margin = new Thickness(5), VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetRow(tb, row); Grid.SetColumn(tb, col);
-        panel.Children.Add(tb);
-    }
+        Text = text, FontSize = 13, FontWeight = FontWeights.SemiBold,
+        Margin = new Thickness(0, 5, 0, 2),
+        Foreground = new SolidColorBrush(Color.FromRgb(0x2c, 0x3e, 0x50))
+    };
 }
