@@ -315,7 +315,7 @@ public class AiAdvisorService
 
             nodes.Add(new InfrastructureNode
             {
-                Name = "SQL Server (Azure SQL DB / AWS RDS)",
+                Name = "SQL Server",
                 Os = "PaaS", Cpu = Math.Ceiling(req.TotalCpu * 0.1),
                 RamGb = Math.Ceiling(req.TotalRamGb * 0.2), NodeCount = 1,
                 StorageGb = Math.Max(500, req.TotalStorageGb / 3), StorageType = "Premium SSD"
@@ -340,7 +340,7 @@ public class AiAdvisorService
         {
             nodes.Add(new InfrastructureNode
             {
-                Name = $"App Server ({instanceType.Split('/')[0].Trim()})",
+                Name = "App Server",
                 Os = "Windows Server 2025", Cpu = 8, RamGb = 32,
                 NodeCount = Math.Max(2, req.WorkerNodeCount / 2), StorageGb = 150, StorageType = "SSD"
             });
@@ -357,17 +357,16 @@ public class AiAdvisorService
 
     private (string Name, string Description, double MonthlyCost) RecommendInstance(double cpu, double ram)
     {
-        // Azure VM sizes (default)
         return (cpu, ram) switch
         {
-            (<= 2, <= 4) => ("Azure B2s / AWS t3.small / GCP e2-small / OCI VM.Standard.E4", Loc("Burstable, dev/test", "Burstable, розробка/тест"), 30),
-            (<= 2, <= 8) => ("Azure D2s_v5 / AWS t3.medium / GCP e2-medium / OCI VM.Standard3.Flex", Loc("General purpose, small", "Загальне, мале"), 70),
-            (<= 4, <= 16) => ("Azure D4s_v5 / AWS m5.xlarge / GCP e2-standard-4 / OCI VM.Standard3.Flex", Loc("General purpose, balanced", "Збалансоване"), 140),
-            (<= 8, <= 32) => ("Azure D8s_v5 / AWS m5.2xlarge / GCP n2-standard-8 / OCI VM.Standard3.Flex", Loc("Most workloads", "Більшість навантажень"), 280),
-            (<= 16, <= 64) => ("Azure D16s_v5 / AWS m5.4xlarge / GCP n2-standard-16 / OCI VM.Standard3.Flex", Loc("High performance", "Продуктивне"), 560),
-            (<= 32, <= 128) => ("Azure D32s_v5 / AWS m5.8xlarge / GCP n2-standard-32 / OCI BM.Standard2.52", Loc("Heavy workloads", "Важкі навантаження"), 1120),
-            (<= 64, <= 256) => ("Azure F16s_v2 / AWS c5.9xlarge / GCP c2-standard-16 / OCI BM.Standard3.64", Loc("Compute optimized", "Оптимізоване CPU"), 1300),
-            _ => ("Azure D32s_v5 / AWS m5.8xlarge / GCP n2-standard-32 / OCI BM.Standard2.52", Loc("General purpose", "Загальне призначення"), 1120)
+            (<= 2, <= 4) => ("Small (2 vCPU / 4 GB)", Loc("Burstable, dev/test", "Burstable, розробка/тест"), 30),
+            (<= 2, <= 8) => ("Small (2 vCPU / 8 GB)", Loc("Small workloads", "Малі навантаження"), 70),
+            (<= 4, <= 16) => ("Medium (4 vCPU / 16 GB)", Loc("Balanced, most apps", "Збалансоване"), 140),
+            (<= 8, <= 32) => ("Medium (8 vCPU / 32 GB)", Loc("Standard workloads", "Стандартне"), 280),
+            (<= 16, <= 64) => ("Large (16 vCPU / 64 GB)", Loc("High performance", "Продуктивне"), 560),
+            (<= 32, <= 128) => ("Large (32 vCPU / 128 GB)", Loc("Heavy workloads", "Важкі навантаження"), 1120),
+            (<= 64, <= 256) => ("XLarge (64 vCPU / 256 GB)", Loc("Compute optimized", "Оптимізоване CPU"), 1300),
+            _ => ("Large (32 vCPU / 128 GB)", Loc("General purpose", "Загальне призначення"), 1120)
         };
     }
 

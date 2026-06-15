@@ -151,7 +151,7 @@ public class AiApiService
         var components = string.Join("\n", req.Components.Where(c => c.Cpu > 0).Select(c =>
             $"  - {c.Name}: {c.Cpu} vCPU, {c.RamGb} GB RAM, {c.Replicas} replicas"));
 
-        return $@"[System prompt: You are a cloud infrastructure expert. Compare across Azure, AWS, GCP, Oracle Cloud. Recommend optimal VM sizes for each provider.]
+        return $@"[System: You are an infrastructure sizing expert. Use AI models and best practices for optimal resource calculation.]
 
 Analyze this infrastructure configuration:
 
@@ -168,7 +168,7 @@ Infrastructure:
 Components:
 {components}
 
-Provide 3-5 recommendations in JSON format with keys: category, title, description, action, severity (ok/warning/critical), potentialSavings ($/month).
-Compare Azure/AWS/GCP/Oracle options in action field. Use Ukrainian language.";
+Provide 3-5 specific recommendations in JSON: category, title, description, action, severity (ok/warning/critical), potentialSavings ($/month).
+Focus on: instance sizing, CPU/RAM balance, HA scaling, storage optimization. Use Ukrainian language.";
     }
 }
