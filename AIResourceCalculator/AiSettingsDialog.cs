@@ -166,6 +166,16 @@ public class AiSettingsDialog : Window
         _txtStatus.Text = "Fetching models...";
         _txtStatus.Foreground = Brushes.Gray;
         _btnFetch.IsEnabled = false;
+        _cmbModel.Items.Clear();
+
+        int idx = _cmbProvider.SelectedIndex;
+
+        if (idx == 3)
+        {
+            await AutoDetectOllamaAsync();
+            _btnFetch.IsEnabled = true;
+            return;
+        }
 
         var key = _txtApiKey.Password.Trim();
         if (string.IsNullOrEmpty(key))
@@ -178,11 +188,9 @@ public class AiSettingsDialog : Window
 
         try
         {
-            var idx = _cmbProvider.SelectedIndex;
             if (idx == 0) await FetchOpenAiModels(key);
             else if (idx == 1) await FetchClaudeModels(key);
             else if (idx == 2) await FetchGoogleModels(key);
-            else if (idx == 3) await AutoDetectOllamaAsync();
             _txtStatus.Text = $"Loaded {_cmbModel.Items.Count} models";
             _txtStatus.Foreground = Brushes.Green;
         }
