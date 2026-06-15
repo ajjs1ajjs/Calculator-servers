@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -26,19 +27,21 @@ public class LocalizationService : INotifyPropertyChanged
 
     public void LoadLanguage(string lang)
     {
-        var baseDir = Path.GetDirectoryName(Environment.ProcessPath ?? AppContext.BaseDirectory) ?? ".";
-        var path = Path.Combine(baseDir, "Localization", $"strings.{lang}.json");
-        if (!File.Exists(path))
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = $"AIResourceCalculator.Localization.strings.{lang}.json";
+        var fallbackName = "AIResourceCalculator.Localization.strings.en.json";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)
+                         ?? assembly.GetManifestResourceStream(fallbackName);
+
+        if (stream == null)
         {
-            path = Path.Combine(baseDir, "Localization", "strings.en.json");
-            if (!File.Exists(path))
-            {
-                _strings = new Dictionary<string, string> { ["app.title"] = "AI Resource Calculator" };
-                return;
-            }
+            _strings = new Dictionary<string, string> { ["app.title"] = "AI Resource Calculator" };
+            return;
         }
 
-        var json = File.ReadAllText(path);
+        using var reader = new StreamReader(stream);
+        var json = reader.ReadToEnd();
         _strings = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
         _currentLang = lang;
 
