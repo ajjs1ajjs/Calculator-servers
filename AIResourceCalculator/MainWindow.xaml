@@ -345,43 +345,33 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- RIGHT: AI Smart Analysis -->
+                    <!-- RIGHT: AI Smart Analysis (table format) -->
                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
                         <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
-                        <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
-                            <StackPanel>
-                                <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,8" Margin="0,0,0,10"
-                                        Command="{Binding AnalyzeAiCommand}" HorizontalAlignment="Left">
-                                    <TextBlock Text="&#x1F9E0; Run AI Analysis"/>
-                                </Button>
-                                <ItemsControl Name="AiRecList" Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
-                                                    Background="{DynamicResource CardBg}" BorderBrush="{Binding Severity, Converter={StaticResource SeverityToColor}}">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Border Grid.Column="0" Width="32" Height="32" CornerRadius="16" Margin="0,0,8,0"
-                                                            Background="{Binding Severity, Converter={StaticResource SeverityToColor}}">
-                                                        <TextBlock Text="{Binding DirectionEmoji}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
-                                                    </Border>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
-                                                        <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                                        <TextBlock Text="{Binding Action}" FontSize="10" Foreground="{DynamicResource AccentBg}" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                                        <TextBlock Text="{Binding PotentialSavings, StringFormat='${0:F0}/mo'}" FontSize="11" FontWeight="Bold"
-                                                                   Foreground="{DynamicResource SuccessBg}" Margin="0,2,0,0"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"/>
-                            </StackPanel>
-                        </Border>
+                        <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,8" Margin="0,0,0,8"
+                                Command="{Binding AnalyzeAiCommand}" HorizontalAlignment="Left">
+                            <TextBlock Text="&#x1F9E0; Run AI Analysis"/>
+                        </Button>
+                        <TextBlock Text="{Binding AiBadgeResultText}" FontSize="12" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4"/>
+                        <DataGrid Name="AiTableResults" MinHeight="320" AutoGenerateColumns="False" IsReadOnly="True"
+                                  Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Loc col.severity}" Binding="{Binding Severity}" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="100"/>
+                                <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Title}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding PotentialSavings, StringFormat='${0:F0}'}" Width="70"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"
+                                   Visibility="{Binding IsAiNoDataVisible, Converter={StaticResource VisibilityConverter}}"/>
                     </StackPanel>
                 </Grid>
             </TabItem>

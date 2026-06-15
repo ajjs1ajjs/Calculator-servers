@@ -22,8 +22,7 @@ public partial class MainWindow : Window
         GridMatrixComponents.ItemsSource = _vm.K8sComponents;
         GridMatrixInfra.ItemsSource = _vm.InfraNodes;
         GridInfrastructure.ItemsSource = _vm.ResultInfrastructure;
-        AiRecList.ItemsSource = _vm.AiRecommendations;
-        QuickRecList.ItemsSource = _vm.AiRecommendations;
+        AiTableResults.ItemsSource = _vm.AiRecommendations;
 
         DataObject.AddPastingHandler(TxtUserCount, NumberPaste);
 
@@ -35,10 +34,7 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.ResultInfrastructure))
             { GridInfrastructure.ItemsSource = null; GridInfrastructure.ItemsSource = _vm.ResultInfrastructure; }
         else if (e.PropertyName == nameof(MainViewModel.AiRecommendations))
-        {
-            AiRecList.ItemsSource = null; AiRecList.ItemsSource = _vm.AiRecommendations;
-            QuickRecList.ItemsSource = null; QuickRecList.ItemsSource = _vm.AiRecommendations;
-        }
+            { AiTableResults.ItemsSource = null; AiTableResults.ItemsSource = _vm.AiRecommendations; }
         else if (e.PropertyName == nameof(MainViewModel.IsDiagramVisible))
         {
             PanelDiagram.Visibility = _vm.IsDiagramVisible ? Visibility.Visible : Visibility.Collapsed;
