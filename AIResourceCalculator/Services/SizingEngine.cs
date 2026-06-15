@@ -50,7 +50,8 @@ public class SizingEngine
 
         double totalCpu = 0, totalRam = 0;
 
-        var enabledModules = _modules.Where(m => m.IsEnabled).ToList();
+        var enabledModules = _modules.Where(m => m.IsEnabled
+            && (config.DeploymentType != DeploymentType.Kubernetes || !m.Name.Contains("Windows"))).ToList();
 
         foreach (var module in enabledModules)
         {
@@ -148,8 +149,8 @@ public class SizingEngine
         var webRam = webRange?.RamRec ?? 8;
         var webCount = webRange?.InstanceCount ?? 1;
 
-        req.TotalCpu = totalCpu + (sqlRange?.Cpu ?? 4);
-        req.TotalRamGb = totalRam + (sqlRange?.RamRec ?? 16);
+        req.TotalCpu = totalCpu + (sqlRange?.Cpu ?? 4) + appCpu * appCount + webCpu * webCount;
+        req.TotalRamGb = totalRam + (sqlRange?.RamRec ?? 16) + appRam * appCount + webRam * webCount;
         req.TotalIops = (appRange?.Iops ?? 200) + (webRange?.Iops ?? 200) + (sqlRange?.Iops ?? 500);
 
         req.WorkerNodeCount = appCount + webCount;
@@ -184,7 +185,7 @@ public class SizingEngine
             ? _matrix.MsSqlPerformanceRanges
             : _matrix.MsSqlRanges;
         return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
-               ?? ranges.LastOrDefault();
+               ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }
 
     private void CalculateHybrid(ResourceRequirement req, ProjectConfig config)
@@ -215,6 +216,6 @@ public class SizingEngine
         var ranges = profile == LoadProfile.Performance && performance.Count > 0
             ? performance : basic;
         return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
-               ?? ranges.LastOrDefault();
+               ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }
 }

@@ -56,9 +56,10 @@ public class AiAdvisorService
         try
         {
             json = json.Trim();
-            if (json.StartsWith("```")) json = json.Substring(json.IndexOf('\n') + 1);
-            if (json.EndsWith("```")) json = json.Substring(0, json.LastIndexOf("```"));
-            json = json.Trim();
+
+            var jsonMatch = System.Text.RegularExpressions.Regex.Match(json, @"```(?:json)?\s*([\s\S]*?)\s*```");
+            if (jsonMatch.Success) json = jsonMatch.Groups[1].Value.Trim();
+
             if (!json.StartsWith("[")) json = "[" + json + "]";
 
             var recs = JsonSerializer.Deserialize<List<AiRecommendation>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -70,7 +71,7 @@ public class AiAdvisorService
         }
     }
 
-    private string _(string en, string uk) => _isUk ? uk : en;
+    private string Loc(string en, string uk) => _isUk ? uk : en;
 
     private List<AiRecommendation> AnalyzeInstanceFit(ResourceRequirement req)
     {
@@ -82,13 +83,13 @@ public class AiAdvisorService
 
         list.Add(new AiRecommendation
         {
-            Category = _("Instance Type", "Тип інстансу"),
+            Category = Loc("Instance Type", "Тип інстансу"),
             Severity = "ok",
-            Title = _($"✅ Recommended: {instanceType.Name}  ✓", $"✅ Рекомендовано: {instanceType.Name}  ✓"),
-            Description = _(
+            Title = Loc($"✅ Recommended: {instanceType.Name}  ✓", $"✅ Рекомендовано: {instanceType.Name}  ✓"),
+            Description = Loc(
                 $"Your load of {cpuPerNode:F1} vCPU / {ramPerNode:F1} GB per node fits {instanceType.Name}",
                 $"Навантаження {cpuPerNode:F1} vCPU / {ramPerNode:F1} GB на вузол відповідає {instanceType.Name}"),
-            Action = _(
+            Action = Loc(
                 $"Deploy {instanceType.Name} × {req.WorkerNodeCount} nodes. Estimated ${instanceType.MonthlyCost * req.WorkerNodeCount}/mo",
                 $"Розгорніть {instanceType.Name} × {req.WorkerNodeCount} вузлів. ~${instanceType.MonthlyCost * req.WorkerNodeCount}/міс"),
             PotentialSavings = instanceType.MonthlyCost * req.WorkerNodeCount
@@ -106,13 +107,13 @@ public class AiAdvisorService
                 var targetCpu = Math.Max(8, podCpu * 10);
                 list.Add(new AiRecommendation
                 {
-                    Category = _("Pod Density", "Щільність подів"),
+                    Category = Loc("Pod Density", "Щільність подів"),
                     Severity = "warning",
-                    Title = _($"🟡 Low pod density: ~{podsPerNode} pods/node", $"🟡 Мало подів: ~{podsPerNode} подів/вузол"),
-                    Description = _(
+                    Title = Loc($"🟡 Low pod density: ~{podsPerNode} pods/node", $"🟡 Мало подів: ~{podsPerNode} подів/вузол"),
+                    Description = Loc(
                         $"Each pod needs ~{podCpu:F2} CPU / {podRam:F2} GB RAM. Consider larger workers",
                         $"Кожному поду потрібно ~{podCpu:F2} CPU / {podRam:F2} GB RAM. Потрібні більші вузли"),
-                    Action = _(
+                    Action = Loc(
                         $"🔼 INCREASE worker to {targetCpu:F0} CPU / {targetCpu * 4:F0} GB RAM, or REDUCE to {Math.Max(1, req.WorkerNodeCount - 1)} nodes",
                         $"🔼 ЗБІЛЬШІТЬ вузол до {targetCpu:F0} CPU / {targetCpu * 4:F0} GB RAM, або ЗМЕНШІТЬ до {Math.Max(1, req.WorkerNodeCount - 1)} вузлів")
                 });
@@ -121,13 +122,13 @@ public class AiAdvisorService
             {
                 list.Add(new AiRecommendation
                 {
-                    Category = _("Pod Density", "Щільність подів"),
+                    Category = Loc("Pod Density", "Щільність подів"),
                     Severity = "ok",
-                    Title = _($"✅ Good density: ~{podsPerNode} pods/node", $"✅ Добра щільність: ~{podsPerNode} подів/вузол"),
-                    Description = _(
+                    Title = Loc($"✅ Good density: ~{podsPerNode} pods/node", $"✅ Добра щільність: ~{podsPerNode} подів/вузол"),
+                    Description = Loc(
                         $"Each worker can run ~{podsPerNode} pods efficiently",
                         $"Кожен вузол може ефективно запустити ~{podsPerNode} подів"),
-                    Action = _("✓ Keep current configuration", "✓ Залишити поточну конфігурацію")
+                    Action = Loc("✓ Keep current configuration", "✓ Залишити поточну конфігурацію")
                 });
             }
         }
@@ -145,13 +146,13 @@ public class AiAdvisorService
             var recommendedCpu = req.TotalRamGb * 1.5;
             list.Add(new AiRecommendation
             {
-                Category = _("CPU/RAM Balance", "Баланс CPU/RAM"),
+                Category = Loc("CPU/RAM Balance", "Баланс CPU/RAM"),
                 Severity = "warning",
-                Title = _($"🟡 Too much CPU: ratio {ratio:F2}", $"🟡 Надлишок CPU: співвідношення {ratio:F2}"),
-                Description = _(
+                Title = Loc($"🟡 Too much CPU: ratio {ratio:F2}", $"🟡 Надлишок CPU: співвідношення {ratio:F2}"),
+                Description = Loc(
                     $"For {req.TotalRamGb:F0} GB RAM you need ~{recommendedCpu:F0} CPU (ratio ~1.5:1). Currently {req.TotalCpu:F0} CPU",
                     $"Для {req.TotalRamGb:F0} GB RAM потрібно ~{recommendedCpu:F0} CPU (співвідн. ~1.5:1). Зараз {req.TotalCpu:F0} CPU"),
-                Action = _(
+                Action = Loc(
                     $"🔽 REDUCE CPU: {req.TotalCpu:F0} → {recommendedCpu:F0} cores. Switch to c-series (compute-optimized)",
                     $"🔽 ЗМЕНШІТЬ CPU: {req.TotalCpu:F0} → {recommendedCpu:F0} ядер. Візьміть c-series (compute-optimized)"),
                 PotentialSavings = (req.TotalCpu - recommendedCpu) * 8
@@ -163,13 +164,13 @@ public class AiAdvisorService
             var reduceRam = req.TotalRamGb - recommendedRam;
             list.Add(new AiRecommendation
             {
-                Category = _("CPU/RAM Balance", "Баланс CPU/RAM"),
+                Category = Loc("CPU/RAM Balance", "Баланс CPU/RAM"),
                 Severity = "warning",
-                Title = _($"🟡 Too much RAM: ratio {ratio:F2}", $"🟡 Надлишок RAM: співвідношення {ratio:F2}"),
-                Description = _(
+                Title = Loc($"🟡 Too much RAM: ratio {ratio:F2}", $"🟡 Надлишок RAM: співвідношення {ratio:F2}"),
+                Description = Loc(
                     $"For {req.TotalCpu:F0} CPU you need ~{recommendedRam:F0} GB RAM (ratio ~4:1). Currently {req.TotalRamGb:F0} GB",
                     $"Для {req.TotalCpu:F0} CPU потрібно ~{recommendedRam:F0} GB RAM (співвідн. ~4:1). Зараз {req.TotalRamGb:F0} GB"),
-                Action = _(
+                Action = Loc(
                     $"🔽 REDUCE RAM: {req.TotalRamGb:F0} → {recommendedRam:F0} GB. Switch to r-series (memory-optimized)",
                     $"🔽 ЗМЕНШІТЬ RAM: {req.TotalRamGb:F0} → {recommendedRam:F0} GB. Візьміть r-series (memory-optimized)"),
                 PotentialSavings = reduceRam * 3
@@ -179,13 +180,13 @@ public class AiAdvisorService
         {
             list.Add(new AiRecommendation
             {
-                Category = _("CPU/RAM Balance", "Баланс CPU/RAM"),
+                Category = Loc("CPU/RAM Balance", "Баланс CPU/RAM"),
                 Severity = "ok",
-                Title = _($"✅ Good balance: ratio {ratio:F2} (norm 1-6)", $"✅ Добрий баланс: {ratio:F2} (норма 1-6)"),
-                Description = _(
+                Title = Loc($"✅ Good balance: ratio {ratio:F2} (norm 1-6)", $"✅ Добрий баланс: {ratio:F2} (норма 1-6)"),
+                Description = Loc(
                     $"CPU ({req.TotalCpu:F0}) and RAM ({req.TotalRamGb:F0} GB) are well balanced",
                     $"CPU ({req.TotalCpu:F0}) та RAM ({req.TotalRamGb:F0} GB) збалансовані"),
-                Action = _("✓ Keep current. Use m-series (general purpose)", "✓ Залишити. Використовуйте m-series")
+                Action = Loc("✓ Keep current. Use m-series (general purpose)", "✓ Залишити. Використовуйте m-series")
             });
         }
 
@@ -200,13 +201,13 @@ public class AiAdvisorService
         {
             list.Add(new AiRecommendation
             {
-                Category = _("High Availability", "Відмовостійкість"),
+                Category = Loc("High Availability", "Відмовостійкість"),
                 Severity = "critical",
-                Title = _($"🔴 Only {req.WorkerNodeCount} nodes — HA requires ≥3!", $"🔴 Лише {req.WorkerNodeCount} вузлів — для HA потрібно ≥3!"),
-                Description = _(
+                Title = Loc($"🔴 Only {req.WorkerNodeCount} nodes — HA requires ≥3!", $"🔴 Лише {req.WorkerNodeCount} вузлів — для HA потрібно ≥3!"),
+                Description = Loc(
                     $"With {req.WorkerNodeCount} worker(s) you have NO high availability. One failure = downtime",
                     $"З {req.WorkerNodeCount} вузлом(ами) НЕМАЄ відмовостійкості. Відмова = простій"),
-                Action = _(
+                Action = Loc(
                     $"🔼 INCREASE workers: {req.WorkerNodeCount} → 3+ nodes. Distribute across AZs",
                     $"🔼 ЗБІЛЬШІТЬ вузли: {req.WorkerNodeCount} → 3+. Розподіліть по AZ")
             });
@@ -215,13 +216,13 @@ public class AiAdvisorService
         {
             list.Add(new AiRecommendation
             {
-                Category = _("High Availability", "Відмовостійкість"),
+                Category = Loc("High Availability", "Відмовостійкість"),
                 Severity = "ok",
-                Title = _($"✅ HA OK: {req.WorkerNodeCount} nodes meet HA requirements", $"✅ HA OK: {req.WorkerNodeCount} вузлів достатньо"),
-                Description = _(
+                Title = Loc($"✅ HA OK: {req.WorkerNodeCount} nodes meet HA requirements", $"✅ HA OK: {req.WorkerNodeCount} вузлів достатньо"),
+                Description = Loc(
                     $"{req.WorkerNodeCount} nodes provide fault tolerance for production",
                     $"{req.WorkerNodeCount} вузлів забезпечують відмовостійкість для production"),
-                Action = _("✓ Keep current. Add pod anti-affinity rules", "✓ Залишити. Додайте anti-affinity для подів")
+                Action = Loc("✓ Keep current. Add pod anti-affinity rules", "✓ Залишити. Додайте anti-affinity для подів")
             });
         }
 
@@ -229,13 +230,13 @@ public class AiAdvisorService
         {
             list.Add(new AiRecommendation
             {
-                Category = _("Auto-scaling", "Автомасштабування"),
+                Category = Loc("Auto-scaling", "Автомасштабування"),
                 Severity = "info",
-                Title = _($"💡 Enable auto-scaling for {config.UserCount} users", $"💡 Увімкніть автопідсилення для {config.UserCount} користувачів"),
-                Description = _(
+                Title = Loc($"💡 Enable auto-scaling for {config.UserCount} users", $"💡 Увімкніть автопідсилення для {config.UserCount} користувачів"),
+                Description = Loc(
                     "HPA (Horizontal Pod Autoscaler) + Cluster Autoscaler for demand spikes",
                     "HPA (горизонтальне підсилення подів) + Cluster Autoscaler для піків"),
-                Action = _(
+                Action = Loc(
                     "⚙️ SET: min_nodes=3, max_nodes=20, CPU target=70%",
                     "⚙️ НАЛАШТУЙТЕ: min=3, max=20 вузлів, CPU=70%")
             });
@@ -254,13 +255,13 @@ public class AiAdvisorService
             var recommendedStorage = (int)(tb * 0.6 * 1024);
             list.Add(new AiRecommendation
             {
-                Category = _("Storage", "Сховище"),
+                Category = Loc("Storage", "Сховище"),
                 Severity = "warning",
-                Title = _($"🟡 High storage: {tb:F1} TB", $"🟡 Багато даних: {tb:F1} TB"),
-                Description = _(
+                Title = Loc($"🟡 High storage: {tb:F1} TB", $"🟡 Багато даних: {tb:F1} TB"),
+                Description = Loc(
                     $"Review if all {req.TotalStorageGb} GB needs SSD or can use HDD tiers",
                     $"Перевірте, чи всі {req.TotalStorageGb} GB потребують SSD, чи можна HDD"),
-                Action = _(
+                Action = Loc(
                     $"🔽 REDUCE: separate hot (SSD) and cold (HDD) data. ~60% can be colder",
                     $"🔽 ЗМЕНШІТЬ: розділіть гарячі (SSD) та холодні (HDD) дані. ~60% може бути холодними")
             });
@@ -270,13 +271,13 @@ public class AiAdvisorService
         {
             list.Add(new AiRecommendation
             {
-                Category = _("IOPS", "IOPS"),
-                Severity = _("warning", "info"),
-                Title = _($"💡 High IOPS: {req.TotalIops:N0}", $"💡 Високий IOPS: {req.TotalIops:N0}"),
-                Description = _(
+                Category = Loc("IOPS", "IOPS"),
+                Severity = Loc("warning", "info"),
+                Title = Loc($"💡 High IOPS: {req.TotalIops:N0}", $"💡 Високий IOPS: {req.TotalIops:N0}"),
+                Description = Loc(
                     $"Ensure IOPS-provisioned volumes (gp3/io2). {req.TotalIops:N0} IOPS needs careful planning",
                     $"Потрібні диски з гарантованим IOPS (gp3/io2). {req.TotalIops:N0} IOPS потребує планування"),
-                Action = _(
+                Action = Loc(
                     "🔼 UPGRADE: gp3 with IOPS provisioning or io2 for > 16000 IOPS",
                     "🔼 ПОКРАЩТЕ: gp3 з IOPS або io2 для > 16000 IOPS")
             });
@@ -286,13 +287,13 @@ public class AiAdvisorService
         {
             list.Add(new AiRecommendation
             {
-                Category = _("Storage", "Сховище"),
+                Category = Loc("Storage", "Сховище"),
                 Severity = "ok",
-                Title = _($"✅ Storage OK: {req.TotalStorageGb} GB / {req.TotalIops:N0} IOPS", $"✅ Сховище OK: {req.TotalStorageGb} GB / {req.TotalIops:N0} IOPS"),
-                Description = _(
+                Title = Loc($"✅ Storage OK: {req.TotalStorageGb} GB / {req.TotalIops:N0} IOPS", $"✅ Сховище OK: {req.TotalStorageGb} GB / {req.TotalIops:N0} IOPS"),
+                Description = Loc(
                     "Storage configuration looks adequate",
                     "Конфігурація сховища достатня"),
-                Action = _("✓ Keep current storage configuration", "✓ Залишити поточну конфігурацію")
+                Action = Loc("✓ Keep current storage configuration", "✓ Залишити поточну конфігурацію")
             });
         }
 
@@ -303,14 +304,14 @@ public class AiAdvisorService
     {
         return (cpu, ram) switch
         {
-            (<= 2, <= 4) => ("t3.medium", _("Burstable, low traffic", "Бurstable, низький трафік"), 30),
-            (<= 4, <= 16) => ("m5.large", _("General purpose, balanced", "Загального призначення"), 70),
-            (<= 8, <= 32) => ("m5.xlarge", _("General purpose, most workloads", "Загального призначення"), 140),
-            (<= 16, <= 64) => ("m5.2xlarge", _("General purpose, high perf", "Продуктивний"), 280),
-            (<= 32, <= 128) => ("m5.4xlarge", _("General purpose, heavy", "Важкі навантаження"), 560),
-            (<= 48, <= 192) => ("m5.8xlarge", _("General purpose, enterprise", "Корпоративний"), 1120),
-            (<= 64, <= 256) => ("c5.9xlarge", _("Compute optimized, CPU", "Оптимізований CPU"), 1300),
-            _ => ("m5.4xlarge", _("General purpose", "Загального призначення"), 560)
+            (<= 2, <= 4) => ("t3.medium", Loc("Burstable, low traffic", "Бurstable, низький трафік"), 30),
+            (<= 4, <= 16) => ("m5.large", Loc("General purpose, balanced", "Загального призначення"), 70),
+            (<= 8, <= 32) => ("m5.xlarge", Loc("General purpose, most workloads", "Загального призначення"), 140),
+            (<= 16, <= 64) => ("m5.2xlarge", Loc("General purpose, high perf", "Продуктивний"), 280),
+            (<= 32, <= 128) => ("m5.4xlarge", Loc("General purpose, heavy", "Важкі навантаження"), 560),
+            (<= 48, <= 192) => ("m5.8xlarge", Loc("General purpose, enterprise", "Корпоративний"), 1120),
+            (<= 64, <= 256) => ("c5.9xlarge", Loc("Compute optimized, CPU", "Оптимізований CPU"), 1300),
+            _ => ("m5.4xlarge", Loc("General purpose", "Загального призначення"), 560)
         };
     }
 

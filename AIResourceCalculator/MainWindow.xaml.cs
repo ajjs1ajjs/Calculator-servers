@@ -215,7 +215,7 @@ public partial class MainWindow : Window
 
             ShowResults(req, perfReq);
 
-            MainTabControl.SelectedIndex = 1;
+            MainTabControl.SelectedIndex = 2;
             var lang = LocalizationService.Instance;
             UpdateStatus(string.Format(lang["status.calculated"], config.UserCount,
                 req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1")));
@@ -260,7 +260,7 @@ public partial class MainWindow : Window
             PanelCompareResult.Visibility = Visibility.Visible;
 
             ShowResults(basicReq, perfReq);
-            MainTabControl.SelectedIndex = 1;
+            MainTabControl.SelectedIndex = 2;
 
             var lang = LocalizationService.Instance;
             UpdateStatus(string.Format(lang["status.calculated"], basicConfig.UserCount,
@@ -274,55 +274,62 @@ public partial class MainWindow : Window
 
     private async void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq)
     {
-        TblTotalCpu.Text = $"{req.TotalCpu:F1}";
-        TblTotalRam.Text = $"{req.TotalRamGb:F1} GB";
-        TblTotalStorage.Text = $"{req.TotalStorageGb} GB";
-        TblTotalIops.Text = $"{req.TotalIops}";
-        TblTotalNodes.Text = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
-
-        GridInfrastructure.ItemsSource = null;
-        GridInfrastructure.ItemsSource = req.Infrastructure;
-
-        if (perfReq != null)
+        try
         {
-            var nodeLabel = req.DeploymentType == DeploymentType.Windows ? "Сервери" : "Worker";
-            var compareRows = new List<CompareRow>
+            TblTotalCpu.Text = $"{req.TotalCpu:F1}";
+            TblTotalRam.Text = $"{req.TotalRamGb:F1} GB";
+            TblTotalStorage.Text = $"{req.TotalStorageGb} GB";
+            TblTotalIops.Text = $"{req.TotalIops}";
+            TblTotalNodes.Text = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
+
+            GridInfrastructure.ItemsSource = null;
+            GridInfrastructure.ItemsSource = req.Infrastructure;
+
+            if (perfReq != null)
             {
-                new() { Name = "vCPU", Basic = $"{req.TotalCpu:F1}", Performance = $"{perfReq.TotalCpu:F1}" },
-                new() { Name = "RAM", Basic = $"{req.TotalRamGb:F1} GB", Performance = $"{perfReq.TotalRamGb:F1} GB" },
-                new() { Name = nodeLabel, Basic = $"{req.WorkerNodeCount}", Performance = $"{perfReq.WorkerNodeCount}" },
-                new() { Name = "Storage", Basic = $"{req.TotalStorageGb} GB", Performance = $"{perfReq.TotalStorageGb} GB" },
-                new() { Name = "IOPS", Basic = $"{req.TotalIops}", Performance = $"{perfReq.TotalIops}" }
-            };
-            GridCompareResults.ItemsSource = null;
-            GridCompareResults.ItemsSource = compareRows;
+                var nodeLabel = req.DeploymentType == DeploymentType.Windows ? "Сервери" : "Worker";
+                var compareRows = new List<CompareRow>
+                {
+                    new() { Name = "vCPU", Basic = $"{req.TotalCpu:F1}", Performance = $"{perfReq.TotalCpu:F1}" },
+                    new() { Name = "RAM", Basic = $"{req.TotalRamGb:F1} GB", Performance = $"{perfReq.TotalRamGb:F1} GB" },
+                    new() { Name = nodeLabel, Basic = $"{req.WorkerNodeCount}", Performance = $"{perfReq.WorkerNodeCount}" },
+                    new() { Name = "Storage", Basic = $"{req.TotalStorageGb} GB", Performance = $"{perfReq.TotalStorageGb} GB" },
+                    new() { Name = "IOPS", Basic = $"{req.TotalIops}", Performance = $"{perfReq.TotalIops}" }
+                };
+                GridCompareResults.ItemsSource = null;
+                GridCompareResults.ItemsSource = compareRows;
+            }
+
+            TxtAiNoData.Text = LocalizationService.Instance["results.aiAnalyzing"];
+            TxtAiNoData.Visibility = Visibility.Visible;
+            AiRecList.Visibility = Visibility.Collapsed;
+
+            var recommendations = await _advisor.AnalyzeAsync(req, GetConfig());
+            if (recommendations.Count > 0)
+            {
+                var sorted = recommendations.OrderByDescending(r => r.Severity == "critical")
+                    .ThenByDescending(r => r.Severity == "warning")
+                    .ThenByDescending(r => r.Severity == "info").ToList();
+
+                TxtAiNoData.Visibility = Visibility.Collapsed;
+                AiRecList.Visibility = Visibility.Visible;
+                AiRecList.ItemsSource = null;
+                AiRecList.ItemsSource = sorted;
+
+                var totalSavings = sorted.Sum(r => r.PotentialSavings);
+                TxtAiBadgeResult.Text = $"{sorted.Count} rec" + (totalSavings > 0 ? $" | ${totalSavings:F0}/mo" : "");
+            }
+            else
+            {
+                TxtAiNoData.Text = LocalizationService.Instance["ai.noData"];
+                TxtAiNoData.Visibility = Visibility.Visible;
+            }
         }
-
-        TxtAiNoData.Text = LocalizationService.Instance["results.aiAnalyzing"];
-        TxtAiNoData.Visibility = Visibility.Visible;
-        AiRecList.Visibility = Visibility.Collapsed;
-
-        var recommendations = await _advisor.AnalyzeAsync(req, GetConfig());
-        if (recommendations.Count > 0)
+        catch (Exception ex)
         {
-            var sorted = recommendations.OrderByDescending(r => r.Severity == "critical")
-                .ThenByDescending(r => r.Severity == "warning")
-                .ThenByDescending(r => r.Severity == "info").ToList();
-
-            TxtAiNoData.Visibility = Visibility.Collapsed;
-            AiRecList.Visibility = Visibility.Visible;
-            AiRecList.ItemsSource = null;
-            AiRecList.ItemsSource = sorted;
-
-            var totalSavings = sorted.Sum(r => r.PotentialSavings);
-            TxtAiBadgeResult.Text = $"{sorted.Count} rec" + (totalSavings > 0 ? $" | ${totalSavings:F0}/mo" : "");
-        }
-        else
-        {
-            TxtAiNoData.Text = LocalizationService.Instance["ai.noData"];
+            TxtAiNoData.Text = $"Error: {ex.Message}";
             TxtAiNoData.Visibility = Visibility.Visible;
         }
-
     }
 
     private void BtnExportTxt_Click(object sender, RoutedEventArgs e)

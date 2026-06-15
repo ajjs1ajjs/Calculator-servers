@@ -12,7 +12,7 @@ public class AiSettingsDialog : Window
     public AiSettings Settings { get; private set; }
 
     private ComboBox _cmbProvider;
-    private TextBox _txtApiKey;
+    private PasswordBox _txtApiKey;
     private TextBox _txtEndpoint;
     private ComboBox _cmbModel;
     private Slider _sliderTemp;
@@ -84,12 +84,12 @@ public class AiSettingsDialog : Window
         // Панель API ключа
         _apiKeyPanel = new StackPanel { Margin = new Thickness(0) };
         AddLabel(_apiKeyPanel, 0, 0, "API Key:");
-        _txtApiKey = new TextBox
+        _txtApiKey = new PasswordBox
         {
-            Text = Settings.ApiKey, Margin = new Thickness(5), Padding = new Thickness(4),
+            Password = Settings.ApiKey, Margin = new Thickness(5), Padding = new Thickness(4),
             ToolTip = "Required for OpenAI / Claude"
         };
-        _txtApiKey.TextChanged += (_, _) => UpdateUi();
+        _txtApiKey.PasswordChanged += (_, _) => UpdateUi();
         Grid.SetRow(_txtApiKey, 0); Grid.SetColumn(_txtApiKey, 1);
         _apiKeyPanel.Children.Add(_txtApiKey);
         Grid.SetRow(_apiKeyPanel, row); Grid.SetColumnSpan(_apiKeyPanel, 2);
@@ -185,7 +185,7 @@ public class AiSettingsDialog : Window
         {
             if (!Validate()) return;
             Settings.Provider = (AiProvider)_cmbProvider.SelectedIndex;
-            Settings.ApiKey = _txtApiKey.Text.Trim();
+            Settings.ApiKey = _txtApiKey.Password.Trim();
             Settings.EndpointUrl = _txtEndpoint.Text.Trim();
             Settings.ModelName = _cmbModel.Text.Trim();
             Settings.Temperature = _sliderTemp.Value;
@@ -230,7 +230,7 @@ public class AiSettingsDialog : Window
         _endpointPanel.Visibility = provider != AiProvider.None && enabled ? Visibility.Visible : Visibility.Collapsed;
         _modelPanel.Visibility = provider != AiProvider.None && enabled ? Visibility.Visible : Visibility.Collapsed;
 
-        var hasKey = !string.IsNullOrWhiteSpace(_txtApiKey.Text);
+        var hasKey = !string.IsNullOrWhiteSpace(_txtApiKey.Password);
         var hasModel = !string.IsNullOrWhiteSpace(_cmbModel.Text);
 
         if (!enabled) _txtStatus.Text = "⏸ AI disabled";
@@ -249,7 +249,7 @@ public class AiSettingsDialog : Window
         if (provider == AiProvider.None) return true;
 
         if ((provider == AiProvider.OpenAI || provider == AiProvider.Claude) &&
-            string.IsNullOrWhiteSpace(_txtApiKey.Text))
+            string.IsNullOrWhiteSpace(_txtApiKey.Password))
         {
             MessageBox.Show("API Key is required for this provider.", "Validation Error",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -298,7 +298,7 @@ public class AiSettingsDialog : Window
             {
                 var endpoint = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
                     ? "https://api.openai.com/v1/models" : _txtEndpoint.Text.Trim().TrimEnd('/') + "/models";
-                var key = _txtApiKey.Text.Trim();
+                var key = _txtApiKey.Password.Trim();
 
                 if (string.IsNullOrWhiteSpace(key))
                 {
@@ -318,7 +318,7 @@ public class AiSettingsDialog : Window
             {
                 var endpoint = string.IsNullOrWhiteSpace(_txtEndpoint.Text)
                     ? "https://api.anthropic.com/v1/messages" : _txtEndpoint.Text.Trim();
-                var key = _txtApiKey.Text.Trim();
+                var key = _txtApiKey.Password.Trim();
 
                 if (string.IsNullOrWhiteSpace(key))
                 {
@@ -379,7 +379,7 @@ public class AiSettingsDialog : Window
                 _txtStatus.Foreground = Brushes.Green;
             }
         }
-        catch
+        catch (HttpRequestException)
         {
             _cmbModel.Items.Clear();
             _cmbModel.Items.Add("llama3.2");
@@ -392,6 +392,8 @@ public class AiSettingsDialog : Window
             _txtStatus.Text = "⚠️ Ollama not found — enter model manually";
             _txtStatus.Foreground = Brushes.Orange;
         }
+        catch (JsonException) { }
+        catch (TaskCanceledException) { }
     }
 
     private void AddLabel(Panel panel, int row, int col, string text)

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace AIResourceCalculator.Models;
@@ -43,7 +45,8 @@ public class AiSettings
             System.IO.Directory.CreateDirectory(dir);
 
         var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-        System.IO.File.WriteAllText(ConfigPath, json);
+        var encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(json), null, DataProtectionScope.CurrentUser);
+        System.IO.File.WriteAllBytes(ConfigPath, encrypted);
     }
 
     public static AiSettings Load()
@@ -52,7 +55,9 @@ public class AiSettings
         {
             try
             {
-                var json = System.IO.File.ReadAllText(ConfigPath);
+                var encrypted = System.IO.File.ReadAllBytes(ConfigPath);
+                var decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+                var json = Encoding.UTF8.GetString(decrypted);
                 return JsonSerializer.Deserialize<AiSettings>(json) ?? new AiSettings();
             }
             catch { }

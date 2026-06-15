@@ -176,6 +176,6 @@ public static class DiagramBuilder
         string s when s.Contains("Ubuntu") => "Ubuntu",
         string s when s.Contains("Windows") => "Win",
         string s when s.Contains("Win") => "Win",
-        _ => os.Length > 8 ? os[..8] : os
+        _ => os?.Length > 8 ? os[..8] : (os ?? "")
     };
 }

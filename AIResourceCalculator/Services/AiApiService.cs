@@ -71,7 +71,11 @@ public class AiApiService
 
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+        if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0 &&
+            choices[0].TryGetProperty("message", out var message) &&
+            message.TryGetProperty("content", out var content))
+            return content.GetString() ?? "";
+        return "";
     }
 
     private async Task<string> CallClaude(string endpoint, string model, string prompt)
@@ -96,13 +100,18 @@ public class AiApiService
 
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? "";
+        if (doc.RootElement.TryGetProperty("content", out var contentArr) && contentArr.ValueKind == JsonValueKind.Array && contentArr.GetArrayLength() > 0 &&
+            contentArr[0].TryGetProperty("text", out var text))
+            return text.GetString() ?? "";
+        return "";
     }
 
     private async Task<string> CallOllama(string endpoint, string model, string prompt)
     {
         // Quick health check
-        var baseUrl = endpoint.Replace("/api/generate", "/api/tags").Replace("/v1/completions", "/api/tags");
+        var baseUri = new Uri(endpoint);
+        var tagsUri = new Uri(baseUri, "/api/tags");
+        var baseUrl = tagsUri.ToString();
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -129,7 +138,9 @@ public class AiApiService
 
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.GetProperty("response").GetString() ?? "";
+        if (doc.RootElement.TryGetProperty("response", out var resp))
+            return resp.GetString() ?? "";
+        return "";
     }
 
     public string BuildAnalysisPrompt(ResourceRequirement req, ProjectConfig config)
