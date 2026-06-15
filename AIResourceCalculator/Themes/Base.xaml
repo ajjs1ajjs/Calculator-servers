@@ -1,38 +1,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- === Base Application Styles === -->
-
     <Style TargetType="TabItem">
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Padding" Value="14,10"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="TabItem">
-                    <Border Name="Border" Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0,0,0,2"
-                            Padding="{TemplateBinding Padding}" Margin="0">
-                        <ContentPresenter ContentSource="Header" VerticalAlignment="Center"
-                                          TextBlock.FontWeight="{TemplateBinding FontWeight}"
-                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource HighlightBg}"/>
-                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBg}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource AltRowBg}"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <Style TargetType="Button">
@@ -41,28 +15,6 @@
         <Setter Property="Margin" Value="4"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}"
-                            CornerRadius="5" Padding="{TemplateBinding Padding}"
-                            BorderThickness="0">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Opacity" Value="0.85"/>
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Opacity" Value="0.7"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <Style TargetType="TextBlock" x:Key="SectionHeader">
@@ -76,16 +28,11 @@
         <Setter Property="Background" Value="{DynamicResource DataGridBg}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="AlternatingRowBackground" Value="{DynamicResource AltRowBg}"/>
         <Setter Property="RowBackground" Value="{DynamicResource DataGridBg}"/>
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderColor}"/>
-        <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource BorderColor}"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
         <Setter Property="AutoGenerateColumns" Value="False"/>
-        <Setter Property="CanUserResizeColumns" Value="True"/>
-        <Setter Property="CanUserSortColumns" Value="False"/>
         <Setter Property="SelectionMode" Value="Single"/>
         <Setter Property="SelectionUnit" Value="Cell"/>
         <Setter Property="RowHeaderWidth" Value="0"/>
@@ -97,12 +44,10 @@
         <Setter Property="Foreground" Value="{DynamicResource TextWhite}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Padding" Value="6,4"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
     </Style>
 
     <Style TargetType="DataGridCell">
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
         <Setter Property="Padding" Value="4,2"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
     </Style>
@@ -112,17 +57,17 @@
         <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="6,4"/>
         <Setter Property="CaretBrush" Value="{DynamicResource InputFg}"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="6,4"/>
     </Style>
 
     <Style TargetType="ComboBox">
         <Setter Property="Background" Value="{DynamicResource InputBg}"/>
         <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
-        <Setter Property="Padding" Value="6,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="6,4"/>
     </Style>
 
     <Style TargetType="ComboBoxItem">
@@ -147,10 +92,6 @@
         <Setter Property="Background" Value="{DynamicResource StatusBarBg}"/>
     </Style>
 
-    <Style TargetType="StatusBarItem">
-        <Setter Property="Padding" Value="8,2"/>
-    </Style>
-
     <Style TargetType="ScrollViewer">
         <Setter Property="Background" Value="{DynamicResource WindowBg}"/>
     </Style>
@@ -159,21 +100,5 @@
         <Setter Property="Background" Value="{DynamicResource WindowBg}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
-    </Style>
-
-    <Style TargetType="Border" x:Key="CardBorder">
-        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
-        <Setter Property="Padding" Value="15"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-    </Style>
-
-    <Style TargetType="Border" x:Key="HighlightCard">
-        <Setter Property="Background" Value="{DynamicResource HighlightBg}"/>
-        <Setter Property="Padding" Value="15"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentBg}"/>
-        <Setter Property="BorderThickness" Value="1"/>
     </Style>
 </ResourceDictionary>

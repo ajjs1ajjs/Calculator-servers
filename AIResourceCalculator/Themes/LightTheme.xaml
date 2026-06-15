@@ -22,6 +22,5 @@
     <SolidColorBrush x:Key="InputFg" Color="#2c3e50"/>
     <SolidColorBrush x:Key="InputBorder" Color="#dee2e6"/>
     <SolidColorBrush x:Key="PanelCompareBg" Color="#e8f8f5"/>
-    <SolidColorBrush x:Key="TextOnDark" Color="#ecf0f1"/>
     <SolidColorBrush x:Key="DiagramBg" Color="#1a1a2e"/>
 </ResourceDictionary>
