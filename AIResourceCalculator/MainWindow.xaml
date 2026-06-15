@@ -345,7 +345,7 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- RIGHT: AI Smart Analysis (table format) -->
+                    <!-- RIGHT: AI Analysis Results (same table format as left) -->
                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
                         <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
                         <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,8" Margin="0,0,0,8"
@@ -356,18 +356,11 @@
                         <DataGrid Name="AiTableResults" MinHeight="320" AutoGenerateColumns="False" IsReadOnly="True"
                                   Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Loc col.severity}" Binding="{Binding Severity}" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="100"/>
-                                <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Title}" Width="*">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding PotentialSavings, StringFormat='${0:F0}'}" Width="70"/>
+                                <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="50"/>
+                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="50"/>
+                                <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="50"/>
+                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="75"/>
                             </DataGrid.Columns>
                         </DataGrid>
                         <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"

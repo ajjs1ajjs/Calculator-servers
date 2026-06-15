@@ -300,6 +300,61 @@ public class AiAdvisorService
         return list;
     }
 
+    public List<InfrastructureNode> BuildAiInfrastructure(ResourceRequirement req, ProjectConfig config)
+    {
+        var nodes = new List<InfrastructureNode>();
+        var (instanceType, _, _) = RecommendInstance(
+            req.WorkerNodeCount > 0 ? req.TotalCpu / req.WorkerNodeCount : 0,
+            req.WorkerNodeCount > 0 ? req.TotalRamGb / req.WorkerNodeCount : 0);
+
+        if (config.DeploymentType == DeploymentType.Kubernetes || config.DeploymentType == DeploymentType.Hybrid)
+        {
+            var workerCpu = req.WorkerNodeCount > 0 ? Math.Ceiling(req.TotalCpu / req.WorkerNodeCount) : 8;
+            var workerRam = req.WorkerNodeCount > 0 ? Math.Ceiling(req.TotalRamGb / req.WorkerNodeCount) : 32;
+            var aiWorkers = Math.Max(3, req.WorkerNodeCount + 1);
+
+            nodes.Add(new InfrastructureNode
+            {
+                Name = "SQL Server (Azure SQL DB / AWS RDS)",
+                Os = "PaaS", Cpu = Math.Ceiling(req.TotalCpu * 0.1),
+                RamGb = Math.Ceiling(req.TotalRamGb * 0.2), NodeCount = 1,
+                StorageGb = Math.Max(500, req.TotalStorageGb / 3), StorageType = "Premium SSD"
+            });
+
+            nodes.Add(new InfrastructureNode
+            {
+                Name = "Master Node",
+                Os = "Ubuntu 24.04 LTS", Cpu = 4, RamGb = 8,
+                NodeCount = 3, StorageGb = 100, StorageType = "SSD"
+            });
+
+            nodes.Add(new InfrastructureNode
+            {
+                Name = instanceType,
+                Os = "Ubuntu 24.04 LTS", Cpu = workerCpu, RamGb = workerRam,
+                NodeCount = aiWorkers, StorageGb = 200, StorageType = "SSD"
+            });
+        }
+
+        if (config.DeploymentType == DeploymentType.Windows || config.DeploymentType == DeploymentType.Hybrid)
+        {
+            nodes.Add(new InfrastructureNode
+            {
+                Name = $"App Server ({instanceType.Split('/')[0].Trim()})",
+                Os = "Windows Server 2025", Cpu = 8, RamGb = 32,
+                NodeCount = Math.Max(2, req.WorkerNodeCount / 2), StorageGb = 150, StorageType = "SSD"
+            });
+            nodes.Add(new InfrastructureNode
+            {
+                Name = "Web Server (IIS)",
+                Os = "Windows Server 2025", Cpu = 4, RamGb = 16,
+                NodeCount = Math.Max(2, req.WorkerNodeCount / 2), StorageGb = 150, StorageType = "SSD"
+            });
+        }
+
+        return nodes;
+    }
+
     private (string Name, string Description, double MonthlyCost) RecommendInstance(double cpu, double ram)
     {
         // Azure VM sizes (default)

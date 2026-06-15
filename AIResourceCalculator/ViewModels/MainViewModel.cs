@@ -221,6 +221,7 @@ public class MainViewModel : INotifyPropertyChanged
     public string TotalNodes { get => _totalNodes; set { _totalNodes = value; OnPropertyChanged(); } }
 
     public ObservableCollection<InfrastructureNode> ResultInfrastructure { get; private set; } = new();
+    public ObservableCollection<InfrastructureNode> AiInfrastructure { get; private set; } = new();
     public ObservableCollection<AiRecommendation> AiRecommendations { get; private set; } = new();
     public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
     public ObservableCollection<ValidationResult> ValidationResults { get; private set; } = new();
@@ -390,10 +391,15 @@ public class MainViewModel : INotifyPropertyChanged
             IsAiRecListVisible = true;
             IsQuickRecVisible = true;
             AiRecommendations = new ObservableCollection<AiRecommendation>(sorted);
+
+            // Build AI-recommended infrastructure in same format as math table
+            var aiInfra = _advisor.BuildAiInfrastructure(_lastResult, GetConfig());
+            AiInfrastructure = new ObservableCollection<InfrastructureNode>(aiInfra);
+            OnPropertyChanged(nameof(AiInfrastructure));
             OnPropertyChanged(nameof(AiRecommendations));
 
             var totalSavings = sorted.Sum(r => r.PotentialSavings);
-            AiBadgeResultText = $"{sorted.Count} rec" + (totalSavings > 0 ? $" | ${totalSavings:F0}/mo" : "");
+            AiBadgeResultText = $"{sorted.Count} rec" + (totalSavings > 0 ? $" | ~${totalSavings:F0}/mo economy" : "");
         }
         else
         {
