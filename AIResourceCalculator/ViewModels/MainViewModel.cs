@@ -258,6 +258,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand Template2Command { get; private set; } = null!;
     public ICommand Template3Command { get; private set; } = null!;
     public ICommand ToggleThemeCommand { get; private set; } = null!;
+    public ICommand AnalyzeAiCommand { get; private set; } = null!;
 
     private void InitializeCommands()
     {
@@ -276,6 +277,7 @@ public class MainViewModel : INotifyPropertyChanged
         AiSettingsCommand = new RelayCommand(_ => OpenAiSettings());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
+        AnalyzeAiCommand = new RelayCommand(async _ => await AnalyzeWithAiAsync());
         Template1Command = new RelayCommand(_ => ApplyTemplate(200, 0, new[] { "App Server", "ROBOT", "Web", "ForceBPM", "LMS", "HR Portal" }));
         Template2Command = new RelayCommand(_ => ApplyTemplate(1000, 0, _engine.Modules.Where(m => m.Name != "Windows Infrastructure").Select(m => m.Name).ToArray()));
         Template3Command = new RelayCommand(_ => ApplyTemplate(25, 0, new[] { "App Server", "Web", "ForceBPM" }));
@@ -382,7 +384,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private async void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq)
+    private void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq)
     {
         TotalCpu = $"{req.TotalCpu:F1}";
         TotalRam = $"{req.TotalRamGb:F1} GB";
@@ -416,11 +418,25 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CompareResults));
         }
 
+        AiNoDataText = LocalizationService.Instance["ai.noData"];
+        IsAiNoDataVisible = true;
+        IsAiRecListVisible = false;
+        IsQuickRecVisible = false;
+        AiRecommendations = new ObservableCollection<AiRecommendation>();
+        OnPropertyChanged(nameof(AiRecommendations));
+        AiBadgeResultText = "";
+    }
+
+    public async Task AnalyzeWithAiAsync()
+    {
+        if (_lastResult == null) return;
+
         AiNoDataText = LocalizationService.Instance["results.aiAnalyzing"];
         IsAiNoDataVisible = true;
         IsAiRecListVisible = false;
+        IsQuickRecVisible = false;
 
-        var recommendations = await _advisor.AnalyzeAsync(req, GetConfig());
+        var recommendations = await _advisor.AnalyzeAsync(_lastResult, GetConfig());
         if (recommendations.Count > 0)
         {
             var sorted = recommendations.OrderByDescending(r => r.Severity == "critical")

@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:AIResourceCalculator.Converters"
         xmlns:loc="clr-namespace:AIResourceCalculator.Localization"
-        Title="{loc:Loc app.title}" Height="850" Width="1280"
-        WindowStartupLocation="CenterScreen">
+        Title="{loc:Loc app.title}" Height="900" Width="1300"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBg}">
     <Window.Resources>
         <conv:SeverityToColorConverter x:Key="SeverityToColor"/>
         <conv:VisibilityConverter x:Key="VisibilityConverter"/>
@@ -35,7 +36,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="#2c3e50" Padding="10">
+        <Border Grid.Row="0" Background="{DynamicResource HeaderBg}" Padding="10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -347,6 +348,10 @@
                                     <TextBlock Text="{loc:Loc results.aiTitle}" FontSize="16" FontWeight="Bold" Foreground="#2c3e50" VerticalAlignment="Center"/>
                                     <TextBlock Text="{Binding AiBadgeResultText}" FontSize="12" Foreground="#7f8c8d" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
+                                <Button Background="#8e44ad" Foreground="White" FontWeight="Bold" Padding="12,6"
+                                        Command="{Binding AnalyzeAiCommand}" HorizontalAlignment="Left" Margin="0,0,0,8">
+                                    <TextBlock Text="&#x1F9E0; Run AI Analysis"/>
+                                </Button>
                                 <ItemsControl Name="AiRecList" Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -456,7 +461,7 @@
             </TabItem>
         </TabControl>
 
-        <StatusBar Grid.Row="2" Background="#34495e" Padding="5">
+        <StatusBar Grid.Row="2" Background="{DynamicResource StatusBarBg}" Padding="5">
             <StatusBarItem>
                 <TextBlock Name="TxtStatus" Text="{Binding StatusText}" Foreground="White" FontSize="13"/>
             </StatusBarItem>
