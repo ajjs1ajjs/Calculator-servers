@@ -6,10 +6,54 @@
         xmlns:vm="clr-namespace:AIResourceCalculator.ViewModels"
         Title="{loc:Loc app.title}" Height="850" Width="1280"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource WindowBg}"
-        Foreground="{DynamicResource TextPrimary}">
+        Background="{DynamicResource WindowBg}">
     <Window.Resources>
         <conv:SeverityToColorConverter x:Key="SeverityToColor"/>
+        <conv:VisibilityConverter x:Key="VisibilityConverter"/>
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="SectionHeader">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{DynamicResource DataGridBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource AltRowBg}"/>
+            <Setter Property="RowBackground" Value="{DynamicResource DataGridBg}"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource InputFg}"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource InputBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource InputBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
+        </Style>
+        <Style TargetType="StatusBar">
+            <Setter Property="Background" Value="{DynamicResource StatusBarBg}"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -27,32 +71,27 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="{loc:Loc app.title}" Foreground="{DynamicResource TextWhite}" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="{loc:Loc app.title}" Foreground="White" FontSize="22" FontWeight="Bold"/>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{loc:Loc app.subtitle}" Foreground="{DynamicResource TextMuted}" FontSize="13"/>
+                        <TextBlock Text="{loc:Loc app.subtitle}" Foreground="#95a5a6" FontSize="13"/>
                         <TextBlock Text="{Binding AiBadgeText}" Margin="10,0,0,0"
                                    FontSize="11" Foreground="#f39c12" FontWeight="Bold"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Name="BtnThemeToggle"
-                        Background="#2c3e50" Foreground="{DynamicResource TextWhite}" BorderThickness="0"
-                        Padding="10,5" FontSize="16" Margin="0,0,5,0"
-                        Command="{Binding ToggleThemeCommand}"
-                        ToolTip="Toggle dark/light theme">
+                    <Button Background="#2c3e50" Foreground="White" Padding="10,5" FontSize="16" Margin="0,0,5,0"
+                            Command="{Binding ToggleThemeCommand}"
+                            ToolTip="Toggle dark/light theme">
                         <TextBlock Text="{Binding ThemeIcon}"/>
                     </Button>
-                    <Button Name="BtnAiSettings" Background="#8e44ad" Foreground="{DynamicResource TextWhite}" BorderThickness="0"
-                            Padding="10,5" FontSize="12" Margin="0,0,5,0" Cursor="Hand"
+                    <Button Background="#8e44ad" Foreground="White" Padding="10,5" FontSize="12" Margin="0,0,5,0"
                             Command="{Binding AiSettingsCommand}"
                             ToolTip="{loc:Loc tooltip.aiSettings}">
                         <TextBlock Text="{loc:Loc ai.settingsBtn}"/>
                     </Button>
-                    <Button Name="BtnLangSwitch"
-                        Background="#34495e" Foreground="{DynamicResource TextWhite}" BorderThickness="0"
-                        Padding="10,5" FontSize="14"
-                        Command="{Binding LangSwitchCommand}"
-                        ToolTip="{loc:Loc tooltip.langSwitch}">
+                    <Button Background="#34495e" Foreground="White" Padding="10,5" FontSize="14"
+                            Command="{Binding LangSwitchCommand}"
+                            ToolTip="{loc:Loc tooltip.langSwitch}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding LangFlag}" FontSize="18" Margin="0,0,5,0"/>
                             <TextBlock Text="{Binding LangName}" VerticalAlignment="Center"/>
@@ -62,7 +101,7 @@
             </Grid>
         </Border>
 
-        <TabControl Grid.Row="1" Name="MainTabControl" Background="{DynamicResource WindowBg}">
+        <TabControl Grid.Row="1" Name="MainTabControl">
             <TabItem Header="{Binding TabMatrixHeader}" Name="TabMatrix">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="15">
@@ -70,21 +109,20 @@
                             <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
                         </Border>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
-                                    Command="{Binding ImportMatrixCommand}" Padding="16,8">
+                            <Button Background="#27ae60" Foreground="White" FontWeight="Bold" Padding="16,8"
+                                    Command="{Binding ImportMatrixCommand}">
                                 <TextBlock Text="{loc:Loc setup.import}"/>
                             </Button>
-                            <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
-                                    Command="{Binding SaveMatrixCommand}" Padding="16,8">
+                            <Button Background="#3498db" Foreground="White" FontWeight="Bold" Padding="16,8"
+                                    Command="{Binding SaveMatrixCommand}">
                                 <TextBlock Text="{loc:Loc matrix.save}"/>
                             </Button>
                             <Button Command="{Binding ResetMatrixCommand}" Padding="12,8">
                                 <TextBlock Text="{loc:Loc matrix.reset}"/>
                             </Button>
                         </StackPanel>
-                        <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True" Foreground="{DynamicResource TextPrimary}">
-                            <DataGrid Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{DynamicResource DataGridBg}" AlternatingRowBackground="{DynamicResource AltRowBg}">
+                        <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True">
+                            <DataGrid Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
                                     <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
@@ -96,9 +134,8 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.performance}" Foreground="{DynamicResource TextPrimary}">
-                            <DataGrid Name="GridMatrixMsSqlPerf" Height="140" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{DynamicResource DataGridBg}" AlternatingRowBackground="{DynamicResource AltRowBg}">
+                        <Expander Header="{loc:Loc matrix.performance}">
+                            <DataGrid Name="GridMatrixMsSqlPerf" Height="140" IsReadOnly="False" CanUserAddRows="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
                                     <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
@@ -110,9 +147,8 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.k8sComponents}" IsExpanded="True" Foreground="{DynamicResource TextPrimary}">
-                            <DataGrid Name="GridMatrixComponents" Height="140" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{DynamicResource DataGridBg}" AlternatingRowBackground="{DynamicResource AltRowBg}">
+                        <Expander Header="{loc:Loc matrix.k8sComponents}" IsExpanded="True">
+                            <DataGrid Name="GridMatrixComponents" Height="140" IsReadOnly="False" CanUserAddRows="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
                                     <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
@@ -122,9 +158,8 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True" Foreground="{DynamicResource TextPrimary}">
-                            <DataGrid Name="GridMatrixInfra" Height="140" IsReadOnly="False" CanUserAddRows="True"
-                                      Background="{DynamicResource DataGridBg}" AlternatingRowBackground="{DynamicResource AltRowBg}">
+                        <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True">
+                            <DataGrid Name="GridMatrixInfra" Height="140" IsReadOnly="False" CanUserAddRows="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="120"/>
                                     <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
@@ -161,11 +196,9 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
                                             <TextBox Grid.Row="0" Grid.Column="1" Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"
-                                                     PreviewTextInput="NumberValidation" ToolTip="{loc:Loc tooltip.users}"/>
-
+                                                     PreviewTextInput="NumberValidation"/>
                                             <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                            <ComboBox Grid.Row="1" Grid.Column="1" Name="CmbDeployment" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4"
-                                                      ToolTip="{loc:Loc tooltip.deployment}">
+                                            <ComboBox Grid.Row="1" Grid.Column="1" Name="CmbDeployment" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4">
                                                 <ComboBoxItem Content="{loc:Loc deploy.k8s}"/>
                                                 <ComboBoxItem Content="{loc:Loc deploy.windows}"/>
                                                 <ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
@@ -173,7 +206,6 @@
                                         </Grid>
                                     </StackPanel>
                                 </Border>
-
                                 <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
                                     <StackPanel>
                                         <TextBlock Text="{loc:Loc modules.title}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
@@ -192,7 +224,6 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                 <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
                                 <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
@@ -214,32 +245,26 @@
                                         </ItemsControl>
                                     </StackPanel>
                                 </Border>
-
                                 <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
-                                    <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,12"
-                                            Command="{Binding CalculateCommand}" FontSize="15"
-                                            ToolTip="{loc:Loc tooltip.calculate}">
+                                    <Button Background="#3498db" Foreground="White" FontWeight="Bold" Padding="24,12"
+                                            Command="{Binding CalculateCommand}" FontSize="15">
                                         <TextBlock Text="{loc:Loc setup.calculate}"/>
                                     </Button>
-                                    <Button Background="{DynamicResource WarningBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,12"
-                                            Command="{Binding CompareCommand}" FontSize="15"
-                                            ToolTip="Розрахувати два профілі та порівняти">
+                                    <Button Background="#e67e22" Foreground="White" FontWeight="Bold" Padding="24,12"
+                                            Command="{Binding CompareCommand}" FontSize="15">
                                         <TextBlock Text="{loc:Loc results.compare}"/>
                                     </Button>
                                 </StackPanel>
-
                                 <Border Name="PanelCompareResult" Background="{DynamicResource PanelCompareBg}" Padding="12" CornerRadius="8" Margin="0,10,0,0"
-                                        Visibility="{Binding IsCompareVisible, Converter={x:Static conv:VisibilityConverter.Instance}}">
+                                        Visibility="{Binding IsCompareVisible, Converter={StaticResource VisibilityConverter}}">
                                     <StackPanel>
                                         <TextBlock Text="{loc:Loc results.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
-                                        <DataGrid Name="GridCompare" Height="130" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
-                                                  Background="{DynamicResource DataGridBg}">
+                                        <DataGrid Name="GridCompare" Height="130" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="" Binding="{Binding Name}" Width="100"/>
                                                 <DataGridTextColumn Header="{loc:Loc profile.basic}" Binding="{Binding Basic}" Width="110"/>
                                                 <DataGridTextColumn Header="{loc:Loc profile.performance}" Binding="{Binding Performance}" Width="110"/>
-                                                <DataGridTextColumn Header="{loc:Loc results.recommended}" Binding="{Binding Recommended}" Width="110"
-                                                                    FontWeight="Bold"/>
+                                                <DataGridTextColumn Header="{loc:Loc results.recommended}" Binding="{Binding Recommended}" Width="110" FontWeight="Bold"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </StackPanel>
@@ -254,7 +279,6 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="15">
                         <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
-
                         <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -262,41 +286,39 @@
                                     <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Background="{DynamicResource AccentBg}" CornerRadius="6" Padding="8" Margin="2">
+                                <Border Grid.Column="0" Background="#2980b9" CornerRadius="6" Padding="8" Margin="2">
                                     <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding TotalCpu}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                                        <TextBlock Text="{loc:Loc results.totalVcpu}" FontSize="11" Foreground="{DynamicResource TextOnDark}"/>
+                                        <TextBlock Text="{Binding TotalCpu}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalVcpu}" FontSize="11" Foreground="#ecf0f1"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Grid.Column="1" Background="{DynamicResource SuccessBg}" CornerRadius="6" Padding="8" Margin="2">
+                                <Border Grid.Column="1" Background="#27ae60" CornerRadius="6" Padding="8" Margin="2">
                                     <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding TotalRam}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                                        <TextBlock Text="{loc:Loc results.totalRam}" FontSize="11" Foreground="{DynamicResource TextOnDark}"/>
+                                        <TextBlock Text="{Binding TotalRam}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalRam}" FontSize="11" Foreground="#ecf0f1"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Grid.Column="2" Background="{DynamicResource WarningBg}" CornerRadius="6" Padding="8" Margin="2">
+                                <Border Grid.Column="2" Background="#e67e22" CornerRadius="6" Padding="8" Margin="2">
                                     <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding TotalStorage}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                                        <TextBlock Text="{loc:Loc results.totalStorage}" FontSize="11" Foreground="{DynamicResource TextOnDark}"/>
+                                        <TextBlock Text="{Binding TotalStorage}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalStorage}" FontSize="11" Foreground="#ecf0f1"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Grid.Column="3" Background="{DynamicResource PurpleBg}" CornerRadius="6" Padding="8" Margin="2">
+                                <Border Grid.Column="3" Background="#8e44ad" CornerRadius="6" Padding="8" Margin="2">
                                     <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding TotalIops}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                                        <TextBlock Text="{loc:Loc results.totalIops}" FontSize="11" Foreground="{DynamicResource TextOnDark}"/>
+                                        <TextBlock Text="{Binding TotalIops}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc results.totalIops}" FontSize="11" Foreground="#ecf0f1"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Grid.Column="4" Background="{DynamicResource DangerBg}" CornerRadius="6" Padding="8" Margin="2">
+                                <Border Grid.Column="4" Background="#c0392b" CornerRadius="6" Padding="8" Margin="2">
                                     <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding TotalNodes}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                                        <TextBlock Text="{loc:Loc col.nodes}" FontSize="11" Foreground="{DynamicResource TextOnDark}"/>
+                                        <TextBlock Text="{Binding TotalNodes}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="{loc:Loc col.nodes}" FontSize="11" Foreground="#ecf0f1"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                         </Border>
-
-                        <Expander Header="{loc:Loc results.details}" IsExpanded="False" Margin="0,0,0,8"
-                                  Foreground="{DynamicResource TextPrimary}">
+                        <Expander Header="{loc:Loc results.details}" IsExpanded="False" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -304,8 +326,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,5,0">
                                     <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
-                                    <DataGrid Name="GridInfrastructure" Height="120" AutoGenerateColumns="False" IsReadOnly="True"
-                                              Background="{DynamicResource DataGridBg}">
+                                    <DataGrid Name="GridInfrastructure" Height="120" AutoGenerateColumns="False" IsReadOnly="True">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
                                             <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="55"/>
@@ -317,8 +338,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="5,0,0,0">
                                     <TextBlock Text="{loc:Loc results.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
-                                    <DataGrid Name="GridCompareResults" Height="120" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
-                                              Background="{DynamicResource DataGridBg}">
+                                    <DataGrid Name="GridCompareResults" Height="120" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="" Binding="{Binding Name}" Width="80"/>
                                             <DataGridTextColumn Header="{loc:Loc profile.basic}" Binding="{Binding Basic}" Width="*"/>
@@ -328,11 +348,8 @@
                                 </StackPanel>
                             </Grid>
                         </Expander>
-
-                        <Expander Header="{loc:Loc results.componentsDetail}" IsExpanded="False" Margin="0,0,0,8"
-                                  Foreground="{DynamicResource TextPrimary}">
-                            <DataGrid Name="GridComponentsDetail" Height="150" AutoGenerateColumns="False" IsReadOnly="True"
-                                      Background="{DynamicResource DataGridBg}">
+                        <Expander Header="{loc:Loc results.componentsDetail}" IsExpanded="False" Margin="0,0,0,8">
+                            <DataGrid Name="GridComponentsDetail" Height="150" AutoGenerateColumns="False" IsReadOnly="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="160"/>
                                     <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="120"/>
@@ -342,14 +359,13 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-
-                        <Expander Header="{loc:Loc results.validations}" IsExpanded="False" Margin="0,0,0,8"
-                                  Foreground="{DynamicResource TextPrimary}">
+                        <Expander Header="{loc:Loc results.validations}" IsExpanded="False" Margin="0,0,0,8">
                             <ItemsControl Name="ValidationList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="8" CornerRadius="4" Margin="0,0,0,3"
-                                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                                                Background="{DynamicResource CardBg}">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="120"/>
@@ -370,7 +386,6 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </Expander>
-
                         <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -396,7 +411,7 @@
                                                         <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                                         <TextBlock Text="{Binding Action}" FontSize="11" Foreground="{DynamicResource AccentBg}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                                         <TextBlock Text="{Binding PotentialSavings, StringFormat='${0:F0}/mo'}" FontSize="12" FontWeight="Bold"
-                                                                   Foreground="{DynamicResource SuccessBg}" Margin="0,3,0,0"/>
+                                                                   Foreground="#27ae60" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>
@@ -406,19 +421,17 @@
                                 <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"/>
                             </StackPanel>
                         </Border>
-
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <Button Command="{Binding ExportTxtCommand}" Background="#34495e" Foreground="{DynamicResource TextWhite}" Content="TXT"/>
-                            <Button Command="{Binding ExportPdfCommand}" Background="#34495e" Foreground="{DynamicResource TextWhite}" Content="PDF"/>
-                            <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
+                            <Button Background="#34495e" Foreground="White" Command="{Binding ExportTxtCommand}" Content="TXT"/>
+                            <Button Background="#34495e" Foreground="White" Command="{Binding ExportPdfCommand}" Content="PDF"/>
+                            <Button Background="#8e44ad" Foreground="White" FontWeight="Bold"
                                     Command="{Binding ShowDiagramCommand}" Content="{loc:Loc diagram.show}"/>
-                            <Button Command="{Binding ExportMermaidCommand}" Background="{DynamicResource HeaderBg}" Foreground="{DynamicResource TextWhite}" Content="Mermaid"/>
+                            <Button Background="#2c3e50" Foreground="White" Command="{Binding ExportMermaidCommand}" Content="Mermaid"/>
                         </StackPanel>
-
-                        <Border Name="PanelDiagram" Background="{DynamicResource DiagramBg}" Padding="15" CornerRadius="8" Margin="0,8,0,0" Visibility="Collapsed">
+                        <Border Name="PanelDiagram" Background="#1a1a2e" Padding="15" CornerRadius="8" Margin="0,8,0,0" Visibility="Collapsed">
                             <StackPanel>
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="500">
-                                    <Border Name="DiagramContainer" Background="{DynamicResource DiagramBg}" MinWidth="600" MinHeight="300"/>
+                                    <Border Name="DiagramContainer" Background="#1a1a2e" MinWidth="600" MinHeight="300"/>
                                 </ScrollViewer>
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                     <Button Command="{Binding ExportSvgCommand}" Padding="10,5" Content="SVG"/>
@@ -434,13 +447,11 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="15">
                         <TextBlock Text="{loc:Loc aiQuery.title}" Style="{StaticResource SectionHeader}"/>
-
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                 <Border Background="#fef9e7" Padding="15" CornerRadius="8" BorderBrush="#f39c12" BorderThickness="1">
                                     <StackPanel>
@@ -448,37 +459,35 @@
                                         <TextBox Name="TxtAiQueryPrompt" Height="80" Margin="0,10,0,5" Padding="8"
                                                  FontSize="13" TextWrapping="Wrap" Text="{Binding AiQueryPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
-                                        <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
+                                        <Button Background="#3498db" Foreground="White" FontWeight="Bold"
                                                 Command="{Binding AiQuerySendCommand}" Padding="16,8" HorizontalAlignment="Left">
                                             <TextBlock Text="{loc:Loc aiQuery.analyze}"/>
                                         </Button>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                 <Border Name="AiQueryResultPanel" Background="{DynamicResource InfoBg}" Padding="15" CornerRadius="8"
-                                        Visibility="{Binding IsAiQueryResultVisible, Converter={x:Static conv:VisibilityConverter.Instance}}">
+                                        Visibility="{Binding IsAiQueryResultVisible, Converter={StaticResource VisibilityConverter}}">
                                     <StackPanel>
                                         <TextBlock Text="{loc:Loc aiQuery.result}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
                                         <TextBlock Name="TxtAiQueryResult" Text="{Binding AiQueryResult}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
-                                        <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
+                                        <Button Background="#27ae60" Foreground="White" FontWeight="Bold"
                                                 Command="{Binding ApplyAiQueryCommand}" Padding="14,8" HorizontalAlignment="Left" Margin="0,10,0,0"
-                                                Visibility="{Binding IsApplyAiQueryVisible, Converter={x:Static conv:VisibilityConverter.Instance}}">
+                                                Visibility="{Binding IsApplyAiQueryVisible, Converter={StaticResource VisibilityConverter}}">
                                             <TextBlock Text="{loc:Loc aiQuery.apply}"/>
                                         </Button>
                                     </StackPanel>
                                 </Border>
-
                                 <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                                     <StackPanel>
                                         <TextBlock Text="{loc:Loc aiQuery.templates}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
-                                        <Button Command="{Binding Template1Command}" Background="{DynamicResource AltRowBg}" Padding="10,6" Margin="2"
-                                                Content="{loc:Loc aiQuery.tpl1}" HorizontalAlignment="Left"/>
-                                        <Button Command="{Binding Template2Command}" Background="{DynamicResource AltRowBg}" Padding="10,6" Margin="2"
-                                                Content="{loc:Loc aiQuery.tpl2}" HorizontalAlignment="Left"/>
-                                        <Button Command="{Binding Template3Command}" Background="{DynamicResource AltRowBg}" Padding="10,6" Margin="2"
-                                                Content="{loc:Loc aiQuery.tpl3}" HorizontalAlignment="Left"/>
+                                        <Button Background="{DynamicResource AltRowBg}" Padding="10,6" Margin="2"
+                                                Command="{Binding Template1Command}" Content="{loc:Loc aiQuery.tpl1}" HorizontalAlignment="Left"/>
+                                        <Button Background="{DynamicResource AltRowBg}" Padding="10,6" Margin="2"
+                                                Command="{Binding Template2Command}" Content="{loc:Loc aiQuery.tpl2}" HorizontalAlignment="Left"/>
+                                        <Button Background="{DynamicResource AltRowBg}" Padding="10,6" Margin="2"
+                                                Command="{Binding Template3Command}" Content="{loc:Loc aiQuery.tpl3}" HorizontalAlignment="Left"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -488,9 +497,9 @@
             </TabItem>
         </TabControl>
 
-        <StatusBar Grid.Row="2" Background="{DynamicResource StatusBarBg}" Padding="5">
+        <StatusBar Grid.Row="2" Padding="5">
             <StatusBarItem>
-                <TextBlock Name="TxtStatus" Text="{Binding StatusText}" Foreground="{DynamicResource TextWhite}" FontSize="13"/>
+                <TextBlock Name="TxtStatus" Text="{Binding StatusText}" Foreground="White" FontSize="13"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>
