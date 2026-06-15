@@ -302,17 +302,17 @@ public class AiAdvisorService
 
     private (string Name, string Description, double MonthlyCost) RecommendInstance(double cpu, double ram)
     {
+        // Azure VM sizes (default)
         return (cpu, ram) switch
         {
-            (<= 2, <= 4) => ("Standard_B2s", Loc("Burstable, dev/test", "Burstable, розробка/тест"), 30),
-            (<= 2, <= 8) => ("Standard_D2s_v5", Loc("General purpose, small", "Загальне, мале"), 70),
-            (<= 4, <= 16) => ("Standard_D4s_v5", Loc("General purpose, balanced", "Загальне, збалансоване"), 140),
-            (<= 8, <= 32) => ("Standard_D8s_v5", Loc("General purpose, most workloads", "Більшість навантажень"), 280),
-            (<= 16, <= 64) => ("Standard_D16s_v5", Loc("General purpose, high perf", "Продуктивне"), 560),
-            (<= 32, <= 128) => ("Standard_D32s_v5", Loc("General purpose, heavy", "Важкі навантаження"), 1120),
-            (<= 48, <= 192) => ("Standard_D48s_v5", Loc("General purpose, large", "Велике"), 1680),
-            (<= 64, <= 256) => ("Standard_F16s_v2", Loc("Compute optimized, CPU", "Оптимізоване CPU"), 1300),
-            _ => ("Standard_D32s_v5", Loc("General purpose", "Загальне призначення"), 1120)
+            (<= 2, <= 4) => ("Azure B2s / AWS t3.small / GCP e2-small / OCI VM.Standard.E4", Loc("Burstable, dev/test", "Burstable, розробка/тест"), 30),
+            (<= 2, <= 8) => ("Azure D2s_v5 / AWS t3.medium / GCP e2-medium / OCI VM.Standard3.Flex", Loc("General purpose, small", "Загальне, мале"), 70),
+            (<= 4, <= 16) => ("Azure D4s_v5 / AWS m5.xlarge / GCP e2-standard-4 / OCI VM.Standard3.Flex", Loc("General purpose, balanced", "Збалансоване"), 140),
+            (<= 8, <= 32) => ("Azure D8s_v5 / AWS m5.2xlarge / GCP n2-standard-8 / OCI VM.Standard3.Flex", Loc("Most workloads", "Більшість навантажень"), 280),
+            (<= 16, <= 64) => ("Azure D16s_v5 / AWS m5.4xlarge / GCP n2-standard-16 / OCI VM.Standard3.Flex", Loc("High performance", "Продуктивне"), 560),
+            (<= 32, <= 128) => ("Azure D32s_v5 / AWS m5.8xlarge / GCP n2-standard-32 / OCI BM.Standard2.52", Loc("Heavy workloads", "Важкі навантаження"), 1120),
+            (<= 64, <= 256) => ("Azure F16s_v2 / AWS c5.9xlarge / GCP c2-standard-16 / OCI BM.Standard3.64", Loc("Compute optimized", "Оптимізоване CPU"), 1300),
+            _ => ("Azure D32s_v5 / AWS m5.8xlarge / GCP n2-standard-32 / OCI BM.Standard2.52", Loc("General purpose", "Загальне призначення"), 1120)
         };
     }
 

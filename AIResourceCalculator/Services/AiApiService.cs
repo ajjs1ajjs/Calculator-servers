@@ -151,18 +151,16 @@ public class AiApiService
         var components = string.Join("\n", req.Components.Where(c => c.Cpu > 0).Select(c =>
             $"  - {c.Name}: {c.Cpu} vCPU, {c.RamGb} GB RAM, {c.Replicas} replicas"));
 
-        return $@"Analyze this infrastructure configuration and provide optimization recommendations:
+        return $@"[System prompt: You are a cloud infrastructure expert. Compare across Azure, AWS, GCP, Oracle Cloud. Recommend optimal VM sizes for each provider.]
+
+Analyze this infrastructure configuration:
 
 Project: {config.ProjectName}
 Users: {config.UserCount}
 Deployment: {config.DeploymentType} ({config.LoadProfile})
 HA: {config.HaEnabled}
 
-Totals:
-- vCPU: {req.TotalCpu:F1}
-- RAM: {req.TotalRamGb:F1} GB
-- Storage: {req.TotalStorageGb} GB
-- IOPS: {req.TotalIops}
+Totals: vCPU={req.TotalCpu:F1}, RAM={req.TotalRamGb:F1} GB, Storage={req.TotalStorageGb} GB, IOPS={req.TotalIops}
 
 Infrastructure:
 {infra}
@@ -170,6 +168,7 @@ Infrastructure:
 Components:
 {components}
 
-Provide 3-5 specific recommendations in JSON format with keys: category, title, description, action, severity (ok/warning/critical), potentialSavings ($/month).";
+Provide 3-5 recommendations in JSON format with keys: category, title, description, action, severity (ok/warning/critical), potentialSavings ($/month).
+Compare Azure/AWS/GCP/Oracle options in action field. Use Ukrainian language.";
     }
 }

@@ -175,6 +175,13 @@ public class MainViewModel : INotifyPropertyChanged
 
     public string ThemeIcon => _isDarkTheme ? "\u2600" : "\uD83C\uDF19";
 
+    private int _selectedTabIndex;
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set { _selectedTabIndex = value; OnPropertyChanged(); }
+    }
+
     public bool IsQuickRecVisible
     {
         get => _isQuickRecVisible;
@@ -302,6 +309,7 @@ public class MainViewModel : INotifyPropertyChanged
             _lastResult = req;
             _lastResultPerf = perfReq;
             ShowResults(req, perfReq);
+            SelectedTabIndex = 2;
             StatusText = string.Format(LocalizationService.Instance["status.calculated"],
                 config.UserCount, req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"));
         }
