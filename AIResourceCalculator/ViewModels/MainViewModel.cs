@@ -38,7 +38,6 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _isDiagramVisible;
     private bool _isQuickRecVisible;
     private string _quickRecText = "";
-    private bool _isCompareVisible;
     private bool _isDarkTheme;
 
     public MainViewModel()
@@ -168,12 +167,6 @@ public class MainViewModel : INotifyPropertyChanged
         set { _isDiagramVisible = value; OnPropertyChanged(); }
     }
 
-    public bool IsCompareVisible
-    {
-        get => _isCompareVisible;
-        set { _isCompareVisible = value; OnPropertyChanged(); }
-    }
-
     public bool IsDarkTheme
     {
         get => _isDarkTheme;
@@ -221,8 +214,6 @@ public class MainViewModel : INotifyPropertyChanged
     public string TotalNodes { get => _totalNodes; set { _totalNodes = value; OnPropertyChanged(); } }
 
     public ObservableCollection<InfrastructureNode> ResultInfrastructure { get; private set; } = new();
-    public ObservableCollection<CompareRow> CompareResults { get; private set; } = new();
-    public ObservableCollection<CompareRow> CompareQuick { get; private set; } = new();
     public ObservableCollection<AiRecommendation> AiRecommendations { get; private set; } = new();
     public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
     public ObservableCollection<ValidationResult> ValidationResults { get; private set; } = new();
@@ -241,7 +232,6 @@ public class MainViewModel : INotifyPropertyChanged
     #region Commands
 
     public ICommand CalculateCommand { get; private set; } = null!;
-    public ICommand CompareCommand { get; private set; } = null!;
     public ICommand ImportMatrixCommand { get; private set; } = null!;
     public ICommand SaveMatrixCommand { get; private set; } = null!;
     public ICommand ResetMatrixCommand { get; private set; } = null!;
@@ -263,7 +253,6 @@ public class MainViewModel : INotifyPropertyChanged
     private void InitializeCommands()
     {
         CalculateCommand = new RelayCommand(_ => Calculate());
-        CompareCommand = new RelayCommand(_ => Compare());
         ImportMatrixCommand = new RelayCommand(_ => ImportMatrix());
         SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
@@ -341,49 +330,6 @@ public class MainViewModel : INotifyPropertyChanged
         return (req, perfReq);
     }
 
-    private void Compare()
-    {
-        try
-        {
-            var basicConfig = GetConfig();
-            basicConfig.LoadProfile = LoadProfile.Basic;
-            var (basicReq, _) = CalculateInternal(basicConfig);
-
-            var perfConfig = GetConfig();
-            perfConfig.LoadProfile = LoadProfile.Performance;
-            _engine.SetModules(Modules.ToList());
-            var perfReq = _engine.Calculate(perfConfig);
-
-            _lastResult = basicReq;
-            _lastResultPerf = perfReq;
-
-            var nodeLabel = basicReq.DeploymentType == DeploymentType.Windows ? "Сервери" : "Worker";
-            var compareData = new List<CompareRow>
-            {
-                new() { Name = "vCPU", Basic = $"{basicReq.TotalCpu:F1}", Performance = $"{perfReq.TotalCpu:F1}",
-                        Recommended = basicReq.TotalCpu <= perfReq.TotalCpu * 0.8 ? "Basic" : "Performance" },
-                new() { Name = "RAM", Basic = $"{basicReq.TotalRamGb:F1} GB", Performance = $"{perfReq.TotalRamGb:F1} GB",
-                        Recommended = basicReq.TotalRamGb <= perfReq.TotalRamGb * 0.8 ? "Basic" : "Performance" },
-                new() { Name = nodeLabel, Basic = $"{basicReq.WorkerNodeCount}", Performance = $"{perfReq.WorkerNodeCount}",
-                        Recommended = basicReq.WorkerNodeCount <= perfReq.WorkerNodeCount ? "Basic" : "Performance" },
-                new() { Name = "Storage", Basic = $"{basicReq.TotalStorageGb} GB", Performance = $"{perfReq.TotalStorageGb} GB", Recommended = "" },
-                new() { Name = "IOPS", Basic = $"{basicReq.TotalIops}", Performance = $"{perfReq.TotalIops}", Recommended = "" }
-            };
-
-            CompareQuick = new ObservableCollection<CompareRow>(compareData);
-            IsCompareVisible = true;
-
-            ShowResults(basicReq, perfReq);
-
-            StatusText = string.Format(LocalizationService.Instance["status.calculated"],
-                basicConfig.UserCount, basicReq.TotalCpu.ToString("F1"), basicReq.TotalRamGb.ToString("F1"));
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
     private void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq)
     {
         TotalCpu = $"{req.TotalCpu:F1}";
@@ -405,17 +351,6 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (perfReq != null)
         {
-            var nodeLabel = req.DeploymentType == DeploymentType.Windows ? "Сервери" : "Worker";
-            var rows = new List<CompareRow>
-            {
-                new() { Name = "vCPU", Basic = $"{req.TotalCpu:F1}", Performance = $"{perfReq.TotalCpu:F1}" },
-                new() { Name = "RAM", Basic = $"{req.TotalRamGb:F1} GB", Performance = $"{perfReq.TotalRamGb:F1} GB" },
-                new() { Name = nodeLabel, Basic = $"{req.WorkerNodeCount}", Performance = $"{perfReq.WorkerNodeCount}" },
-                new() { Name = "Storage", Basic = $"{req.TotalStorageGb} GB", Performance = $"{perfReq.TotalStorageGb} GB" },
-                new() { Name = "IOPS", Basic = $"{req.TotalIops}", Performance = $"{perfReq.TotalIops}" }
-            };
-            CompareResults = new ObservableCollection<CompareRow>(rows);
-            OnPropertyChanged(nameof(CompareResults));
         }
 
         AiNoDataText = LocalizationService.Instance["ai.noData"];
@@ -732,12 +667,4 @@ public class MainViewModel : INotifyPropertyChanged
     public bool IsQuerySendEnabled => true;
 
     #endregion
-}
-
-public class CompareRow
-{
-    public string Name { get; set; } = "";
-    public string Basic { get; set; } = "";
-    public string Performance { get; set; } = "";
-    public string Recommended { get; set; } = "";
 }

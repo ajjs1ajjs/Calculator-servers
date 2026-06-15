@@ -258,26 +258,8 @@
                                             Command="{Binding CalculateCommand}" FontSize="15">
                                         <TextBlock Text="{loc:Loc setup.calculate}"/>
                                     </Button>
-                                    <Button Background="{DynamicResource WarningBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,12"
-                                            Command="{Binding CompareCommand}" FontSize="15">
-                                        <TextBlock Text="{loc:Loc results.compare}"/>
-                                    </Button>
                                 </StackPanel>
 
-                                <Border Background="{DynamicResource PanelCompareBg}" Padding="12" CornerRadius="8" Margin="0,10,0,0"
-                                        Visibility="{Binding IsCompareVisible, Converter={StaticResource VisibilityConverter}}">
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc results.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
-                                        <DataGrid Name="GridCompare" Height="150" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="" Binding="{Binding Name}" Width="100"/>
-                                                <DataGridTextColumn Header="{loc:Loc profile.basic}" Binding="{Binding Basic}" Width="110"/>
-                                                <DataGridTextColumn Header="{loc:Loc profile.performance}" Binding="{Binding Performance}" Width="110"/>
-                                                <DataGridTextColumn Header="{loc:Loc results.recommended}" Binding="{Binding Recommended}" Width="110" FontWeight="Bold"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </StackPanel>
-                                </Border>
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -328,35 +310,17 @@
                             </Grid>
                         </Border>
 
-                        <!-- Infrastructure + Comparison - full height, no scrolling needed -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc results.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="5,0,0,5"/>
-
-                            <DataGrid Grid.Row="1" Grid.Column="0" Name="GridInfrastructure" MinHeight="200" AutoGenerateColumns="False" IsReadOnly="True">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
-                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="55"/>
-                                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="55"/>
-                                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="55"/>
-                                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="80"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                            <DataGrid Grid.Row="1" Grid.Column="1" Name="GridCompareResults" MinHeight="200" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" Margin="5,0,0,0">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="" Binding="{Binding Name}" Width="80"/>
-                                    <DataGridTextColumn Header="{loc:Loc profile.basic}" Binding="{Binding Basic}" Width="*"/>
-                                    <DataGridTextColumn Header="{loc:Loc profile.performance}" Binding="{Binding Performance}" Width="*"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </Grid>
+                        <!-- Infrastructure - full width -->
+                        <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,12,0,5"/>
+                        <DataGrid Name="GridInfrastructure" MinHeight="250" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="55"/>
+                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="55"/>
+                                <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="55"/>
+                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="80"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
 
                         <!-- Export -->
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">

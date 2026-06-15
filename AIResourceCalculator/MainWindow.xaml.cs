@@ -21,9 +21,7 @@ public partial class MainWindow : Window
         GridMatrixMsSqlPerf.ItemsSource = _vm.MsSqlPerformanceRanges;
         GridMatrixComponents.ItemsSource = _vm.K8sComponents;
         GridMatrixInfra.ItemsSource = _vm.InfraNodes;
-        GridCompare.ItemsSource = _vm.CompareQuick;
         GridInfrastructure.ItemsSource = _vm.ResultInfrastructure;
-        GridCompareResults.ItemsSource = _vm.CompareResults;
         AiRecList.ItemsSource = _vm.AiRecommendations;
         QuickRecList.ItemsSource = _vm.AiRecommendations;
 
@@ -34,12 +32,8 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.CompareQuick))
-            { GridCompare.ItemsSource = null; GridCompare.ItemsSource = _vm.CompareQuick; }
-        else if (e.PropertyName == nameof(MainViewModel.ResultInfrastructure))
+        if (e.PropertyName == nameof(MainViewModel.ResultInfrastructure))
             { GridInfrastructure.ItemsSource = null; GridInfrastructure.ItemsSource = _vm.ResultInfrastructure; }
-        else if (e.PropertyName == nameof(MainViewModel.CompareResults))
-            { GridCompareResults.ItemsSource = null; GridCompareResults.ItemsSource = _vm.CompareResults; }
         else if (e.PropertyName == nameof(MainViewModel.AiRecommendations))
         {
             AiRecList.ItemsSource = null; AiRecList.ItemsSource = _vm.AiRecommendations;
