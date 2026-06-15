@@ -76,7 +76,7 @@ public class AiSettingsDialog : Window
         _cmbProvider.Items.Add("Google (Gemini)");
         _cmbProvider.Items.Add("Local (Ollama)");
         _cmbProvider.SelectedIndex = Settings.Provider == AiProvider.None ? 0 : Math.Max(0, (int)Settings.Provider - 1);
-        _cmbProvider.SelectionChanged += (_, _) => { UpdateUi(); UpdateModelPresets(); };
+        _cmbProvider.SelectionChanged += (_, _) => UpdateUi();
         _configPanel.Children.Add(_cmbProvider);
 
         _configPanel.Children.Add(MakeLabel("API Key:"));
@@ -85,7 +85,7 @@ public class AiSettingsDialog : Window
         {
             Password = Settings.ApiKey, Width = 300, Padding = new Thickness(6, 4, 6, 4), FontSize = 13
         };
-        _txtApiKey.PasswordChanged += (_, _) => UpdateModelPresets();
+        _txtApiKey.PasswordChanged += (_, _) => UpdateUi();
         keyPanel.Children.Add(_txtApiKey);
 
         _btnFetch = new Button
@@ -152,16 +152,13 @@ public class AiSettingsDialog : Window
 
         Content = outer;
         UpdateUi();
-        UpdateModelPresets();
-        Loaded += (_, _) => AutoDetectOllama();
+        Loaded += (_, _) => UpdateUi();
     }
 
     private void OnEnabledChanged()
     {
         if (_cmbProvider.SelectedIndex < 0) _cmbProvider.SelectedIndex = 0;
         UpdateUi();
-        UpdateModelPresets();
-        AutoDetectOllama();
     }
 
     private async void BtnFetch_Click(object sender, RoutedEventArgs e)
@@ -286,27 +283,6 @@ public class AiSettingsDialog : Window
         }
     }
 
-    private void AutoDetectOllama() { if (_cmbProvider.SelectedIndex == 3 && _chkEnabled.IsChecked == true) _ = AutoDetectOllamaAsync(); }
-
-    private void UpdateModelPresets()
-    {
-        var idx = _cmbProvider.SelectedIndex;
-        if (idx == 0) SetPresets("gpt-4o-mini", "gpt-4o", "gpt-4-turbo");
-        else if (idx == 1) SetPresets("claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229", "claude-3-5-sonnet-20241022");
-        else if (idx == 2) SetPresets("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash");
-        else if (idx == 3) SetPresets("llama3.2", "llama3.1", "mistral", "codellama");
-    }
-
-    private void SetPresets(params string[] models)
-    {
-        bool hasKey = !string.IsNullOrWhiteSpace(_txtApiKey.Password);
-        if (hasKey && _cmbProvider.SelectedIndex < 3) return;
-        _cmbModel.Items.Clear();
-        foreach (var m in models) _cmbModel.Items.Add(m);
-        if (!_cmbModel.Items.Contains(_cmbModel.Text) || string.IsNullOrEmpty(_cmbModel.Text))
-            _cmbModel.Text = models[0];
-    }
-
     private void UpdateUi()
     {
         var enabled = _chkEnabled.IsChecked ?? false;
@@ -318,9 +294,9 @@ public class AiSettingsDialog : Window
         _btnFetch.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
         _cmbModel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
 
-        if (!enabled) _txtStatus.Text = "AI offline";
-        else if (idx == 3) _txtStatus.Text = "Local Ollama — auto-detect";
-        else if (string.IsNullOrWhiteSpace(_txtApiKey.Password)) _txtStatus.Text = "Enter API key, then click Fetch Models";
+        if (!enabled) _txtStatus.Text = "AI disabled";
+        else if (idx == 3) _txtStatus.Text = "Click Fetch Models to detect local models";
+        else if (string.IsNullOrWhiteSpace(_txtApiKey.Password)) _txtStatus.Text = "Paste API key, then click Fetch Models";
         else _txtStatus.Text = "Click Fetch Models to load available models";
     }
 
