@@ -17,25 +17,21 @@ public static class ThemeService
         var app = Application.Current;
         if (app == null) return;
 
+        var themeName = IsDark ? "DarkTheme" : "LightTheme";
         var dict = new ResourceDictionary
         {
-            Source = new Uri($"Themes/{(IsDark ? "DarkTheme" : "LightTheme")}.xaml", UriKind.Relative)
+            Source = new Uri($"/AIResourceCalculator;component/Themes/{themeName}.xaml", UriKind.Relative)
         };
 
-        var existingIdx = -1;
         for (int i = 0; i < app.Resources.MergedDictionaries.Count; i++)
         {
             var src = app.Resources.MergedDictionaries[i].Source;
             if (src != null && (src.OriginalString.Contains("LightTheme") || src.OriginalString.Contains("DarkTheme")))
             {
-                existingIdx = i;
-                break;
+                app.Resources.MergedDictionaries[i] = dict;
+                return;
             }
         }
-
-        if (existingIdx >= 0)
-            app.Resources.MergedDictionaries[existingIdx] = dict;
-        else
-            app.Resources.MergedDictionaries.Add(dict);
+        app.Resources.MergedDictionaries.Add(dict);
     }
 }
