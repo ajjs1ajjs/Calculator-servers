@@ -60,7 +60,10 @@ public class AiSettingsDialog : Window
             FontSize = 14, FontWeight = FontWeights.Bold,
             Margin = new Thickness(0, 0, 0, 5)
         };
-        _chkEnabled.Checked += (_, _) => UpdateUi();
+        _chkEnabled.Checked += (_, _) => {
+            if (_cmbProvider.SelectedIndex == 0) _cmbProvider.SelectedIndex = 1;
+            UpdateUi();
+        };
         _chkEnabled.Unchecked += (_, _) => UpdateUi();
         headerPanel.Children.Add(_chkEnabled);
 
