@@ -323,7 +323,7 @@ public class AiSettingsDialog : Window
 
         _configPanel.IsEnabled = enabled;
         _txtApiKey.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
-        _btnFetch.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
+        _btnFetch.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         _cmbModel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
 
         if (!enabled) _txtStatus.Text = "AI disabled";
