@@ -230,7 +230,7 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}"
                                                    FontStyle="Italic" TextWrapping="Wrap"/>
-                                        <ItemsControl Name="QuickRecList" Visibility="Collapsed" Margin="0,8,0,0">
+                                        <ItemsControl Name="QuickRecList" Visibility="{Binding IsQuickRecVisible, Converter={StaticResource VisibilityConverter}}" Margin="0,8,0,0">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Border Background="{DynamicResource CardBg}" Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
@@ -392,7 +392,7 @@
                                     <TextBlock Text="{loc:Loc results.aiTitle}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                                     <TextBlock Text="{Binding AiBadgeResultText}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
-                                <ItemsControl Name="AiRecList" Visibility="Collapsed">
+                                <ItemsControl Name="AiRecList" Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Border Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
@@ -418,7 +418,8 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"/>
+                                <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"
+                                           Visibility="{Binding IsAiNoDataVisible, Converter={StaticResource VisibilityConverter}}"/>
                             </StackPanel>
                         </Border>
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">

@@ -429,6 +429,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             IsAiNoDataVisible = false;
             IsAiRecListVisible = true;
+            IsQuickRecVisible = true;
             AiRecommendations = new ObservableCollection<AiRecommendation>(sorted);
             OnPropertyChanged(nameof(AiRecommendations));
 
