@@ -14,7 +14,6 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Padding" Value="14,8"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Background" Value="Transparent"/>
         </Style>
         <Style TargetType="Button">
             <Setter Property="Padding" Value="14,8"/>
