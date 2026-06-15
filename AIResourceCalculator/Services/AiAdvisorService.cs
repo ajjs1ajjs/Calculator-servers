@@ -272,7 +272,7 @@ public class AiAdvisorService
             list.Add(new AiRecommendation
             {
                 Category = Loc("IOPS", "IOPS"),
-                Severity = Loc("warning", "info"),
+                Severity = "warning",
                 Title = Loc($"💡 High IOPS: {req.TotalIops:N0}", $"💡 Високий IOPS: {req.TotalIops:N0}"),
                 Description = Loc(
                     $"Ensure IOPS-provisioned volumes (gp3/io2). {req.TotalIops:N0} IOPS needs careful planning",

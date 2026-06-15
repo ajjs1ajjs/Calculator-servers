@@ -193,8 +193,11 @@ public class SizingEngine
         var k8sReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
         var winReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile };
 
-        CalculateK8s(k8sReq, config);
-        CalculateWindows(winReq, config);
+        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
+        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile };
+
+        CalculateK8s(k8sReq, k8sConfig);
+        CalculateWindows(winReq, winConfig);
 
         req.TotalCpu = k8sReq.TotalCpu + winReq.TotalCpu;
         req.TotalRamGb = k8sReq.TotalRamGb + winReq.TotalRamGb;
