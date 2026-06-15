@@ -98,5 +98,14 @@
 
   "dialog.matrixSaved": "Matrix saved",
 
-  "settings.ai": "AI Settings"
+  "settings.ai": "AI Settings",
+
+  "results.details": "Infrastructure & Comparison",
+  "results.componentsDetail": "Components Detail",
+  "results.validations": "Resource Validation",
+
+  "col.required": "Required",
+  "col.allocated": "Allocated",
+  "col.delta": "Delta",
+  "col.severity": "Status"
 }

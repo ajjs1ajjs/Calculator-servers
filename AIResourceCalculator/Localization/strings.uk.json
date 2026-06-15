@@ -98,5 +98,14 @@
 
   "dialog.matrixSaved": "Матрицю збережено",
 
-  "settings.ai": "Налаштування AI"
+  "settings.ai": "Налаштування AI",
+
+  "results.details": "Інфраструктура та порівняння",
+  "results.componentsDetail": "Деталі компонентів",
+  "results.validations": "Валідація ресурсів",
+
+  "col.required": "Потрібно",
+  "col.allocated": "Виділено",
+  "col.delta": "Різниця",
+  "col.severity": "Статус"
 }

@@ -30,7 +30,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string _langName = "Українська";
     private string _aiQueryPrompt = "";
     private string _aiQueryResult = "";
-    private string _aiNoDataText = "";
+    private string _aiNoDataText = ""; // set in constructor
     private bool _isAiNoDataVisible = true;
     private bool _isAiRecListVisible;
     private bool _isAiQueryResultVisible;
@@ -53,6 +53,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         _statusText = LocalizationService.Instance["status.ready"];
+        _aiNoDataText = LocalizationService.Instance["ai.noData"];
 
         LoadMatrixGrids();
         UpdateAiBadge();
@@ -223,6 +224,8 @@ public class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<CompareRow> CompareResults { get; private set; } = new();
     public ObservableCollection<CompareRow> CompareQuick { get; private set; } = new();
     public ObservableCollection<AiRecommendation> AiRecommendations { get; private set; } = new();
+    public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
+    public ObservableCollection<ValidationResult> ValidationResults { get; private set; } = new();
 
     #endregion
 
@@ -388,6 +391,15 @@ public class MainViewModel : INotifyPropertyChanged
         TotalNodes = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
         ResultInfrastructure = new ObservableCollection<InfrastructureNode>(req.Infrastructure);
         OnPropertyChanged(nameof(ResultInfrastructure));
+
+        ResultComponents = new ObservableCollection<ServiceComponent>(req.Components);
+        OnPropertyChanged(nameof(ResultComponents));
+
+        if (_lastResult != null)
+        {
+            ValidationResults = new ObservableCollection<ValidationResult>(_validator.Validate(req, req));
+            OnPropertyChanged(nameof(ValidationResults));
+        }
 
         if (perfReq != null)
         {

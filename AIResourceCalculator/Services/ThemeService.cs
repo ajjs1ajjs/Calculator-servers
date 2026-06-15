@@ -28,13 +28,22 @@ public static class ThemeService
         var app = Application.Current;
         if (app == null) return;
 
-        var dict = new ResourceDictionary
-        {
-            Source = new Uri($"Themes/{(_isDark ? "DarkTheme" : "LightTheme")}.xaml",
-                UriKind.RelativeOrAbsolute)
-        };
+        var uri = new Uri($"Themes/{(_isDark ? "DarkTheme" : "LightTheme")}.xaml", UriKind.RelativeOrAbsolute);
+        var dict = new ResourceDictionary { Source = uri };
 
-        app.Resources.MergedDictionaries.Clear();
-        app.Resources.MergedDictionaries.Add(dict);
+        var existing = app.Resources.MergedDictionaries
+            .FirstOrDefault(d => d.Source != null &&
+                (d.Source.OriginalString.Contains("LightTheme") || d.Source.OriginalString.Contains("DarkTheme")));
+
+        if (existing != null)
+        {
+            var index = app.Resources.MergedDictionaries.IndexOf(existing);
+            app.Resources.MergedDictionaries.RemoveAt(index);
+            app.Resources.MergedDictionaries.Insert(index, dict);
+        }
+        else
+        {
+            app.Resources.MergedDictionaries.Add(dict);
+        }
     }
 }

@@ -15,7 +15,7 @@ public class LocalizationService : INotifyPropertyChanged
     private string _currentLang = "uk";
 
     public string CurrentLang => _currentLang;
-    public string Flag => _currentLang == "uk" ? "🇺🇦" : "🇬🇧";
+    public string Flag => _currentLang == "uk" ? "\U0001F1FA\U0001F1E6" : "\U0001F1EC\U0001F1E7";
     public string LangName => _currentLang == "uk" ? "Українська" : "English";
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -46,6 +46,8 @@ public class LocalizationService : INotifyPropertyChanged
         _currentLang = lang;
 
         OnPropertyChanged("");
+        OnPropertyChanged("Item");
+        OnPropertyChanged("Item[]");
         OnPropertyChanged(nameof(CurrentLang));
         OnPropertyChanged(nameof(Flag));
         OnPropertyChanged(nameof(LangName));

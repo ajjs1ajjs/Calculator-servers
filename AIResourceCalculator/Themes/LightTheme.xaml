@@ -1,19 +1,26 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Color x:Key="WindowBg">#FFFFFF</Color>
-    <Color x:Key="HeaderBg">#2c3e50</Color>
-    <Color x:Key="StatusBarBg">#34495e</Color>
-    <Color x:Key="CardBg">#ecf0f1</Color>
-    <Color x:Key="AccentBg">#3498db</Color>
-    <Color x:Key="SuccessBg">#27ae60</Color>
-    <Color x:Key="WarningBg">#e67e22</Color>
-    <Color x:Key="DangerBg">#c0392b</Color>
-    <Color x:Key="PurpleBg">#8e44ad</Color>
-    <Color x:Key="SectionFg">#2c3e50</Color>
-    <Color x:Key="MutedFg">#7f8c8d</Color>
-    <Color x:Key="BorderColor">#dee2e6</Color>
-    <Color x:Key="InfoBg">#eaf2f8</Color>
-    <Color x:Key="HighlightBg">#f0f4ff</Color>
-    <Color x:Key="AltRowBg">#f8f9fa</Color>
-    <Color x:Key="DataGridBg">White</Color>
+    <SolidColorBrush x:Key="WindowBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="HeaderBg" Color="#2c3e50"/>
+    <SolidColorBrush x:Key="StatusBarBg" Color="#34495e"/>
+    <SolidColorBrush x:Key="CardBg" Color="#ecf0f1"/>
+    <SolidColorBrush x:Key="AccentBg" Color="#3498db"/>
+    <SolidColorBrush x:Key="SuccessBg" Color="#27ae60"/>
+    <SolidColorBrush x:Key="WarningBg" Color="#e67e22"/>
+    <SolidColorBrush x:Key="DangerBg" Color="#c0392b"/>
+    <SolidColorBrush x:Key="PurpleBg" Color="#8e44ad"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#2c3e50"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#7f8c8d"/>
+    <SolidColorBrush x:Key="TextOnDark" Color="#ecf0f1"/>
+    <SolidColorBrush x:Key="TextWhite" Color="White"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#dee2e6"/>
+    <SolidColorBrush x:Key="InfoBg" Color="#eaf2f8"/>
+    <SolidColorBrush x:Key="HighlightBg" Color="#f0f4ff"/>
+    <SolidColorBrush x:Key="AltRowBg" Color="#f8f9fa"/>
+    <SolidColorBrush x:Key="DataGridBg" Color="White"/>
+    <SolidColorBrush x:Key="InputBg" Color="White"/>
+    <SolidColorBrush x:Key="InputFg" Color="#2c3e50"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#dee2e6"/>
+    <SolidColorBrush x:Key="PanelCompareBg" Color="#e8f8f5"/>
+    <SolidColorBrush x:Key="DiagramBg" Color="#1a1a2e"/>
 </ResourceDictionary>
