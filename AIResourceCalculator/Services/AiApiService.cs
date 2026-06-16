@@ -33,7 +33,6 @@ public class AiApiService
                 AiProvider.Google => await CallGoogle(endpoint, model, prompt),
                 AiProvider.LocalOllama => await CallOllama(endpoint, model, prompt),
                 AiProvider.DeepSeek => await CallOpenAi(endpoint, model, prompt),
-                AiProvider.OpenCode => await CallOpenAi(endpoint, model, prompt),
                 _ => null
             };
         }

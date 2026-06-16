@@ -78,7 +78,6 @@ public class AiSettingsDialog : Window
         _cmbProvider.Items.Add("Google (Gemini)");
         _cmbProvider.Items.Add("Local (Ollama)");
         _cmbProvider.Items.Add("DeepSeek");
-        _cmbProvider.Items.Add("OpenCode (OpenAI-compatible)");
         _cmbProvider.SelectedIndex = Settings.Provider == AiProvider.None ? 0 : Math.Max(0, (int)Settings.Provider - 1);
         _cmbProvider.SelectionChanged += (_, _) => UpdateUi();
         _configPanel.Children.Add(_cmbProvider);
@@ -143,7 +142,7 @@ public class AiSettingsDialog : Window
             Settings.Provider = _cmbProvider.SelectedIndex switch
             {
                 0 => AiProvider.OpenAI, 1 => AiProvider.Claude, 2 => AiProvider.Google,
-                3 => AiProvider.LocalOllama, 4 => AiProvider.DeepSeek, 5 => AiProvider.OpenCode,
+                3 => AiProvider.LocalOllama, 4 => AiProvider.DeepSeek,
                 _ => AiProvider.None
             };
             Settings.ApiKey = _txtApiKey.Password.Trim();
@@ -203,16 +202,15 @@ public class AiSettingsDialog : Window
             return;
         }
 
-        try
-        {
-            if (idx == 0) await FetchOpenAiModels(key);
-            else if (idx == 1) await FetchClaudeModels(key);
-            else if (idx == 2) await FetchGoogleModels(key);
-            else if (idx == 4) await FetchDeepSeekModels(key);
-            else if (idx == 5) await FetchFallbackModels();
-            _txtStatus.Text = $"Loaded {_cmbModel.Items.Count} models";
-            _txtStatus.Foreground = Brushes.Green;
-        }
+            try
+            {
+                if (idx == 0) await FetchOpenAiModels(key);
+                else if (idx == 1) await FetchClaudeModels(key);
+                else if (idx == 2) await FetchGoogleModels(key);
+                else if (idx == 4) await FetchDeepSeekModels(key);
+                _txtStatus.Text = $"Loaded {_cmbModel.Items.Count} models";
+                _txtStatus.Foreground = Brushes.Green;
+            }
         catch (Exception ex)
         {
             _txtStatus.Text = $"Error: {ex.Message}";
@@ -345,59 +343,6 @@ public class AiSettingsDialog : Window
         }
     }
 
-    private async Task FetchFallbackModels()
-    {
-        var endpoint = _txtEndpointUrl.Text.Trim();
-        if (string.IsNullOrEmpty(endpoint))
-            endpoint = "http://localhost:11434/v1/chat/completions";
-
-        try
-        {
-            _txtStatus.Text = "Fetching models from endpoint...";
-            _txtStatus.Foreground = Brushes.Gray;
-
-            var modelsUrl = endpoint
-                .Replace("/chat/completions", "/models")
-                .Replace("/v1/completions", "/models");
-            if (!modelsUrl.StartsWith("http"))
-                modelsUrl = "http://localhost:11434/v1/models";
-
-            var req = new HttpRequestMessage(HttpMethod.Get, modelsUrl);
-            var key = _txtApiKey.Password.Trim();
-            if (!string.IsNullOrEmpty(key))
-                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
-
-            var resp = await _http.SendAsync(req);
-            resp.EnsureSuccessStatusCode();
-
-            var json = await resp.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
-            {
-                _cmbModel.Items.Clear();
-                foreach (var m in data.EnumerateArray())
-                {
-                    var id = m.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
-                    if (!string.IsNullOrEmpty(id))
-                        _cmbModel.Items.Add(id);
-                }
-                _txtStatus.Text = $"Found {_cmbModel.Items.Count} model(s)";
-                _txtStatus.Foreground = Brushes.Green;
-                if (_cmbModel.Items.Count > 0 && string.IsNullOrEmpty(_cmbModel.Text))
-                    _cmbModel.Text = _cmbModel.Items[0]?.ToString() ?? "";
-                return;
-            }
-        }
-        catch { }
-
-        _cmbModel.Items.Clear();
-        foreach (var m in new[] { "gpt-4o-mini", "deepseek-chat", "llama3.2", "mistral", "gemma2" })
-            _cmbModel.Items.Add(m);
-        _cmbModel.Text = "gpt-4o-mini";
-        _txtStatus.Text = "Could not connect — using suggested models";
-        _txtStatus.Foreground = Brushes.Orange;
-    }
-
     private void AddFallbackModels()
     {
         if (_cmbModel.Items.Count > 0) return;
@@ -411,17 +356,16 @@ public class AiSettingsDialog : Window
     {
         var enabled = _chkEnabled.IsChecked ?? false;
         var idx = _cmbProvider.SelectedIndex;
-        var isCloud = idx >= 0 && idx <= 2 || idx >= 4;
+        var isCloud = idx >= 0 && idx <= 2 || idx == 4;
 
         _configPanel.IsEnabled = enabled;
         _txtApiKey.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
         _btnFetch.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         _cmbModel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        _urlPanel.Visibility = (enabled && (idx == 3 || idx == 5)) ? Visibility.Visible : Visibility.Collapsed;
+        _urlPanel.Visibility = (enabled && idx == 3) ? Visibility.Visible : Visibility.Collapsed;
 
         if (!enabled) _txtStatus.Text = "AI disabled";
         else if (idx == 3) _txtStatus.Text = "Click Fetch Models to detect local models";
-        else if (idx == 5) _txtStatus.Text = "Enter endpoint URL and API key (if required), then click Fetch Models";
         else if (string.IsNullOrWhiteSpace(_txtApiKey.Password)) _txtStatus.Text = "Paste API key, then click Fetch Models";
         else _txtStatus.Text = "Click Fetch Models to load available models";
     }
