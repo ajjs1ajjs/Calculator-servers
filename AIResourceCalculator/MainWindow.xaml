@@ -364,12 +364,30 @@
                             <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
                                     Command="{Binding ShowDiagramCommand}" Content="{loc:Loc diagram.show}"/>
                             <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportMermaidCommand}" Content="Mermaid"/>
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ShowScalingCommand}" Content="Scaling"/>
                         </StackPanel>
 
                         <Border Name="PanelDiagram" Background="{DynamicResource DiagramBg}" Padding="15" CornerRadius="8" Margin="0,8,0,0" Visibility="Collapsed">
                             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="300">
                                 <Border Name="DiagramContainer" Background="{DynamicResource DiagramBg}" MinWidth="400" MinHeight="200"/>
                             </ScrollViewer>
+                        </Border>
+
+                        <Border Name="PanelScaling" Background="{DynamicResource CardBg}" Padding="10" CornerRadius="8" Margin="0,8,0,0"
+                                Visibility="{Binding IsScalingVisible, Converter={StaticResource VisibilityConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="Resource Scaling" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
+                                <DataGrid Name="ScalingGrid" MinHeight="120" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True"
+                                          ItemsSource="{Binding ScalingData}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Users" Binding="{Binding Name}" Width="80"/>
+                                        <DataGridTextColumn Header="vCPU" Binding="{Binding Cpu}" Width="70"/>
+                                        <DataGridTextColumn Header="RAM (GB)" Binding="{Binding RamGb}" Width="80"/>
+                                        <DataGridTextColumn Header="Nodes" Binding="{Binding Replicas}" Width="60"/>
+                                        <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
 

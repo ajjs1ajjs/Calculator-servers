@@ -255,6 +255,14 @@ public class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<CalculationHistoryItem> HistoryItems { get; private set; } = new();
     public bool HasHistory => HistoryItems.Count > 0;
 
+    public ObservableCollection<ServiceComponent> ScalingData { get; private set; } = new();
+    private bool _isScalingVisible;
+    public bool IsScalingVisible
+    {
+        get => _isScalingVisible;
+        set { _isScalingVisible = value; OnPropertyChanged(); }
+    }
+
     private int _selectedHistoryIndex = -1;
     public int SelectedHistoryIndex
     {
@@ -292,6 +300,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ApplyParsedConfigCommand { get; private set; } = null!;
     public ICommand UseTemplateCommand { get; private set; } = null!;
     public ICommand RecallHistoryCommand { get; private set; } = null!;
+    public ICommand ShowScalingCommand { get; private set; } = null!;
 
     private void InitializeCommands()
     {
@@ -312,6 +321,7 @@ public class MainViewModel : INotifyPropertyChanged
         ApplyParsedConfigCommand = new RelayCommand(_ => ApplyParsedConfig());
         UseTemplateCommand = new RelayCommand(p => UseTemplate(p?.ToString() ?? ""));
         RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
+        ShowScalingCommand = new RelayCommand(_ => ShowScaling());
 
         LoadHistory();
     }
@@ -583,6 +593,44 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         Calculate();
+    }
+
+    private void ShowScaling()
+    {
+        var config = GetConfig();
+        var points = new List<ServiceComponent>();
+        var step = config.UserCount <= 100 ? 25 : config.UserCount <= 500 ? 50 : 100;
+        var steps = new List<int>();
+        for (int u = step; u <= config.UserCount * 2; u += step)
+            steps.Add(u);
+        if (steps.Count > 30) steps = steps.Where((_, i) => i % (steps.Count / 20) == 0).ToList();
+
+        _engine.SetModules(Modules.ToList());
+        foreach (var uc in steps)
+        {
+            var cfg = new ProjectConfig
+            {
+                ProjectName = config.ProjectName, UserCount = uc,
+                DeploymentType = config.DeploymentType,
+                ProductType = config.ProductType, LoadProfile = config.LoadProfile
+            };
+            var req = _engine.Calculate(cfg);
+            points.Add(new ServiceComponent
+            {
+                Name = $"{uc} users",
+                Cpu = Math.Round(req.TotalCpu, 1),
+                RamGb = Math.Round(req.TotalRamGb, 1),
+                Replicas = req.Infrastructure.Sum(n => n.NodeCount),
+                Notes = $"IOPS:{req.TotalIops}, Storage:{req.TotalStorageGb}GB"
+            });
+        }
+        _engine.SetModules(Modules.ToList());
+
+        ScalingData = new ObservableCollection<ServiceComponent>(points);
+        OnPropertyChanged(nameof(ScalingData));
+        IsScalingVisible = true;
+        SelectedTabIndex = 2;
+        StatusText = $"Scaling: {steps.First()}–{steps.Last()} users ({steps.Count} points)";
     }
 
     private void ImportMatrix()

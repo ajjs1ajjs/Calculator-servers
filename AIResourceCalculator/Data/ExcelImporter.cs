@@ -30,10 +30,14 @@ public class ExcelImporter
 
     private void ParseMssqlSheet(ExcelWorksheet ws, SizingMatrix matrix)
     {
-        for (int row = 2; row <= 14; row++)
+        var dataStart = FindHeaderRow(ws, 1, 1, new[] { "Min", "Users", "користувач" });
+        if (dataStart == 0) dataStart = 2;
+
+        for (int row = dataStart + 1; ; row++)
         {
+            if (row > ws.Dimension.End.Row) break;
             var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) continue;
+            if (minUser == 0) break;
             matrix.MsSqlRanges.Add(new UserLoadRange
             {
                 MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
@@ -45,10 +49,15 @@ public class ExcelImporter
             });
         }
 
-        for (int row = 18; row <= 29; row++)
+        var perfHeader = FindHeaderRow(ws, dataStart + 15, 1, new[] { "Min", "Users", "користувач" });
+        if (perfHeader == 0) perfHeader = dataStart + 16;
+        else perfHeader++;
+
+        for (int row = perfHeader; ; row++)
         {
+            if (row > ws.Dimension.End.Row) break;
             var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) continue;
+            if (minUser == 0) break;
             matrix.MsSqlPerformanceRanges.Add(new UserLoadRange
             {
                 MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
@@ -64,12 +73,19 @@ public class ExcelImporter
     private void ParseK8sSheet(ExcelWorksheet ws, SizingMatrix matrix)
     {
         bool isPerf = ws.Name.Contains("Документообіг") || ws.Name.Contains("Продуктивн");
+        var maxRow = ws.Dimension?.End.Row ?? 100;
 
-        // Infrastructure nodes (rows 6-9)
-        for (int row = 6; row <= 9; row++)
+        // Find infrastructure nodes: look for SQL/Master/Worker in column 2
+        int infraEnd = 0;
+        for (int row = 3; row <= maxRow; row++)
         {
             var name = GetString(ws, row, 2);
-            if (string.IsNullOrEmpty(name) || name.StartsWith("---") || name.Contains("всього")) continue;
+            if (string.IsNullOrEmpty(name)) { if (row > 5) { infraEnd = row; break; } continue; }
+            if (name.StartsWith("---") || name.Contains("всього") || name.Contains("Pods") || name == "CPU" || name == "RAM" || name == "Кількість")
+            {
+                if (row > 5) { infraEnd = row; break; }
+                continue;
+            }
 
             var node = new InfrastructureNode
             {
@@ -159,8 +175,9 @@ public class ExcelImporter
     {
         var moduleComponents = new Dictionary<string, List<ModuleComponent>>();
         string? currentSection = null;
+        var maxRow = ws.Dimension?.End.Row ?? 100;
 
-        for (int row = 13; row <= 45; row++)
+        for (int row = Math.Max(1, FindHeaderRow(ws, 1, 1, new[] { "Pods", "підав", "подов", "pods" })); row <= maxRow; row++)
         {
             var name = GetString(ws, row, 2);
             if (string.IsNullOrEmpty(name) || name.StartsWith("---")) continue;
@@ -254,13 +271,23 @@ public class ExcelImporter
     private void ParseWindowsSheet(ExcelWorksheet ws, SizingMatrix matrix)
     {
         bool isPerf = ws.Name.Contains("Документообіг") || ws.Name.Contains("Продуктивн");
+        var maxRow = ws.Dimension?.End.Row ?? 100;
 
-        // Infrastructure (rows 6-8 for Standard, 16-18 for Performance)
-        int infraStart = isPerf ? 16 : 6;
-        for (int row = infraStart; row <= infraStart + 2; row++)
+        // Infrastructure: find nodes by name (SQL, App, Web)
+        for (int row = 3; row <= maxRow; row++)
         {
             var name = GetString(ws, row, 2);
-            if (string.IsNullOrEmpty(name)) continue;
+            if (string.IsNullOrEmpty(name) || name.StartsWith("---") || name.Contains("Pods") || name.Contains("CPU") || name.Contains("RAM")) 
+            {
+                if (row > 10) break;
+                continue;
+            }
+
+            // Check if looks like a node name
+            bool isSql = name.Contains("SQL");
+            bool isApp = name.Contains("додатків") || name.Contains("App");
+            bool isWeb = name.Contains("Веб") || name.Contains("Web") || name.Contains("IIS");
+            if (!isSql && !isApp && !isWeb) continue;
 
             var node = new InfrastructureNode
             {
@@ -303,12 +330,14 @@ public class ExcelImporter
         }
 
         // AppServer ranges
-        int appStart = isPerf ? 52 : 25;
+        var appHeader = FindHeaderRow(ws, 3, 1, new[] { "Min", "Users", "Кількість", "К-сть" });
+        if (appHeader == 0) appHeader = isPerf ? 53 : 26;
         var appList = isPerf ? matrix.AppServerPerformanceRanges : matrix.AppServerRanges;
-        for (int row = appStart + 1; row <= appStart + 12; row++)
+        for (int row = appHeader + 1; row <= maxRow; row++)
         {
             var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) continue;
+            if (minUser == 0) break;
+            if (row > appHeader + 15) break;
             appList.Add(new UserLoadRange
             {
                 MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
@@ -322,12 +351,14 @@ public class ExcelImporter
         }
 
         // WebServer ranges
-        int webStart = isPerf ? 67 : 40;
+        var webHeader = FindHeaderRow(ws, appHeader + 14, 1, new[] { "Min", "Users", "Кількість", "К-сть" });
+        if (webHeader == 0) webHeader = isPerf ? 68 : 41;
         var webList = isPerf ? matrix.WebServerPerformanceRanges : matrix.WebServerRanges;
-        for (int row = webStart + 1; row <= webStart + 9; row++)
+        for (int row = webHeader + 1; row <= maxRow; row++)
         {
             var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) continue;
+            if (minUser == 0) break;
+            if (row > webHeader + 12) break;
             webList.Add(new UserLoadRange
             {
                 MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
@@ -365,5 +396,16 @@ public class ExcelImporter
     private static string GetString(ExcelWorksheet ws, int row, int col)
     {
         return ws.Cells[row, col].Text?.Trim() ?? "";
+    }
+
+    private static int FindHeaderRow(ExcelWorksheet ws, int startRow, int col, string[] keywords)
+    {
+        for (int row = startRow; row <= (ws.Dimension?.End.Row ?? 100); row++)
+        {
+            var text = GetString(ws, row, col);
+            if (keywords.Any(k => text.Contains(k, StringComparison.OrdinalIgnoreCase)))
+                return row;
+        }
+        return 0;
     }
 }
