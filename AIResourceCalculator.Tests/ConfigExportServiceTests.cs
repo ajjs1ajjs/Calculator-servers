@@ -46,9 +46,9 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportPdf_ContainsAzureProvider()
+    public void ExportHtml_ContainsAzureProvider()
     {
-        var result = _svc.ExportPdf(_req, _config);
+        var result = _svc.ExportHtml(_req, _config);
         Assert.Contains("Azure", result);
     }
 

@@ -30,7 +30,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string _langName = "Українська";
     private string _aiQueryPrompt = "";
     private string _aiQueryResult = "";
-    private string _aiNoDataText = ""; // set in constructor
+    private string _aiNoDataText = "";
     private bool _isAiNoDataVisible = true;
     private bool _isAiRecListVisible;
     private bool _isAiQueryResultVisible;
@@ -72,7 +72,7 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TabMatrixHeader));
         OnPropertyChanged(nameof(TabSetupHeader));
         OnPropertyChanged(nameof(TabResultsHeader));
-        OnPropertyChanged(nameof(TabAiQueryHeader));
+        OnPropertyChanged(nameof(TabAssistantHeader));
     }
 
     #region Properties
@@ -233,7 +233,7 @@ public class MainViewModel : INotifyPropertyChanged
     public string TabMatrixHeader => LocalizationService.Instance["tab.matrixTitle"];
     public string TabSetupHeader => LocalizationService.Instance["tab.setupTitle"];
     public string TabResultsHeader => LocalizationService.Instance["tab.resultsTitle"];
-    public string TabAiQueryHeader => LocalizationService.Instance["tab.aiQueryTitle"];
+    public string TabAssistantHeader => LocalizationService.Instance["tab.assistantTitle"];
 
     #endregion
 
@@ -244,19 +244,19 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand SaveMatrixCommand { get; private set; } = null!;
     public ICommand ResetMatrixCommand { get; private set; } = null!;
     public ICommand ExportTxtCommand { get; private set; } = null!;
-    public ICommand ExportPdfCommand { get; private set; } = null!;
+    public ICommand ExportHtmlCommand { get; private set; } = null!;
     public ICommand ShowDiagramCommand { get; private set; } = null!;
     public ICommand ExportSvgCommand { get; private set; } = null!;
     public ICommand ExportMermaidCommand { get; private set; } = null!;
-    public ICommand AiQuerySendCommand { get; private set; } = null!;
-    public ICommand ApplyAiQueryCommand { get; private set; } = null!;
-    public ICommand AiSettingsCommand { get; private set; } = null!;
+    public ICommand AssistantSendCommand { get; private set; } = null!;
+    public ICommand ApplyAssistantCommand { get; private set; } = null!;
     public ICommand LangSwitchCommand { get; private set; } = null!;
     public ICommand Template1Command { get; private set; } = null!;
     public ICommand Template2Command { get; private set; } = null!;
     public ICommand Template3Command { get; private set; } = null!;
     public ICommand ToggleThemeCommand { get; private set; } = null!;
     public ICommand AnalyzeAiCommand { get; private set; } = null!;
+    public ICommand AiSettingsCommand { get; private set; } = null!;
 
     private void InitializeCommands()
     {
@@ -265,12 +265,12 @@ public class MainViewModel : INotifyPropertyChanged
         SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
         ExportTxtCommand = new RelayCommand(_ => ExportTxt());
-        ExportPdfCommand = new RelayCommand(_ => ExportPdf());
+        ExportHtmlCommand = new RelayCommand(_ => ExportHtml());
         ShowDiagramCommand = new RelayCommand(_ => ShowDiagram());
         ExportSvgCommand = new RelayCommand(_ => ExportSvg());
         ExportMermaidCommand = new RelayCommand(_ => ExportMermaid());
-        AiQuerySendCommand = new RelayCommand(async _ => await AiQuerySendAsync());
-        ApplyAiQueryCommand = new RelayCommand(_ => ApplyAiQuery());
+        AssistantSendCommand = new RelayCommand(_ => AssistantSend());
+        ApplyAssistantCommand = new RelayCommand(_ => ApplyAssistant());
         AiSettingsCommand = new RelayCommand(_ => OpenAiSettings());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
@@ -358,10 +358,6 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ValidationResults));
         }
 
-        if (perfReq != null)
-        {
-        }
-
         AiNoDataText = LocalizationService.Instance["ai.noData"];
         IsAiNoDataVisible = true;
         IsAiRecListVisible = false;
@@ -392,7 +388,6 @@ public class MainViewModel : INotifyPropertyChanged
             IsQuickRecVisible = true;
             AiRecommendations = new ObservableCollection<AiRecommendation>(sorted);
 
-            // Build AI-recommended infrastructure in same format as math table
             var aiInfra = _advisor.BuildAiInfrastructure(_lastResult, GetConfig());
             AiInfrastructure = new ObservableCollection<InfrastructureNode>(aiInfra);
             OnPropertyChanged(nameof(AiInfrastructure));
@@ -479,11 +474,11 @@ public class MainViewModel : INotifyPropertyChanged
         ExportConfig(text, "txt");
     }
 
-    private void ExportPdf()
+    private void ExportHtml()
     {
         if (_lastResult == null) return;
         var svc = new ConfigExportService();
-        var html = svc.ExportPdf(_lastResult, GetConfig());
+        var html = svc.ExportHtml(_lastResult, GetConfig());
         ExportConfig(html, "html");
     }
 
@@ -538,50 +533,13 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task AiQuerySendAsync()
+    private void AssistantSend()
     {
         var prompt = AiQueryPrompt.Trim();
         if (string.IsNullOrEmpty(prompt)) return;
 
-        if (_aiSettings.EnableRealAi && _aiSettings.Provider != AiProvider.None && !string.IsNullOrEmpty(_aiSettings.ApiKey))
-        {
-            await AnalyzeWithRealAiAsync(prompt);
-        }
-        else if (_aiSettings.EnableRealAi && _aiSettings.Provider == AiProvider.LocalOllama)
-        {
-            await AnalyzeWithRealAiAsync(prompt);
-        }
-        else
-        {
-            if (_aiSettings.EnableRealAi)
-            {
-                AiQueryResult = "⚠️ Real AI увімкнено, але не налаштовано API ключ.\nНатисніть «AI Settings» вгорі, оберіть провайдера та вкажіть ключ.\n\nАбо використайте шаблони нижче.";
-                IsAiQueryResultVisible = true;
-                IsApplyAiQueryVisible = false;
-                return;
-            }
-            var (parsedConfig, modules) = _promptParser.Parse(prompt);
-            ApplyParsedResult(parsedConfig, modules);
-        }
-    }
-
-    private async Task AnalyzeWithRealAiAsync(string prompt)
-    {
-        AiQueryResult = LocalizationService.Instance["results.aiAnalyzing"];
-        IsAiQueryResultVisible = true;
-        IsApplyAiQueryVisible = false;
-
-        try
-        {
-            var aiService = new AiApiService(_aiSettings);
-            var response = await aiService.GetRecommendation(prompt);
-            AiQueryResult = response ?? "No response from AI.";
-            IsApplyAiQueryVisible = true;
-        }
-        catch (Exception ex)
-        {
-            AiQueryResult = $"Error: {ex.Message}\n\nTry using the templates below instead.";
-        }
+        var (parsedConfig, modules) = _promptParser.Parse(prompt);
+        ApplyParsedResult(parsedConfig, modules);
     }
 
     private void ApplyParsedResult(ProjectConfig config, List<string> moduleNames)
@@ -607,7 +565,7 @@ public class MainViewModel : INotifyPropertyChanged
         IsApplyAiQueryVisible = false;
     }
 
-    private void ApplyAiQuery()
+    private void ApplyAssistant()
     {
         var (parsedConfig, moduleNames) = _promptParser.Parse(AiQueryPrompt);
         ApplyParsedResult(parsedConfig, moduleNames);

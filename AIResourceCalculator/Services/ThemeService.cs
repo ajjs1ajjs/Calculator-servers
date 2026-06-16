@@ -23,13 +23,12 @@ public static class ThemeService
             Source = new Uri($"/AIResourceCalculator;component/Themes/{themeName}.xaml", UriKind.Relative)
         };
 
-        for (int i = 0; i < app.Resources.MergedDictionaries.Count; i++)
+        for (int i = app.Resources.MergedDictionaries.Count - 1; i >= 0; i--)
         {
             var src = app.Resources.MergedDictionaries[i].Source;
             if (src != null && (src.OriginalString.Contains("LightTheme") || src.OriginalString.Contains("DarkTheme")))
             {
-                app.Resources.MergedDictionaries[i] = dict;
-                return;
+                app.Resources.MergedDictionaries.RemoveAt(i);
             }
         }
         app.Resources.MergedDictionaries.Add(dict);

@@ -198,7 +198,7 @@ public class ConfigExportService
         return sb.ToString();
     }
 
-    public string ExportPdf(ResourceRequirement req, ProjectConfig config)
+    public string ExportHtml(ResourceRequirement req, ProjectConfig config)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'>");

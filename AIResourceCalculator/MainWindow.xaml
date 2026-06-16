@@ -333,7 +333,7 @@
 
                         <StackPanel Orientation="Horizontal">
                             <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportTxtCommand}" Content="TXT"/>
-                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportPdfCommand}" Content="PDF"/>
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportHtmlCommand}" Content="HTML"/>
                             <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
                                     Command="{Binding ShowDiagramCommand}" Content="{loc:Loc diagram.show}"/>
                             <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportMermaidCommand}" Content="Mermaid"/>
@@ -370,20 +370,20 @@
                 </Grid>
             </TabItem>
 
-            <!-- TAB 4: AI Assistant -->
-            <TabItem Header="{Binding TabAiQueryHeader}">
+            <!-- TAB 4: Assistant -->
+            <TabItem Header="{Binding TabAssistantHeader}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="15">
-                        <TextBlock Text="{loc:Loc aiQuery.title}" Style="{StaticResource SectionHeader}"/>
+                        <TextBlock Text="{loc:Loc assistant.title}" Style="{StaticResource SectionHeader}"/>
                         <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="{loc:Loc aiQuery.desc}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <TextBlock Text="{loc:Loc assistant.desc}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                                 <TextBox Name="TxtAiQueryPrompt" Height="100" Margin="0,0,0,8" Padding="8"
                                          FontSize="13" TextWrapping="Wrap" Text="{Binding AiQueryPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
                                 <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
-                                        Command="{Binding AiQuerySendCommand}" Padding="16,8" HorizontalAlignment="Left">
-                                    <TextBlock Text="{loc:Loc aiQuery.analyze}"/>
+                                        Command="{Binding AssistantSendCommand}" Padding="16,8" HorizontalAlignment="Left">
+                                    <TextBlock Text="{loc:Loc assistant.analyze}"/>
                                 </Button>
                             </StackPanel>
                         </Border>
@@ -391,12 +391,12 @@
                         <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8"
                                 Visibility="{Binding IsAiQueryResultVisible, Converter={StaticResource VisibilityConverter}}">
                             <StackPanel>
-                                <TextBlock Text="{loc:Loc aiQuery.result}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                                <TextBlock Text="{loc:Loc assistant.result}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
                                 <TextBlock Text="{Binding AiQueryResult}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                 <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
-                                        Command="{Binding ApplyAiQueryCommand}" Padding="14,8" HorizontalAlignment="Left"
+                                        Command="{Binding ApplyAssistantCommand}" Padding="14,8" HorizontalAlignment="Left"
                                         Visibility="{Binding IsApplyAiQueryVisible, Converter={StaticResource VisibilityConverter}}">
-                                    <TextBlock Text="{loc:Loc aiQuery.apply}"/>
+                                    <TextBlock Text="{loc:Loc assistant.apply}"/>
                                 </Button>
                             </StackPanel>
                         </Border>
