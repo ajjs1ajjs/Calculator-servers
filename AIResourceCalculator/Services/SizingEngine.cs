@@ -13,7 +13,9 @@ public class SizingEngine
     public SizingEngine(SizingMatrix matrix)
     {
         _matrix = matrix;
-        _modules = ModuleDefinitions.GetAllModules();
+        _modules = matrix.Modules.Count > 0
+            ? matrix.Modules.Select(m => CloneModule(m)).ToList()
+            : DefaultModules();
     }
 
     public void SetModules(List<ProjectModule> modules)
@@ -31,9 +33,7 @@ public class SizingEngine
         };
 
         if (config.DeploymentType == DeploymentType.Hybrid)
-        {
             CalculateHybrid(req, config);
-        }
         else if (config.DeploymentType == DeploymentType.Kubernetes)
             CalculateK8s(req, config);
         else
@@ -45,13 +45,13 @@ public class SizingEngine
     private void CalculateK8s(ResourceRequirement req, ProjectConfig config)
     {
         var sqlRange = FindMsSqlRange(config.UserCount, config.LoadProfile);
-        var masterNode = _matrix.DefaultK8sMaster;
-        var workerNode = _matrix.DefaultK8sWorker;
+        var masterNode = _matrix.DefaultK8sMaster ?? _defaultMaster;
+        var workerNode = _matrix.DefaultK8sWorker ?? _defaultWorker;
 
         double totalCpu = 0, totalRam = 0;
 
-        var enabledModules = _modules.Where(m => m.IsEnabled
-            && (config.DeploymentType != DeploymentType.Kubernetes || !m.Name.Contains("Windows"))).ToList();
+        // K8s: exclude Windows-specific modules
+        var enabledModules = _modules.Where(m => m.IsEnabled && !m.Name.Contains("Windows")).ToList();
 
         foreach (var module in enabledModules)
         {
@@ -62,17 +62,7 @@ public class SizingEngine
             var isPerf = config.LoadProfile == LoadProfile.Performance;
             foreach (var comp in module.Components)
             {
-                int rep = comp.Formula switch
-                {
-                    ReplicaFormula.Fixed => comp.FixedReplicas,
-                    ReplicaFormula.Per25Users => (int)Math.Ceiling(config.UserCount / 25.0),
-                    ReplicaFormula.Per100Users => (int)Math.Ceiling(config.UserCount / 100.0),
-                    ReplicaFormula.Per50Users => (int)Math.Ceiling(config.UserCount / 50.0),
-                    ReplicaFormula.Per100Plus1000 => 1 + (int)(config.UserCount / 100.0) + (int)(config.UserCount / 1000.0),
-                    ReplicaFormula.Per50Plus500 => 1 + (int)(config.UserCount / 50.0) + (int)(config.UserCount / 500.0),
-                    ReplicaFormula.OnePlusPer100 => 1 + (int)(config.UserCount / 100.0),
-                    _ => Math.Max(1, comp.FixedReplicas)
-                };
+                int rep = CalcReplicas(comp, config.UserCount);
                 if (rep == 0) rep = 1;
 
                 var cpu = isPerf && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
@@ -98,11 +88,11 @@ public class SizingEngine
         req.WorkerNodeCount = workerCount;
         req.MasterNodeCount = masterNode.NodeCount > 0 ? masterNode.NodeCount : 1;
 
-        var sqlNode = _matrix.DefaultK8sSql;
+        var sqlNode = _matrix.DefaultK8sSql ?? _defaultSql;
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "SQL Server", Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? 4,
-            RamGb = sqlRange?.RamRec ?? 16, NodeCount = 1,
+            Name = "SQL Server", Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+            RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
             StorageGb = 200, StorageType = "SSD"
         });
         req.Infrastructure.Add(new InfrastructureNode
@@ -129,10 +119,10 @@ public class SizingEngine
             _matrix.AppServerPerformanceRanges, config.LoadProfile);
         var webRange = FindWindowsRange(config.UserCount, _matrix.WebServerRanges,
             _matrix.WebServerPerformanceRanges ?? new(), config.LoadProfile);
-
         var sqlRange = FindMsSqlRange(config.UserCount, config.LoadProfile);
 
-        var enabledModules = _modules.Where(m => m.IsEnabled).ToList();
+        // Windows: only Windows modules
+        var enabledModules = _modules.Where(m => m.IsEnabled && m.Name.Contains("Windows")).ToList();
         double totalCpu = 0, totalRam = 0;
 
         foreach (var module in enabledModules)
@@ -179,15 +169,6 @@ public class SizingEngine
         req.TotalLatency = sqlRange?.Latency ?? 1;
     }
 
-    private UserLoadRange? FindMsSqlRange(int userCount, LoadProfile profile)
-    {
-        var ranges = profile == LoadProfile.Performance
-            ? _matrix.MsSqlPerformanceRanges
-            : _matrix.MsSqlRanges;
-        return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
-               ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
-    }
-
     private void CalculateHybrid(ResourceRequirement req, ProjectConfig config)
     {
         var k8sReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
@@ -213,6 +194,15 @@ public class SizingEngine
         req.Components.AddRange(winReq.Components);
     }
 
+    private UserLoadRange? FindMsSqlRange(int userCount, LoadProfile profile)
+    {
+        var ranges = profile == LoadProfile.Performance
+            ? _matrix.MsSqlPerformanceRanges
+            : _matrix.MsSqlRanges;
+        return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
+               ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
+    }
+
     private UserLoadRange? FindWindowsRange(int userCount,
         List<UserLoadRange> basic, List<UserLoadRange> performance, LoadProfile profile)
     {
@@ -221,4 +211,131 @@ public class SizingEngine
         return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
                ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }
+
+    private static int CalcReplicas(ModuleComponent comp, int userCount)
+    {
+        return comp.Formula switch
+        {
+            ReplicaFormula.Fixed => comp.FixedReplicas,
+            ReplicaFormula.Per25Users => (int)Math.Ceiling(userCount / 25.0),
+            ReplicaFormula.Per100Users => (int)Math.Ceiling(userCount / 100.0),
+            ReplicaFormula.Per50Users => (int)Math.Ceiling(userCount / 50.0),
+            ReplicaFormula.Per100Plus1000 => 1 + (int)(userCount / 100.0) + (int)(userCount / 1000.0),
+            ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(userCount / 500.0),
+            ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
+            _ => Math.Max(1, comp.FixedReplicas)
+        };
+    }
+
+    private static ProjectModule CloneModule(ProjectModule src)
+    {
+        return new ProjectModule
+        {
+            Name = src.Name,
+            Description = src.Description,
+            IsEnabled = src.IsEnabled,
+            Components = src.Components.Select(c => new ModuleComponent
+            {
+                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
+                PerfCpu = c.PerfCpu, PerfRamGb = c.PerfRamGb,
+                Formula = c.Formula, FixedReplicas = c.FixedReplicas,
+                HasLocalSql = c.HasLocalSql, HasRedis = c.HasRedis,
+                Notes = c.Notes
+            }).ToList()
+        };
+    }
+
+    private static List<ProjectModule> DefaultModules()
+    {
+        return new List<ProjectModule>
+        {
+            new()
+            {
+                Name = "App Server", Description = "Core application server with local SQL and Redis cache",
+                IsEnabled = true,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "AS (App Server)", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 3, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                    new() { Name = "AS-Redis", Cpu = 0.1, RamGb = 0.1, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
+                }
+            },
+            new()
+            {
+                Name = "ROBOT", Description = "Robot process automation services",
+                IsEnabled = true,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "ROBOT", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
+                    new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 3, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                    new() { Name = "ROBOT-Redis", Cpu = 0.1, RamGb = 0.1, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
+                }
+            },
+            new()
+            {
+                Name = "Web", Description = "Web services including WebSocket and SmartID",
+                IsEnabled = true,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "SmartID", Cpu = 0.2, RamGb = 0.5, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "WS (WebSocket)", Cpu = 0.25, RamGb = 0.5, PerfCpu = 0.35, PerfRamGb = 0.6, Formula = ReplicaFormula.Per50Plus500 },
+                    new() { Name = "WS-SignalR", Cpu = 0.25, RamGb = 0.5, Formula = ReplicaFormula.Per25Users }
+                }
+            },
+            new()
+            {
+                Name = "ForceBPM", Description = "Business process management engine and tools",
+                IsEnabled = true,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "ForceBPM Engine", Cpu = 1.0, RamGb = 4, Formula = ReplicaFormula.OnePlusPer100, HasLocalSql = true },
+                    new() { Name = "ForceBPM Modeler", Cpu = 0.5, RamGb = 0.5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 },
+                    new() { Name = "ForceBPM Processes", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "ForceBPM Tasks", Cpu = 0.3, RamGb = 2, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "ForceBPM Tasks-Graphql", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users }
+                }
+            },
+            new()
+            {
+                Name = "LMS", Description = "Learning management system with video utilities",
+                IsEnabled = false,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "LMS-SmartID", Cpu = 0.006, RamGb = 0.05, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "LMS", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                    new() { Name = "LMS-GraphQL", Cpu = 0.09, RamGb = 0.3, Formula = ReplicaFormula.Per25Users },
+                    new() { Name = "LMS-Videoutilities", Cpu = 4.0, RamGb = 6, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true, Notes = "Requires GPU for video transcoding" },
+                    new() { Name = "LMS-Fileserver", Cpu = 0.5, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 }
+                }
+            },
+            new()
+            {
+                Name = "HR Portal", Description = "HR self-service portal with modeler and player",
+                IsEnabled = false,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "HR-SmartID", Cpu = 0.006, RamGb = 0.05, Formula = ReplicaFormula.Per100Users },
+                    new() { Name = "HR-GraphQL", Cpu = 0.01, RamGb = 0.06, Formula = ReplicaFormula.Per100Users },
+                    new() { Name = "WebAppModeler", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                    new() { Name = "CommonAppPlayer", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true }
+                }
+            },
+            new()
+            {
+                Name = "Windows Infrastructure", Description = "Windows App Servers and Web Servers",
+                IsEnabled = true,
+                Components = new List<ModuleComponent>
+                {
+                    new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 16, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" },
+                    new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
+                }
+            }
+        };
+    }
+
+    private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker Node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
 }

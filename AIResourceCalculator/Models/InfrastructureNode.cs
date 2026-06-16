@@ -16,5 +16,10 @@ public class InfrastructureNode
     public string StorageType4 { get; set; } = "";
     public int StorageGb4 { get; set; }
     public double MinVersion { get; set; }
+    public int Iops { get; set; }
+    public string IopsProfile { get; set; } = "";
+    public double Latency { get; set; }
+    public int PageFileGb { get; set; }
+    public string PageFileType { get; set; } = "";
     public int TotalStorageGb => StorageGb * NodeCount;
 }

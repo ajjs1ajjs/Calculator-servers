@@ -12,7 +12,7 @@ namespace AIResourceCalculator.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    private readonly SizingEngine _engine;
+    private SizingEngine _engine;
     private readonly AiAdvisorService _advisor;
     private readonly ValidationEngine _validator;
     private readonly PromptParserService _promptParser;
@@ -438,28 +438,51 @@ public class MainViewModel : INotifyPropertyChanged
     {
         DataService.ClearMatrix();
         _matrix = new SizingMatrix();
+        _engine = new SizingEngine(_matrix);
         ReloadMatrix();
     }
 
     private void ReloadMatrix()
     {
-        _engine.SetModules(Modules.ToList());
+        var freshModules = _matrix.Modules.Count > 0
+            ? _matrix.Modules.Select(m => CloneModule(m)).ToList()
+            : _engine.Modules.Select(m => CloneModule(m)).ToList();
+        _engine.SetModules(freshModules);
         LoadMatrixGrids();
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         OnPropertyChanged(nameof(Modules));
+    }
+
+    private static ProjectModule CloneModule(ProjectModule src)
+    {
+        return new ProjectModule
+        {
+            Name = src.Name, Description = src.Description, IsEnabled = src.IsEnabled,
+            Components = src.Components.Select(c => new ModuleComponent
+            {
+                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
+                PerfCpu = c.PerfCpu, PerfRamGb = c.PerfRamGb,
+                Formula = c.Formula, FixedReplicas = c.FixedReplicas,
+                HasLocalSql = c.HasLocalSql, HasRedis = c.HasRedis, Notes = c.Notes
+            }).ToList()
+        };
     }
 
     private void LoadMatrixGrids()
     {
         MsSqlRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlRanges);
         MsSqlPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlPerformanceRanges);
-        K8sComponents = new ObservableCollection<ServiceComponent>(_matrix.K8sBasicComponents);
-        InfraNodes = new ObservableCollection<InfrastructureNode>
-        {
-            _matrix.DefaultK8sSql,
-            _matrix.DefaultK8sMaster,
-            _matrix.DefaultK8sWorker
-        };
+        K8sComponents = new ObservableCollection<ServiceComponent>(
+            _matrix.Modules.SelectMany(m => m.Components.Select(c => new ServiceComponent
+            {
+                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
+                Replicas = c.FixedReplicas, Category = m.Name
+            }))
+        );
+        InfraNodes = new ObservableCollection<InfrastructureNode>();
+        if (_matrix.DefaultK8sSql != null) InfraNodes.Add(_matrix.DefaultK8sSql);
+        if (_matrix.DefaultK8sMaster != null) InfraNodes.Add(_matrix.DefaultK8sMaster);
+        if (_matrix.DefaultK8sWorker != null) InfraNodes.Add(_matrix.DefaultK8sWorker);
         OnPropertyChanged(nameof(MsSqlRanges));
         OnPropertyChanged(nameof(MsSqlPerformanceRanges));
         OnPropertyChanged(nameof(K8sComponents));
