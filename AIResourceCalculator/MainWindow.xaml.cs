@@ -22,6 +22,7 @@ public partial class MainWindow : Window
         GridMatrixComponents.ItemsSource = _vm.K8sComponents;
         GridMatrixInfra.ItemsSource = _vm.InfraNodes;
         GridInfrastructure.ItemsSource = _vm.ResultInfrastructure;
+        AiTableResults.ItemsSource = _vm.AiInfrastructure;
 
         DataObject.AddPastingHandler(TxtUserCount, NumberPaste);
 
@@ -32,6 +33,8 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainViewModel.ResultInfrastructure))
             { GridInfrastructure.ItemsSource = null; GridInfrastructure.ItemsSource = _vm.ResultInfrastructure; }
+        else if (e.PropertyName == nameof(MainViewModel.AiInfrastructure))
+            { AiTableResults.ItemsSource = null; AiTableResults.ItemsSource = _vm.AiInfrastructure; }
         else if (e.PropertyName == nameof(MainViewModel.IsDiagramVisible))
         {
             PanelDiagram.Visibility = _vm.IsDiagramVisible ? Visibility.Visible : Visibility.Collapsed;
