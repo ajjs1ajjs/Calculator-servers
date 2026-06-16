@@ -75,6 +75,8 @@ public class AiSettingsDialog : Window
         _cmbProvider.Items.Add("Claude (Anthropic)");
         _cmbProvider.Items.Add("Google (Gemini)");
         _cmbProvider.Items.Add("Local (Ollama)");
+        _cmbProvider.Items.Add("DeepSeek");
+        _cmbProvider.Items.Add("OpenCode (OpenAI-compatible)");
         _cmbProvider.SelectedIndex = Settings.Provider == AiProvider.None ? 0 : Math.Max(0, (int)Settings.Provider - 1);
         _cmbProvider.SelectionChanged += (_, _) => UpdateUi();
         _configPanel.Children.Add(_cmbProvider);
@@ -128,7 +130,9 @@ public class AiSettingsDialog : Window
         {
             Settings.Provider = _cmbProvider.SelectedIndex switch
             {
-                0 => AiProvider.OpenAI, 1 => AiProvider.Claude, 2 => AiProvider.Google, 3 => AiProvider.LocalOllama, _ => AiProvider.None
+                0 => AiProvider.OpenAI, 1 => AiProvider.Claude, 2 => AiProvider.Google,
+                3 => AiProvider.LocalOllama, 4 => AiProvider.DeepSeek, 5 => AiProvider.OpenCode,
+                _ => AiProvider.None
             };
             Settings.ApiKey = _txtApiKey.Password.Trim();
             Settings.ModelName = _cmbModel.Text.Trim();
@@ -191,6 +195,8 @@ public class AiSettingsDialog : Window
             if (idx == 0) await FetchOpenAiModels(key);
             else if (idx == 1) await FetchClaudeModels(key);
             else if (idx == 2) await FetchGoogleModels(key);
+            else if (idx == 4) await FetchDeepSeekModels(key);
+            else if (idx == 5) await FetchFallbackModels();
             _txtStatus.Text = $"Loaded {_cmbModel.Items.Count} models";
             _txtStatus.Foreground = Brushes.Green;
         }
@@ -258,6 +264,26 @@ public class AiSettingsDialog : Window
         if (models.Count > 0) _cmbModel.Text = models.Contains("gemini-1.5-flash") ? "gemini-1.5-flash" : models[0];
     }
 
+    private async Task FetchDeepSeekModels(string key)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, "https://api.deepseek.com/v1/models");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+        var resp = await _http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) throw new Exception("Invalid key or network error");
+
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var models = doc.RootElement.GetProperty("data").EnumerateArray()
+            .Select(m => m.GetProperty("id").GetString() ?? "")
+            .Where(id => !string.IsNullOrEmpty(id))
+            .OrderByDescending(id => id)
+            .ToList();
+
+        _cmbModel.Items.Clear();
+        foreach (var m in models) _cmbModel.Items.Add(m);
+        if (models.Count > 0) _cmbModel.Text = models.Contains("deepseek-chat") ? "deepseek-chat" : models[0];
+    }
+
     private async Task AutoDetectOllamaAsync()
     {
         try
@@ -306,6 +332,17 @@ public class AiSettingsDialog : Window
         }
     }
 
+    private async Task FetchFallbackModels()
+    {
+        _txtStatus.Text = "OpenCode: set custom endpoint URL in settings";
+        _txtStatus.Foreground = Brushes.Gray;
+        _cmbModel.Items.Clear();
+        foreach (var m in new[] { "custom-model", "gpt-4o-mini", "deepseek-chat", "llama3.2" })
+            _cmbModel.Items.Add(m);
+        _cmbModel.Text = "custom-model";
+        await Task.CompletedTask;
+    }
+
     private void AddFallbackModels()
     {
         if (_cmbModel.Items.Count > 0) return;
@@ -319,7 +356,7 @@ public class AiSettingsDialog : Window
     {
         var enabled = _chkEnabled.IsChecked ?? false;
         var idx = _cmbProvider.SelectedIndex;
-        var isCloud = idx >= 0 && idx <= 2;
+        var isCloud = idx >= 0 && idx <= 2 || idx == 4;
 
         _configPanel.IsEnabled = enabled;
         _txtApiKey.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
@@ -328,6 +365,7 @@ public class AiSettingsDialog : Window
 
         if (!enabled) _txtStatus.Text = "AI disabled";
         else if (idx == 3) _txtStatus.Text = "Click Fetch Models to detect local models";
+        else if (idx == 5) _txtStatus.Text = "Enter endpoint URL (or use default), then click Fetch Models";
         else if (string.IsNullOrWhiteSpace(_txtApiKey.Password)) _txtStatus.Text = "Paste API key, then click Fetch Models";
         else _txtStatus.Text = "Click Fetch Models to load available models";
     }

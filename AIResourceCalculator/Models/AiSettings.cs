@@ -10,7 +10,9 @@ public enum AiProvider
     OpenAI,
     Claude,
     Google,
-    LocalOllama
+    LocalOllama,
+    DeepSeek,
+    OpenCode
 }
 
 public class AiSettings
@@ -30,7 +32,9 @@ public class AiSettings
         {
             AiProvider.OpenAI => !string.IsNullOrWhiteSpace(ApiKey),
             AiProvider.Claude => !string.IsNullOrWhiteSpace(ApiKey),
+            AiProvider.DeepSeek => !string.IsNullOrWhiteSpace(ApiKey),
             AiProvider.LocalOllama => true,
+            AiProvider.OpenCode => true,
             _ => false
         };
     }
@@ -74,6 +78,8 @@ public class AiSettings
             AiProvider.Claude => "Claude (Anthropic)",
             AiProvider.Google => "Google (Gemini)",
             AiProvider.LocalOllama => "Local (Ollama)",
+            AiProvider.DeepSeek => "DeepSeek",
+            AiProvider.OpenCode => "OpenCode",
             _ => "Rule-based (offline)"
         };
     }
@@ -97,6 +103,14 @@ public class AiSettings
             AiProvider.LocalOllama => (
                 string.IsNullOrEmpty(EndpointUrl) ? "http://localhost:11434/api/generate" : EndpointUrl,
                 string.IsNullOrEmpty(ModelName) ? "llama3.2" : ModelName
+            ),
+            AiProvider.DeepSeek => (
+                string.IsNullOrEmpty(EndpointUrl) ? "https://api.deepseek.com/v1/chat/completions" : EndpointUrl,
+                string.IsNullOrEmpty(ModelName) ? "deepseek-chat" : ModelName
+            ),
+            AiProvider.OpenCode => (
+                string.IsNullOrEmpty(EndpointUrl) ? "http://localhost:11434/v1/chat/completions" : EndpointUrl,
+                string.IsNullOrEmpty(ModelName) ? "opencode-model" : ModelName
             ),
             _ => ("", "")
         };
