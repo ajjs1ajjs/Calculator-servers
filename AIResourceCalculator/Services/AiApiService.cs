@@ -163,32 +163,53 @@ public class AiApiService
         return "";
     }
 
-    public string BuildAnalysisPrompt(ResourceRequirement req, ProjectConfig config)
+    public string BuildAnalysisPrompt(ResourceRequirement req, ProjectConfig config, ResourceRequirement? perfReq = null)
     {
-        var infra = string.Join("\n", req.Infrastructure.Select(i =>
-            $"  - {i.Name}: {i.NodeCount} nodes, {i.Cpu} vCPU, {i.RamGb} GB RAM, {i.StorageGb} GB storage"));
-
         var components = string.Join("\n", req.Components.Where(c => c.Cpu > 0).Select(c =>
             $"  - {c.Name}: {c.Cpu} vCPU, {c.RamGb} GB RAM, {c.Replicas} replicas"));
 
-        return $@"[System: You are an infrastructure sizing expert. Use AI models and best practices for optimal resource calculation.]
+        var basicSection = $@"=== BALANCE PROFILE (Basic) ==="
+            + $"\nTotals: vCPU={req.TotalCpu:F1}, RAM={req.TotalRamGb:F1} GB, Storage={req.TotalStorageGb} GB, IOPS={req.TotalIops}"
+            + $"\nInfrastructure:\n{string.Join("\n", req.Infrastructure.Select(i => $"  - {i.Name}: {i.NodeCount} nodes, {i.Cpu} vCPU, {i.RamGb} GB RAM, {i.StorageGb} GB storage"))}";
 
-Analyze this infrastructure configuration:
+        var perfSection = "";
+        if (perfReq != null)
+        {
+            perfSection = $@"
+
+=== PERFORMANCE PROFILE (Doc/obig) ==="
+                + $"\nTotals: vCPU={perfReq.TotalCpu:F1}, RAM={perfReq.TotalRamGb:F1} GB, Storage={perfReq.TotalStorageGb} GB, IOPS={perfReq.TotalIops}"
+                + $"\nInfrastructure:\n{string.Join("\n", perfReq.Infrastructure.Select(i => $"  - {i.Name}: {i.NodeCount} nodes, {i.Cpu} vCPU, {i.RamGb} GB RAM, {i.StorageGb} GB storage"))}";
+        }
+
+        return $@"[System: You are an infrastructure sizing expert. Use AI models and best practices for optimal resource calculation.]
 
 Project: {config.ProjectName}
 Users: {config.UserCount}
-Deployment: {config.DeploymentType} ({config.LoadProfile})
+Deployment: {config.DeploymentType}
 HA: {config.HaEnabled}
 
-Totals: vCPU={req.TotalCpu:F1}, RAM={req.TotalRamGb:F1} GB, Storage={req.TotalStorageGb} GB, IOPS={req.TotalIops}
+{basicSection}{perfSection}
 
-Infrastructure:
-{infra}
-
-Components:
+Components (common to both profiles):
 {components}
 
-Provide 3-5 specific recommendations in JSON: category, title, description, action, severity (ok/warning/critical), potentialSavings ($/month).
+Based on BOTH profiles above, provide your expert recommendation in JSON with this exact structure:
+
+{{
+  ""balance"": {{
+    ""recommendations"": [ ... ],
+    ""infrastructure"": [
+      {{ ""name"": ""..."", ""cpu"": N, ""ramGb"": N, ""nodeCount"": N, ""storageGb"": N }}
+    ]
+  }},
+  ""performance"": {{
+    ""recommendations"": [ ... ],
+    ""infrastructure"": [ ... ]
+  }}
+}}
+
+Each recommendation: {{ ""category"": ""..."", ""title"": ""..."", ""description"": ""..."", ""action"": ""..."", ""severity"": ""ok/warning/critical"", ""potentialSavings"": N }}
 Focus on: instance sizing, CPU/RAM balance, HA scaling, storage optimization. Use Ukrainian language.";
     }
 }

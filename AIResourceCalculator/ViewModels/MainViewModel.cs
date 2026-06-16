@@ -221,7 +221,8 @@ public class MainViewModel : INotifyPropertyChanged
     public string TotalNodes { get => _totalNodes; set { _totalNodes = value; OnPropertyChanged(); } }
 
     public ObservableCollection<InfrastructureNode> ResultInfrastructure { get; private set; } = new();
-    public ObservableCollection<InfrastructureNode> AiInfrastructure { get; private set; } = new();
+    public ObservableCollection<InfrastructureNode> AiInfrastructureBalance { get; private set; } = new();
+    public ObservableCollection<InfrastructureNode> AiInfrastructurePerformance { get; private set; } = new();
     public ObservableCollection<AiRecommendation> AiRecommendations { get; private set; } = new();
     public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
     public ObservableCollection<ValidationResult> ValidationResults { get; private set; } = new();
@@ -376,25 +377,25 @@ public class MainViewModel : INotifyPropertyChanged
         IsAiRecListVisible = false;
         IsQuickRecVisible = false;
 
-        var recommendations = await _advisor.AnalyzeAsync(_lastResult, GetConfig());
-        if (recommendations.Count > 0)
-        {
-            var sorted = recommendations.OrderByDescending(r => r.Severity == "critical")
-                .ThenByDescending(r => r.Severity == "warning")
-                .ThenByDescending(r => r.Severity == "info").ToList();
+        var dual = await _advisor.AnalyzeAsync(_lastResult, GetConfig(), _lastResultPerf);
 
+        var allRecs = dual.Balance.Recommendations.Concat(dual.Performance.Recommendations).ToList();
+        if (allRecs.Count > 0)
+        {
             IsAiNoDataVisible = false;
             IsAiRecListVisible = true;
             IsQuickRecVisible = true;
-            AiRecommendations = new ObservableCollection<AiRecommendation>(sorted);
 
-            var aiInfra = _advisor.BuildAiInfrastructure(_lastResult, GetConfig());
-            AiInfrastructure = new ObservableCollection<InfrastructureNode>(aiInfra);
-            OnPropertyChanged(nameof(AiInfrastructure));
+            AiRecommendations = new ObservableCollection<AiRecommendation>(allRecs);
+            AiInfrastructureBalance = new ObservableCollection<InfrastructureNode>(dual.Balance.Infrastructure);
+            AiInfrastructurePerformance = new ObservableCollection<InfrastructureNode>(dual.Performance.Infrastructure);
             OnPropertyChanged(nameof(AiRecommendations));
+            OnPropertyChanged(nameof(AiInfrastructureBalance));
+            OnPropertyChanged(nameof(AiInfrastructurePerformance));
 
-            var totalSavings = sorted.Sum(r => r.PotentialSavings);
-            AiBadgeResultText = $"{sorted.Count} rec" + (totalSavings > 0 ? $" | ~${totalSavings:F0}/mo economy" : "");
+            var totalSavings = allRecs.Sum(r => r.PotentialSavings);
+            AiBadgeResultText = $"{allRecs.Count} rec | {dual.Balance.Infrastructure.Count + dual.Performance.Infrastructure.Count} infra" +
+                (totalSavings > 0 ? $" | ~${totalSavings:F0}/mo economy" : "");
         }
         else
         {

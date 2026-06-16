@@ -20,25 +20,34 @@ public class AiAdvisorService
 
     public bool IsRealAiEnabled => _api != null;
 
-    public async Task<List<AiRecommendation>> AnalyzeAsync(ResourceRequirement req, ProjectConfig config)
+    public async Task<AiDualProfileResult> AnalyzeAsync(ResourceRequirement req, ProjectConfig config, ResourceRequirement? perfReq = null)
     {
+        var result = new AiDualProfileResult();
+
         if (_api != null)
         {
             try
             {
-                var prompt = _api.BuildAnalysisPrompt(req, config);
-                var result = await _api.GetRecommendation(prompt);
-                if (!string.IsNullOrEmpty(result) && !result.StartsWith("AI Error"))
+                var prompt = _api.BuildAnalysisPrompt(req, config, perfReq);
+                var response = await _api.GetRecommendation(prompt);
+                if (!string.IsNullOrEmpty(response) && !response.StartsWith("AI Error"))
                 {
-                    var aiRecs = ParseAiResponse(result);
-                    if (aiRecs.Count > 0)
-                        return aiRecs;
+                    var parsed = ParseDualResponse(response);
+                    if (parsed != null)
+                        return parsed;
                 }
             }
             catch { }
         }
 
-        return Analyze(req, config);
+        result.Balance.Recommendations = Analyze(req, config);
+        result.Balance.Infrastructure = BuildAiInfrastructure(req, config);
+        if (perfReq != null)
+        {
+            result.Performance.Recommendations = Analyze(perfReq, config);
+            result.Performance.Infrastructure = BuildAiInfrastructure(perfReq, config);
+        }
+        return result;
     }
 
     public List<AiRecommendation> Analyze(ResourceRequirement req, ProjectConfig config)
@@ -51,23 +60,52 @@ public class AiAdvisorService
         return recommendations;
     }
 
-    private List<AiRecommendation> ParseAiResponse(string json)
+    private AiDualProfileResult? ParseDualResponse(string json)
     {
         try
         {
             json = json.Trim();
+            var m = System.Text.RegularExpressions.Regex.Match(json, "```(?:json)?\\s*([\\s\\S]*?)\\s*```");
+            if (m.Success) json = m.Groups[1].Value.Trim();
 
-            var jsonMatch = System.Text.RegularExpressions.Regex.Match(json, @"```(?:json)?\s*([\s\S]*?)\s*```");
-            if (jsonMatch.Success) json = jsonMatch.Groups[1].Value.Trim();
+            var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
 
-            if (!json.StartsWith("[")) json = "[" + json + "]";
+            var result = new AiDualProfileResult();
 
-            var recs = JsonSerializer.Deserialize<List<AiRecommendation>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            return recs ?? new List<AiRecommendation>();
+            foreach (var (key, profile) in new[] { ("balance", result.Balance), ("performance", result.Performance) })
+            {
+                if (!root.TryGetProperty(key, out var section) || section.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                if (section.TryGetProperty("recommendations", out var recs) && recs.ValueKind == JsonValueKind.Array)
+                {
+                    var r = JsonSerializer.Deserialize<List<AiRecommendation>>(recs.GetRawText(), opt);
+                    if (r != null) profile.Recommendations = r;
+                }
+
+                if (section.TryGetProperty("infrastructure", out var infra) && infra.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var n in infra.EnumerateArray())
+                    {
+                        profile.Infrastructure.Add(new InfrastructureNode
+                        {
+                            Name = n.TryGetProperty("name", out var nn) ? nn.GetString() ?? "" : "",
+                            Cpu = n.TryGetProperty("cpu", out var nc) ? nc.GetDouble() : 0,
+                            RamGb = n.TryGetProperty("ramGb", out var nr) ? nr.GetDouble() : 0,
+                            NodeCount = n.TryGetProperty("nodeCount", out var ncnt) ? ncnt.GetInt32() : 1,
+                            StorageGb = n.TryGetProperty("storageGb", out var ns) ? ns.GetInt32() : 0
+                        });
+                    }
+                }
+            }
+
+            return result;
         }
         catch
         {
-            return new List<AiRecommendation>();
+            return null;
         }
     }
 

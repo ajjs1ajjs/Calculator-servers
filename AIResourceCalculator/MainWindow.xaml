@@ -346,7 +346,7 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- RIGHT: AI Analysis Results (same table format as left) -->
+                    <!-- RIGHT: AI Analysis Results (two columns: Balance + Performance) -->
                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
                         <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
                         <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,8" Margin="0,0,0,8"
@@ -354,16 +354,43 @@
                             <TextBlock Text="&#x1F9E0; Run AI Analysis"/>
                         </Button>
                         <TextBlock Text="{Binding AiBadgeResultText}" FontSize="12" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4"/>
-                        <DataGrid Name="AiTableResults" MinHeight="320" AutoGenerateColumns="False" IsReadOnly="True"
-                                  Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
-                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="50"/>
-                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="50"/>
-                                <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="50"/>
-                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="75"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
+
+                        <Grid Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" MinWidth="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Balance" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                                <DataGrid MinHeight="260" AutoGenerateColumns="False" IsReadOnly="True"
+                                          ItemsSource="{Binding AiInfrastructureBalance}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="40"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="40"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="40"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="55"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Performance" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                                <DataGrid MinHeight="260" AutoGenerateColumns="False" IsReadOnly="True"
+                                          ItemsSource="{Binding AiInfrastructurePerformance}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="40"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="40"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="40"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="55"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Grid>
+
                         <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"
                                    Visibility="{Binding IsAiNoDataVisible, Converter={StaticResource VisibilityConverter}}"/>
                     </StackPanel>
