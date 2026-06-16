@@ -381,6 +381,21 @@
                                 <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="75"/>
                             </DataGrid.Columns>
                         </DataGrid>
+                        <TextBlock Text="{Binding AiRecCountText}" FontSize="12" Foreground="{DynamicResource TextMuted}" Margin="0,8,0,4"/>
+                        <ItemsControl Name="AiRecResults" Visibility="{Binding IsAiRecListVisible, Converter={StaticResource VisibilityConverter}}" Margin="0,0,0,8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource CardBg}" Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
+                                            BorderBrush="{Binding Severity, Converter={StaticResource SeverityToColor}}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                                            <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Action}" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <TextBlock Name="TxtAiNoData" Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic"
                                    Visibility="{Binding IsAiNoDataVisible, Converter={StaticResource VisibilityConverter}}"/>
                     </StackPanel>

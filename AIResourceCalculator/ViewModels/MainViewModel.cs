@@ -27,6 +27,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string _statusText = "";
     private string _aiBadgeText = "";
     private string _aiBadgeResultText = "";
+    private string _aiRecCountText = "";
     private string _langFlag = "\U0001F1FA\U0001F1E6";
     private string _langName = "Українська";
     private string _aiNoDataText = "";
@@ -119,6 +120,12 @@ public class MainViewModel : INotifyPropertyChanged
     {
         get => _aiBadgeResultText;
         set { _aiBadgeResultText = value; OnPropertyChanged(); }
+    }
+
+    public string AiRecCountText
+    {
+        get => _aiRecCountText;
+        set { _aiRecCountText = value; OnPropertyChanged(); }
     }
 
     public string LangFlag
@@ -354,6 +361,7 @@ public class MainViewModel : INotifyPropertyChanged
         AiRecommendations = new ObservableCollection<AiRecommendation>();
         OnPropertyChanged(nameof(AiRecommendations));
         AiBadgeResultText = "";
+        AiRecCountText = "";
     }
 
     public async Task AnalyzeWithAiAsync()
@@ -382,6 +390,9 @@ public class MainViewModel : INotifyPropertyChanged
             var totalSavings = balance.Recommendations.Sum(r => r.PotentialSavings);
             AiBadgeResultText = $"{balance.Recommendations.Count} rec" +
                 (totalSavings > 0 ? $" | ~${totalSavings:F0}/mo economy" : "");
+            AiRecCountText = LocalizationService.Instance.CurrentLang == "uk"
+                ? $"📋 {balance.Recommendations.Count} рекомендацій"
+                : $"📋 {balance.Recommendations.Count} recommendations";
         }
         else
         {
