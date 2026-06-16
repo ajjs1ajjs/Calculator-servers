@@ -401,19 +401,24 @@ public class AiAdvisorService
             req.WorkerNodeCount > 0 ? req.TotalCpu / req.WorkerNodeCount : 0,
             req.WorkerNodeCount > 0 ? req.TotalRamGb / req.WorkerNodeCount : 0);
 
+        // SQL Server — common to all deployments
+        var isWindowsDeploy = config.DeploymentType == DeploymentType.Windows;
+        nodes.Add(new InfrastructureNode
+        {
+            Name = "SQL Server",
+            Os = isWindowsDeploy ? "Windows Server 2025" : "PaaS (Azure SQL / RDS)",
+            Cpu = Math.Ceiling(req.TotalCpu * (isWindowsDeploy ? 0.15 : 0.1)),
+            RamGb = Math.Ceiling(req.TotalRamGb * (isWindowsDeploy ? 0.25 : 0.2)),
+            NodeCount = 1,
+            StorageGb = Math.Max(isWindowsDeploy ? 300 : 500, req.TotalStorageGb / (isWindowsDeploy ? 2 : 3)),
+            StorageType = "Premium SSD"
+        });
+
         if (config.DeploymentType == DeploymentType.Kubernetes || config.DeploymentType == DeploymentType.Hybrid)
         {
             var workerCpu = req.WorkerNodeCount > 0 ? Math.Ceiling(req.TotalCpu / req.WorkerNodeCount) : 8;
             var workerRam = req.WorkerNodeCount > 0 ? Math.Ceiling(req.TotalRamGb / req.WorkerNodeCount) : 32;
             var aiWorkers = Math.Max(3, req.WorkerNodeCount + 1);
-
-            nodes.Add(new InfrastructureNode
-            {
-                Name = "SQL Server",
-                Os = "PaaS", Cpu = Math.Ceiling(req.TotalCpu * 0.1),
-                RamGb = Math.Ceiling(req.TotalRamGb * 0.2), NodeCount = 1,
-                StorageGb = Math.Max(500, req.TotalStorageGb / 3), StorageType = "Premium SSD"
-            });
 
             nodes.Add(new InfrastructureNode
             {
