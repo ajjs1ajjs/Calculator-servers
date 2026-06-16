@@ -266,6 +266,17 @@ public class SizingEngine
         req.Infrastructure.AddRange(winReq.Infrastructure);
         req.Components.AddRange(k8sReq.Components);
         req.Components.AddRange(winReq.Components);
+
+        // Deduplicate SQL Server (Hybrid runs both K8s + Windows, both add SQL)
+        var sqlNodes = req.Infrastructure.Where(n => n.Name == "SQL Server").ToList();
+        if (sqlNodes.Count > 1)
+        {
+            var best = sqlNodes.OrderByDescending(n => n.RamGb).First();
+            var other = sqlNodes.Where(n => n != best).ToList();
+            best.StorageGb += other.Sum(o => o.StorageGb * o.NodeCount);
+            best.Iops += other.Sum(o => o.Iops);
+            foreach (var dup in other) req.Infrastructure.Remove(dup);
+        }
     }
 
     private UserLoadRange? FindMsSqlRange(int userCount, LoadProfile profile)
