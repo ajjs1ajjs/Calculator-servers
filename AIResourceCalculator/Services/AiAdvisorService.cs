@@ -58,6 +58,10 @@ public class AiAdvisorService
         recommendations.AddRange(AnalyzeScaling(req, config));
         recommendations.AddRange(AnalyzeStorage(req, config));
         recommendations.AddRange(AnalyzeProductSpecific(req, config));
+        recommendations.AddRange(AnalyzeSqlConfig(req, config));
+        recommendations.AddRange(AnalyzeDeploymentFit(req, config));
+        recommendations.AddRange(AnalyzeGpuRequirements(req, config));
+        recommendations.AddRange(AnalyzeRedisCache(req, config));
         return recommendations;
     }
 
@@ -467,6 +471,223 @@ public class AiAdvisorService
             (<= 64, <= 256) => ("XLarge (64 vCPU / 256 GB)", Loc("Compute optimized", "Оптимізоване CPU"), 1300),
             _ => ("Large (32 vCPU / 128 GB)", Loc("General purpose", "Загальне призначення"), 1120)
         };
+    }
+
+    private List<AiRecommendation> AnalyzeSqlConfig(ResourceRequirement req, ProjectConfig config)
+    {
+        var list = new List<AiRecommendation>();
+        var sqlNode = req.Infrastructure.FirstOrDefault(n => n.Name == "SQL Server");
+        if (sqlNode == null) return list;
+
+        var isWindows = config.DeploymentType == DeploymentType.Windows
+                     || config.DeploymentType == DeploymentType.Hybrid;
+
+        // Page file check (Windows SQL requires page file = RAM for crash dumps)
+        if (isWindows && sqlNode.PageFileGb < sqlNode.RamGb)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("SQL Server", "SQL Server"),
+                Severity = "warning",
+                Title = Loc($"🟡 SQL page file ({sqlNode.PageFileGb} GB) < RAM ({sqlNode.RamGb} GB)",
+                            $"🟡 Файл підкачки SQL ({sqlNode.PageFileGb} GB) < RAM ({sqlNode.RamGb} GB)"),
+                Description = Loc(
+                    "Windows SQL Server needs page file ≥ RAM size for crash dump capture",
+                    "Windows SQL Server потребує файл підкачки ≥ RAM для збору дампів пам'яті"),
+                Action = Loc(
+                    $"Set page file to {sqlNode.RamGb} GB (size = RAM) on the system drive",
+                    $"Встановіть файл підкачки {sqlNode.RamGb} GB (розмір = RAM) на системному диску")
+            });
+        }
+
+        // Disk separation for SQL with large RAM
+        if (sqlNode.RamGb > 64)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("SQL Server Disks", "Диски SQL"),
+                Severity = "info",
+                Title = Loc($"💡 SQL RAM > 64 GB — separate disks for Data/Logs/TempDB",
+                            $"💡 SQL RAM > 64 GB — розділіть диски Data/Logs/TempDB"),
+                Description = Loc(
+                    $"SQL has {sqlNode.RamGb} GB RAM. For best performance, separate data, transaction logs, and TempDB on different disks",
+                    $"SQL має {sqlNode.RamGb} GB RAM. Для продуктивності розділіть дані, логи транзакцій та TempDB на різні диски"),
+                Action = Loc(
+                    "Separate: C: OS+PageFile | D: Data files | E: Transaction logs | F: TempDB",
+                    "Розділіть: C: OS+PageFile | D: Файли даних | E: Логи транзакцій | F: TempDB")
+            });
+        }
+
+        // CPU/RAM balance for SQL
+        if (sqlNode.RamGb > 128 && sqlNode.Cpu < 16)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("SQL CPU/RAM", "SQL CPU/RAM"),
+                Severity = "warning",
+                Title = Loc($"🟡 SQL imbalance: {sqlNode.RamGb} GB RAM but {sqlNode.Cpu} vCPU",
+                            $"🟡 Дисбаланс SQL: {sqlNode.RamGb} GB RAM при {sqlNode.Cpu} vCPU"),
+                Description = Loc(
+                    "SQL Server with >128 GB RAM needs ≥16 vCPU for parallel query execution",
+                    "SQL Server з >128 GB RAM потребує ≥16 vCPU для паралельного виконання запитів"),
+                Action = Loc(
+                    $"Increase SQL vCPU to at least 16 (currently {sqlNode.Cpu})",
+                    $"Збільшіть SQL vCPU до мінімум 16 (зараз {sqlNode.Cpu})")
+            });
+        }
+
+        // RAM sufficiency for user count
+        if (config.UserCount > 500 && sqlNode.RamGb < 32)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("SQL Capacity", "Ємність SQL"),
+                Severity = "warning",
+                Title = Loc($"🟡 {config.UserCount} users may need more than {sqlNode.RamGb} GB SQL RAM",
+                            $"🟡 {config.UserCount} користувачів може потребувати > {sqlNode.RamGb} GB SQL RAM"),
+                Description = Loc(
+                    $"For {config.UserCount} users, SQL Server typically needs 32-64 GB RAM depending on workload",
+                    $"Для {config.UserCount} користувачів SQL Server зазвичай потребує 32-64 GB RAM залежно від навантаження"),
+                Action = Loc(
+                    "Consider increasing SQL RAM to 32 GB minimum. Monitor page life expectancy (PLE >300s)",
+                    "Розгляньте збільшення SQL RAM до мінімум 32 GB. Слідкуйте за PLE (>300с)")
+            });
+        }
+
+        return list;
+    }
+
+    private List<AiRecommendation> AnalyzeDeploymentFit(ResourceRequirement req, ProjectConfig config)
+    {
+        var list = new List<AiRecommendation>();
+        var hasWindowsModules = req.Components.Any(c => c.Category.Contains("Windows"));
+        var hasK8sModules = req.Components.Any(c => c.Category.Contains("LMS") || c.Category.Contains("ROBOT"));
+
+        if (config.DeploymentType == DeploymentType.Kubernetes && hasWindowsModules)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("Deployment Fit", "Відповідність розгортанню"),
+                Severity = "warning",
+                Title = Loc("🟡 Windows modules selected for Kubernetes deployment",
+                            "🟡 Windows модулі вибрані при K8s деплої"),
+                Description = Loc(
+                    "Windows components (App Server, IIS) are designed for Windows deployment, not Kubernetes",
+                    "Windows компоненти (App Server, IIS) призначені для Windows деплою, не для Kubernetes"),
+                Action = Loc(
+                    "Disable 'Windows Infrastructure' module, or switch to Hybrid deployment",
+                    "Вимкніть модуль 'Windows Infrastructure' або перейдіть на Hybrid деплой")
+            });
+        }
+
+        if (config.DeploymentType == DeploymentType.Windows && hasK8sModules)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("Deployment Fit", "Відповідність розгортанню"),
+                Severity = "warning",
+                Title = Loc("🟡 K8s-native modules selected for Windows deployment",
+                            "🟡 K8s модулі вибрані при Windows деплої"),
+                Description = Loc(
+                    "LMS, ROBOT and other K8s-native components are designed for containerized environments",
+                    "LMS, ROBOT та інші K8s компоненти призначені для контейнерних середовищ"),
+                Action = Loc(
+                    "Disable K8s modules, or switch to Hybrid/Kubernetes deployment",
+                    "Вимкніть K8s модулі або перейдіть на Hybrid/Kubernetes деплой")
+            });
+        }
+
+        return list;
+    }
+
+    private List<AiRecommendation> AnalyzeGpuRequirements(ResourceRequirement req, ProjectConfig config)
+    {
+        var list = new List<AiRecommendation>();
+        var hasGpuComponent = req.Components.Any(c =>
+            c.Notes.Contains("GPU", StringComparison.OrdinalIgnoreCase));
+        var hasGpuNode = req.Infrastructure.Any(n =>
+            n.Name.Contains("GPU", StringComparison.OrdinalIgnoreCase));
+
+        if (hasGpuComponent && !hasGpuNode)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("GPU Requirements", "GPU вимоги"),
+                Severity = "info",
+                Title = Loc("💡 Video transcoding detected — GPU recommended",
+                            "💡 Виявлено відеотранскодинг — рекомендовано GPU"),
+                Description = Loc(
+                    "LMS-Videoutilities requires GPU for video transcoding. Without GPU, CPU encoding is 5-10x slower",
+                    "LMS-Videoutilities потребує GPU для транскодингу відео. Без GPU CPU-кодування в 5-10x повільніше"),
+                Action = Loc(
+                    $"Add {Math.Max(1, (int)Math.Ceiling(config.UserCount / 100.0))}× GPU node(s) with NVIDIA T4/A10/L4",
+                    $"Додайте {Math.Max(1, (int)Math.Ceiling(config.UserCount / 100.0))}× GPU вузол(ів) з NVIDIA T4/A10/L4")
+            });
+        }
+
+        if (hasGpuNode)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("GPU Requirements", "GPU вимоги"),
+                Severity = "ok",
+                Title = Loc("✅ GPU node(s) configured for video transcoding",
+                            "✅ GPU вузол(и) налаштовані для відеотранскодингу"),
+                Description = Loc(
+                    "GPU nodes will handle video transcoding efficiently",
+                    "GPU вузли ефективно оброблятимуть транскодинг відео"),
+                Action = Loc("✓ NVIDIA T4/A10/L4 recommended for production workloads",
+                            "✓ NVIDIA T4/A10/L4 рекомендовано для production")
+            });
+        }
+
+        return list;
+    }
+
+    private List<AiRecommendation> AnalyzeRedisCache(ResourceRequirement req, ProjectConfig config)
+    {
+        var list = new List<AiRecommendation>();
+        var hasRedisComponents = req.Components.Any(c => c.HasRedis);
+        var hasDedicatedRedis = req.Infrastructure.Any(n =>
+            n.Name.Contains("Redis", StringComparison.OrdinalIgnoreCase));
+
+        if (!hasRedisComponents) return list;
+
+        if (config.UserCount > 1000 && !hasDedicatedRedis)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("Redis Cache", "Кеш Redis"),
+                Severity = "info",
+                Title = Loc($"💡 >1000 users — dedicated Redis cluster recommended",
+                            $"💡 >1000 користувачів — рекомендовано виділений Redis кластер"),
+                Description = Loc(
+                    $"With {config.UserCount} users, in-pod Redis will cause memory pressure. Use dedicated Redis with persistence",
+                    $"При {config.UserCount} користувачах in-pod Redis створить навантаження на пам'ять. Використовуйте виділений Redis з персистентністю"),
+                Action = Loc(
+                    "Deploy Redis Cluster (3+ nodes) or use managed Azure Cache for Redis Premium tier",
+                    "Розгорніть Redis Cluster (3+ вузли) або використовуйте Azure Cache for Redis Premium")
+            });
+        }
+
+        if (config.UserCount > 500)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("Redis Persistence", "Персистентність Redis"),
+                Severity = "info",
+                Title = Loc("💡 Enable Redis persistence in production",
+                            "💡 Увімкніть персистентність Redis в production"),
+                Description = Loc(
+                    "Redis in production should use AOF (Append-Only File) persistence and PersistentVolume",
+                    "Redis в production має використовувати AOF (Append-Only File) та PersistentVolume"),
+                Action = Loc(
+                    "Configure AOF fsync every second + PersistentVolume (SSD, 10+ GB)",
+                    "Налаштуйте AOF fsync щосекунди + PersistentVolume (SSD, 10+ GB)")
+            });
+        }
+
+        return list;
     }
 
     private (double cpu, double ram) GetAvgPodResources(ResourceRequirement req)

@@ -137,6 +137,22 @@ public class SizingEngine
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);
         req.TotalIops = sqlRange?.Iops ?? 500;
         req.TotalLatency = sqlRange?.Latency ?? 1;
+
+        // GPU node for video transcoding (LMS-Videoutilities)
+        var hasGpuComponent = req.Components.Any(c =>
+            c.Notes.Contains("GPU", StringComparison.OrdinalIgnoreCase));
+        if (hasGpuComponent)
+        {
+            var gpuCount = Math.Max(1, (int)Math.Ceiling(config.UserCount / 100.0));
+            req.Infrastructure.Add(new InfrastructureNode
+            {
+                Name = "GPU Node (T4/A10)", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32,
+                NodeCount = gpuCount, StorageGb = 200, StorageType = "SSD"
+            });
+            req.TotalCpu += 8 * gpuCount;
+            req.TotalRamGb += 32 * gpuCount;
+            req.TotalStorageGb += 200 * gpuCount;
+        }
     }
 
     private void CalculateWindows(ResourceRequirement req, ProjectConfig config)
@@ -183,9 +199,21 @@ public class SizingEngine
             StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
             StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
             StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
-            PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
+            PageFileGb = sqlNode.PageFileGb > 0 ? sqlNode.PageFileGb : (int)Math.Ceiling((sqlRange?.RamRec ?? sqlNode.RamGb) * 1.0),
+            PageFileType = sqlNode.PageFileType ?? "Auto",
             Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
         });
+        // Disk separation for SQL Server >64 GB RAM
+        var sqlRam = sqlRange?.RamRec ?? sqlNode.RamGb;
+        var sqlNodeRef = req.Infrastructure.Last(n => n.Name == "SQL Server");
+        if (sqlRam > 64)
+        {
+            sqlNodeRef.StorageType2 = "Premium SSD";
+            sqlNodeRef.StorageGb2 = Math.Max(100, (int)(sqlRam * 1.5));
+            sqlNodeRef.StorageType3 = "Standard SSD";
+            sqlNodeRef.StorageGb3 = Math.Max(100, (int)(sqlNodeRef.StorageGb * 0.15));
+            sqlNodeRef.Notes = "Separate disks: Data, Logs, TempDB recommended";
+        }
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = appNode?.Name ?? "App Server", Os = appNode?.Os ?? "Windows Server 2022",
