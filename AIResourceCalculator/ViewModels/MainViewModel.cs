@@ -16,7 +16,6 @@ public class MainViewModel : INotifyPropertyChanged
     private SizingEngine _engine;
     private readonly AiAdvisorService _advisor;
     private readonly ValidationEngine _validator;
-    private readonly PromptParserService _promptParser;
     private SizingMatrix _matrix;
     private AiSettings _aiSettings;
     private ResourceRequirement? _lastResult;
@@ -30,13 +29,9 @@ public class MainViewModel : INotifyPropertyChanged
     private string _aiBadgeResultText = "";
     private string _langFlag = "\U0001F1FA\U0001F1E6";
     private string _langName = "Українська";
-    private string _aiQueryPrompt = "";
-    private string _aiQueryResult = "";
     private string _aiNoDataText = "";
     private bool _isAiNoDataVisible = true;
     private bool _isAiRecListVisible;
-    private bool _isAiQueryResultVisible;
-    private bool _isApplyAiQueryVisible;
     private bool _isDiagramVisible;
     private bool _isQuickRecVisible;
     private string _quickRecText = "";
@@ -46,7 +41,6 @@ public class MainViewModel : INotifyPropertyChanged
     {
         _advisor = new AiAdvisorService();
         _validator = new ValidationEngine();
-        _promptParser = new PromptParserService();
         _matrix = DataService.LoadMatrix();
         _engine = new SizingEngine(_matrix);
         _engine.SetProductType(ProductType.Standard);
@@ -63,6 +57,8 @@ public class MainViewModel : INotifyPropertyChanged
         LocalizationService.Instance.PropertyChanged += (_, _) => OnLanguageChanged();
 
         InitializeCommands();
+
+        OnDeploymentTypeChanged();
     }
 
     private void OnLanguageChanged()
@@ -75,7 +71,6 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TabMatrixHeader));
         OnPropertyChanged(nameof(TabSetupHeader));
         OnPropertyChanged(nameof(TabResultsHeader));
-        OnPropertyChanged(nameof(TabAssistantHeader));
     }
 
     #region Properties
@@ -89,7 +84,12 @@ public class MainViewModel : INotifyPropertyChanged
     public int DeploymentIndex
     {
         get => _deploymentIndex;
-        set { _deploymentIndex = value; OnPropertyChanged(); }
+        set
+        {
+            _deploymentIndex = value;
+            OnPropertyChanged();
+            OnDeploymentTypeChanged();
+        }
     }
 
     public int ProductIndex
@@ -133,18 +133,6 @@ public class MainViewModel : INotifyPropertyChanged
         set { _langName = value; OnPropertyChanged(); }
     }
 
-    public string AiQueryPrompt
-    {
-        get => _aiQueryPrompt;
-        set { _aiQueryPrompt = value; OnPropertyChanged(); }
-    }
-
-    public string AiQueryResult
-    {
-        get => _aiQueryResult;
-        set { _aiQueryResult = value; OnPropertyChanged(); }
-    }
-
     public string AiNoDataText
     {
         get => _aiNoDataText;
@@ -161,18 +149,6 @@ public class MainViewModel : INotifyPropertyChanged
     {
         get => _isAiRecListVisible;
         set { _isAiRecListVisible = value; OnPropertyChanged(); }
-    }
-
-    public bool IsAiQueryResultVisible
-    {
-        get => _isAiQueryResultVisible;
-        set { _isAiQueryResultVisible = value; OnPropertyChanged(); }
-    }
-
-    public bool IsApplyAiQueryVisible
-    {
-        get => _isApplyAiQueryVisible;
-        set { _isApplyAiQueryVisible = value; OnPropertyChanged(); }
     }
 
     public bool IsDiagramVisible
@@ -249,7 +225,6 @@ public class MainViewModel : INotifyPropertyChanged
     public string TabMatrixHeader => LocalizationService.Instance["tab.matrixTitle"];
     public string TabSetupHeader => LocalizationService.Instance["tab.setupTitle"];
     public string TabResultsHeader => LocalizationService.Instance["tab.resultsTitle"];
-    public string TabAssistantHeader => LocalizationService.Instance["tab.assistantTitle"];
 
     #endregion
 
@@ -264,12 +239,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ShowDiagramCommand { get; private set; } = null!;
     public ICommand ExportSvgCommand { get; private set; } = null!;
     public ICommand ExportMermaidCommand { get; private set; } = null!;
-    public ICommand AssistantSendCommand { get; private set; } = null!;
-    public ICommand ApplyAssistantCommand { get; private set; } = null!;
     public ICommand LangSwitchCommand { get; private set; } = null!;
-    public ICommand Template1Command { get; private set; } = null!;
-    public ICommand Template2Command { get; private set; } = null!;
-    public ICommand Template3Command { get; private set; } = null!;
     public ICommand ToggleThemeCommand { get; private set; } = null!;
     public ICommand AnalyzeAiCommand { get; private set; } = null!;
     public ICommand AiSettingsCommand { get; private set; } = null!;
@@ -285,15 +255,10 @@ public class MainViewModel : INotifyPropertyChanged
         ShowDiagramCommand = new RelayCommand(_ => ShowDiagram());
         ExportSvgCommand = new RelayCommand(_ => ExportSvg());
         ExportMermaidCommand = new RelayCommand(_ => ExportMermaid());
-        AssistantSendCommand = new RelayCommand(_ => AssistantSend());
-        ApplyAssistantCommand = new RelayCommand(_ => ApplyAssistant());
         AiSettingsCommand = new RelayCommand(_ => OpenAiSettings());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
         AnalyzeAiCommand = new RelayCommand(async _ => await AnalyzeWithAiAsync());
-        Template1Command = new RelayCommand(_ => ApplyTemplate(200, 0, new[] { "App Server", "ROBOT", "Web", "ForceBPM", "LMS", "HR Portal" }));
-        Template2Command = new RelayCommand(_ => ApplyTemplate(1000, 0, _engine.Modules.Where(m => m.Name != "Windows Infrastructure").Select(m => m.Name).ToArray()));
-        Template3Command = new RelayCommand(_ => ApplyTemplate(25, 0, new[] { "App Server", "Web", "ForceBPM" }));
     }
 
     #endregion
@@ -527,8 +492,42 @@ public class MainViewModel : INotifyPropertyChanged
         _engine.SetModules(freshModules);
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         OnPropertyChanged(nameof(Modules));
+        OnDeploymentTypeChanged();
         StatusText = string.Format(LocalizationService.Instance["status.productChanged"],
             productType == ProductType.Standard ? "Стандарт" : "Документообіг");
+    }
+
+    private void OnDeploymentTypeChanged()
+    {
+        var deploymentType = DeploymentIndex switch
+        {
+            0 => DeploymentType.Kubernetes,
+            1 => DeploymentType.Windows,
+            _ => DeploymentType.Hybrid
+        };
+
+        foreach (var mod in Modules)
+        {
+            mod.IsEnabled = deploymentType switch
+            {
+                DeploymentType.Kubernetes => !mod.Name.Contains("Windows"),
+                DeploymentType.Windows => mod.Name.Contains("Windows"),
+                DeploymentType.Hybrid => true,
+                _ => mod.IsEnabled
+            };
+        }
+
+        Modules = new ObservableCollection<ProjectModule>(Modules);
+        OnPropertyChanged(nameof(Modules));
+
+        var loc = LocalizationService.Instance;
+        var deployName = deploymentType switch
+        {
+            DeploymentType.Kubernetes => loc["deploy.k8sName"],
+            DeploymentType.Windows => loc["deploy.windowsName"],
+            _ => loc["deploy.hybridName"]
+        };
+        StatusText = string.Format(loc["status.deploymentChanged"], deployName);
     }
 
     private static ProjectModule CloneModule(ProjectModule src)
@@ -661,45 +660,6 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void AssistantSend()
-    {
-        var prompt = AiQueryPrompt.Trim();
-        if (string.IsNullOrEmpty(prompt)) return;
-
-        var (parsedConfig, modules) = _promptParser.Parse(prompt);
-        ApplyParsedResult(parsedConfig, modules);
-    }
-
-    private void ApplyParsedResult(ProjectConfig config, List<string> moduleNames)
-    {
-        UserCount = config.UserCount.ToString();
-        DeploymentIndex = config.DeploymentType switch
-        {
-            DeploymentType.Kubernetes => 0,
-            DeploymentType.Windows => 1,
-            _ => 2
-        };
-        ProductIndex = config.ProductType == ProductType.DocumentFlow ? 1 : 0;
-
-        if (moduleNames.Count > 0)
-        {
-            foreach (var mod in Modules)
-                mod.IsEnabled = moduleNames.Contains(mod.Name, StringComparer.OrdinalIgnoreCase);
-            Modules = new ObservableCollection<ProjectModule>(Modules);
-            OnPropertyChanged(nameof(Modules));
-        }
-
-        AiQueryResult = $"Застосовано: {config.UserCount} користувачів, {config.DeploymentType}, {(config.ProductType == ProductType.DocumentFlow ? "Документообіг" : "Стандарт")}";
-        IsAiQueryResultVisible = true;
-        IsApplyAiQueryVisible = false;
-    }
-
-    private void ApplyAssistant()
-    {
-        var (parsedConfig, moduleNames) = _promptParser.Parse(AiQueryPrompt);
-        ApplyParsedResult(parsedConfig, moduleNames);
-    }
-
     private void OpenAiSettings()
     {
         var dialog = new AiSettingsDialog(_aiSettings);
@@ -722,17 +682,6 @@ public class MainViewModel : INotifyPropertyChanged
     {
         ThemeService.Toggle();
         IsDarkTheme = ThemeService.IsDark;
-    }
-
-    private void ApplyTemplate(int users, int deployment, string[] enabledModules)
-    {
-        UserCount = users.ToString();
-        DeploymentIndex = deployment;
-        foreach (var mod in Modules)
-            mod.IsEnabled = enabledModules.Contains(mod.Name);
-        Modules = new ObservableCollection<ProjectModule>(Modules);
-        OnPropertyChanged(nameof(Modules));
-        StatusText = $"Template: {users} users";
     }
 
     private void UpdateAiBadge()
@@ -765,7 +714,6 @@ public class MainViewModel : INotifyPropertyChanged
     public SizingEngine Engine => _engine;
     public ResourceRequirement? LastResult => _lastResult;
     public ResourceRequirement? LastResultPerf => _lastResultPerf;
-    public bool IsQuerySendEnabled => true;
 
     #endregion
 }

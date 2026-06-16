@@ -18,6 +18,11 @@
   "deploy.k8s": "Kubernetes",
   "deploy.windows": "Windows",
   "deploy.hybrid": "Hybrid (K8s + Windows)",
+  "deploy.k8sName": "Kubernetes",
+  "deploy.windowsName": "Windows",
+  "deploy.hybridName": "Hybrid",
+  "status.deploymentChanged": "Deployment changed: {0}",
+
   "profile.basic": "Basic",
   "profile.performance": "Performance",
 

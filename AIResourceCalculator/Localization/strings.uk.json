@@ -18,6 +18,11 @@
   "deploy.k8s": "Kubernetes",
   "deploy.windows": "Windows",
   "deploy.hybrid": "Гібрид (K8s + Windows)",
+  "deploy.k8sName": "Kubernetes",
+  "deploy.windowsName": "Windows",
+  "deploy.hybridName": "Гібрид",
+  "status.deploymentChanged": "Тип розгортання змінено: {0}",
+
   "profile.basic": "Базовий",
   "profile.performance": "Продуктивний",
 

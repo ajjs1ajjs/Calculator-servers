@@ -48,14 +48,7 @@ public class SizingEngine
         else if (config.DeploymentType == DeploymentType.Kubernetes)
             CalculateK8s(req, config);
         else
-        {
-            // Windows mode: check if K8s modules are selected
-            var hasK8sModules = _modules.Any(m => m.IsEnabled && !m.Name.Contains("Windows"));
-            if (hasK8sModules)
-                CalculateHybrid(req, config); // Auto-switch to Hybrid
-            else
-                CalculateWindows(req, config);
-        }
+            CalculateWindows(req, config);
 
         return req;
     }
@@ -90,7 +83,10 @@ public class SizingEngine
                     Cpu = cpu * rep,
                     RamGb = ram * rep,
                     Replicas = rep,
-                    Category = module.Name
+                    Category = module.Name,
+                    HasLocalSql = comp.HasLocalSql,
+                    HasRedis = comp.HasRedis,
+                    Notes = comp.Notes
                 });
             }
         }
@@ -110,19 +106,32 @@ public class SizingEngine
         {
             Name = "SQL Server", Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
             RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
-            StorageGb = 200, StorageType = "SSD"
+            StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
+            StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
+            StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
+            StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
+            PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
+            Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = "Master Node", Os = masterNode.Os, Cpu = masterNode.Cpu,
             RamGb = masterNode.RamGb, NodeCount = req.MasterNodeCount,
-            StorageGb = 100, StorageType = "SSD"
+            StorageType = masterNode.StorageType, StorageGb = masterNode.StorageGb,
+            StorageType2 = masterNode.StorageType2, StorageGb2 = masterNode.StorageGb2,
+            StorageType3 = masterNode.StorageType3, StorageGb3 = masterNode.StorageGb3,
+            StorageType4 = masterNode.StorageType4, StorageGb4 = masterNode.StorageGb4,
+            PageFileGb = masterNode.PageFileGb, PageFileType = masterNode.PageFileType
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = "Worker Node", Os = workerNode.Os, Cpu = workerNode.Cpu,
             RamGb = workerNode.RamGb, NodeCount = req.WorkerNodeCount,
-            StorageGb = 200, StorageType = "SSD"
+            StorageType = workerNode.StorageType, StorageGb = workerNode.StorageGb,
+            StorageType2 = workerNode.StorageType2, StorageGb2 = workerNode.StorageGb2,
+            StorageType3 = workerNode.StorageType3, StorageGb3 = workerNode.StorageGb3,
+            StorageType4 = workerNode.StorageType4, StorageGb4 = workerNode.StorageGb4,
+            PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType
         });
 
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);
@@ -137,6 +146,10 @@ public class SizingEngine
         var webRange = FindWindowsRange(config.UserCount, _matrix.WebServerRanges,
             _matrix.WebServerPerformanceRanges ?? new(), config.LoadProfile);
         var sqlRange = FindMsSqlRange(config.UserCount, config.LoadProfile);
+
+        var sqlNode = _matrix.DefaultWindowsSql ?? _defaultSql;
+        var appNode = _matrix.DefaultWindowsApp;
+        var webNode = _matrix.DefaultWindowsWeb;
 
         var enabledModules = _modules.Where(m => m.IsEnabled && m.Name.Contains("Windows")).ToList();
         double totalCpu = 0, totalRam = 0;
@@ -164,21 +177,38 @@ public class SizingEngine
 
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "SQL Server", Os = "Windows Server 2022", Cpu = sqlRange?.Cpu ?? 4,
-            RamGb = sqlRange?.RamRec ?? 16, NodeCount = 1,
-            StorageGb = 300, StorageType = "SSD"
+            Name = "SQL Server", Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+            RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
+            StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
+            StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
+            StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
+            StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
+            PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
+            Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "App Server", Os = "Windows Server 2022", Cpu = appCpu,
-            RamGb = appRam, NodeCount = appCount,
-            StorageGb = 150, StorageType = "SSD"
+            Name = appNode?.Name ?? "App Server", Os = appNode?.Os ?? "Windows Server 2022",
+            Cpu = appCpu, RamGb = appRam, NodeCount = appCount,
+            StorageType = appNode?.StorageType ?? "SSD", StorageGb = appNode?.StorageGb ?? 150,
+            StorageType2 = appNode?.StorageType2 ?? "", StorageGb2 = appNode?.StorageGb2 ?? 0,
+            StorageType3 = appNode?.StorageType3 ?? "", StorageGb3 = appNode?.StorageGb3 ?? 0,
+            StorageType4 = appNode?.StorageType4 ?? "", StorageGb4 = appNode?.StorageGb4 ?? 0,
+            PageFileGb = appNode?.PageFileGb ?? 0, PageFileType = appNode?.PageFileType ?? "",
+            Iops = appNode?.Iops ?? 0, IopsProfile = appNode?.IopsProfile ?? "",
+            Latency = appNode?.Latency ?? 0
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "Web Server (IIS)", Os = "Windows Server 2022", Cpu = webCpu,
-            RamGb = webRam, NodeCount = webCount,
-            StorageGb = 150, StorageType = "SSD"
+            Name = webNode?.Name ?? "Web Server (IIS)", Os = webNode?.Os ?? "Windows Server 2022",
+            Cpu = webCpu, RamGb = webRam, NodeCount = webCount,
+            StorageType = webNode?.StorageType ?? "SSD", StorageGb = webNode?.StorageGb ?? 150,
+            StorageType2 = webNode?.StorageType2 ?? "", StorageGb2 = webNode?.StorageGb2 ?? 0,
+            StorageType3 = webNode?.StorageType3 ?? "", StorageGb3 = webNode?.StorageGb3 ?? 0,
+            StorageType4 = webNode?.StorageType4 ?? "", StorageGb4 = webNode?.StorageGb4 ?? 0,
+            PageFileGb = webNode?.PageFileGb ?? 0, PageFileType = webNode?.PageFileType ?? "",
+            Iops = webNode?.Iops ?? 0, IopsProfile = webNode?.IopsProfile ?? "",
+            Latency = webNode?.Latency ?? 0
         });
 
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);

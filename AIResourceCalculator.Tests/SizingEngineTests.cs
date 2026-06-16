@@ -73,8 +73,8 @@ public class SizingEngineTests
 
         var result = _engine.Calculate(config);
 
-        Assert.Contains(result.Infrastructure, n => n.Name.Contains("App"));
-        Assert.Contains(result.Infrastructure, n => n.Name.Contains("Web"));
+        Assert.Contains(result.Infrastructure, n => n.Name.Contains("App") || n.Name.Contains("додатків"));
+        Assert.Contains(result.Infrastructure, n => n.Name.Contains("Web") || n.Name.Contains("Веб"));
         Assert.Contains(result.Infrastructure, n => n.Name.Contains("SQL"));
         Assert.True(result.TotalCpu > 0);
     }
