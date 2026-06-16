@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -450,9 +451,53 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void SaveMatrix()
     {
+        SyncGridsToMatrix();
         DataService.SaveMatrix(_matrix);
         var lang = LocalizationService.Instance;
         MessageBox.Show(lang["dialog.matrixSaved"], "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void SyncGridsToMatrix()
+    {
+        _matrix.MsSqlRanges = MsSqlRanges.ToList();
+        _matrix.MsSqlPerformanceRanges = MsSqlPerformanceRanges.ToList();
+
+        SyncComponentsToModules(K8sStandardComponents, _matrix.StandardModules);
+        SyncComponentsToModules(K8sDocumentFlowComponents, _matrix.DocumentFlowModules);
+        SyncComponentsToModules(K8sComponents, _matrix.Modules);
+
+        _matrix.DefaultK8sSql = InfraNodes.FirstOrDefault(n => n.Name.Contains("SQL"));
+        _matrix.DefaultK8sMaster = InfraNodes.FirstOrDefault(n => n.Name.Contains("Master"));
+        _matrix.DefaultK8sWorker = InfraNodes.FirstOrDefault(n => n.Name.Contains("Worker"));
+    }
+
+    private void SyncComponentsToModules(ObservableCollection<ServiceComponent> components, List<ProjectModule> modules)
+    {
+        if (components.Count == 0) return;
+
+        var grouped = components.GroupBy(c => c.Category);
+        foreach (var group in grouped)
+        {
+            var module = modules.FirstOrDefault(m => m.Name == group.Key);
+            if (module == null)
+            {
+                module = new ProjectModule { Name = group.Key, Description = group.Key, IsEnabled = true };
+                modules.Add(module);
+            }
+
+            module.Components.Clear();
+            foreach (var comp in group)
+            {
+                module.Components.Add(new ModuleComponent
+                {
+                    Name = comp.Name,
+                    Cpu = comp.Cpu,
+                    RamGb = comp.RamGb,
+                    FixedReplicas = comp.Replicas,
+                    Formula = ReplicaFormula.Fixed
+                });
+            }
+        }
     }
 
     private void ResetMatrix()
