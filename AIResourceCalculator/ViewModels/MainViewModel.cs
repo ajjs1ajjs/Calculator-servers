@@ -23,6 +23,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private string _userCount = "100";
     private int _deploymentIndex;
+    private int _productIndex;
     private string _statusText = "";
     private string _aiBadgeText = "";
     private string _aiBadgeResultText = "";
@@ -47,6 +48,7 @@ public class MainViewModel : INotifyPropertyChanged
         _promptParser = new PromptParserService();
         _matrix = DataService.LoadMatrix();
         _engine = new SizingEngine(_matrix);
+        _engine.SetProductType(ProductType.Standard);
         _aiSettings = AiSettings.Load();
         _advisor.UpdateSettings(_aiSettings);
 
@@ -87,6 +89,17 @@ public class MainViewModel : INotifyPropertyChanged
     {
         get => _deploymentIndex;
         set { _deploymentIndex = value; OnPropertyChanged(); }
+    }
+
+    public int ProductIndex
+    {
+        get => _productIndex;
+        set
+        {
+            _productIndex = value;
+            OnPropertyChanged();
+            OnProductTypeChanged();
+        }
     }
 
     public string StatusText
@@ -200,6 +213,8 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<UserLoadRange> MsSqlRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges { get; private set; } = new();
+    public ObservableCollection<ServiceComponent> K8sStandardComponents { get; private set; } = new();
+    public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents { get; private set; } = new();
     public ObservableCollection<ServiceComponent> K8sComponents { get; private set; } = new();
     public ObservableCollection<InfrastructureNode> InfraNodes { get; private set; } = new();
     public ObservableCollection<ProjectModule> Modules { get; private set; }
@@ -287,6 +302,8 @@ public class MainViewModel : INotifyPropertyChanged
     private ProjectConfig GetConfig(int? userCountOverride = null)
     {
         if (!int.TryParse(UserCount, out var uc) || uc < 1) uc = 100;
+        var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
+        var loadProfile = productType == ProductType.DocumentFlow ? LoadProfile.Performance : LoadProfile.Basic;
         return new ProjectConfig
         {
             ProjectName = "Project",
@@ -297,7 +314,8 @@ public class MainViewModel : INotifyPropertyChanged
                 1 => DeploymentType.Windows,
                 _ => DeploymentType.Hybrid
             },
-            LoadProfile = LoadProfile.Basic
+            ProductType = productType,
+            LoadProfile = loadProfile
         };
     }
 
@@ -325,17 +343,22 @@ public class MainViewModel : INotifyPropertyChanged
         _engine.SetModules(Modules.ToList());
         var req = _engine.Calculate(config);
         ResourceRequirement? perfReq = null;
-        if (config.LoadProfile == LoadProfile.Basic)
+        var otherProduct = config.ProductType == ProductType.Standard ? ProductType.DocumentFlow : ProductType.Standard;
+        var otherProfile = config.ProductType == ProductType.Standard ? LoadProfile.Performance : LoadProfile.Basic;
+        var otherConfig = new ProjectConfig
         {
-            var perfConfig = new ProjectConfig
-            {
-                ProjectName = config.ProjectName,
-                UserCount = config.UserCount,
-                DeploymentType = config.DeploymentType,
-                LoadProfile = LoadProfile.Performance
-            };
-            perfReq = _engine.Calculate(perfConfig);
-        }
+            ProjectName = config.ProjectName,
+            UserCount = config.UserCount,
+            DeploymentType = config.DeploymentType,
+            ProductType = otherProduct,
+            LoadProfile = otherProfile
+        };
+        _engine.SetProductType(otherProduct);
+        var otherModules = _engine.Modules.Select(m => CloneModule(m)).ToList();
+        _engine.SetModules(otherModules);
+        perfReq = _engine.Calculate(otherConfig);
+        _engine.SetProductType(config.ProductType);
+        _engine.SetModules(Modules.ToList());
         return (req, perfReq);
     }
 
@@ -442,13 +465,25 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ReloadMatrix()
     {
-        var freshModules = _matrix.Modules.Count > 0
-            ? _matrix.Modules.Select(m => CloneModule(m)).ToList()
-            : _engine.Modules.Select(m => CloneModule(m)).ToList();
+        var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
+        _engine.SetProductType(productType);
+        var freshModules = _engine.Modules.Select(m => CloneModule(m)).ToList();
         _engine.SetModules(freshModules);
         LoadMatrixGrids();
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         OnPropertyChanged(nameof(Modules));
+    }
+
+    private void OnProductTypeChanged()
+    {
+        var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
+        _engine.SetProductType(productType);
+        var freshModules = _engine.Modules.Select(m => CloneModule(m)).ToList();
+        _engine.SetModules(freshModules);
+        Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
+        OnPropertyChanged(nameof(Modules));
+        StatusText = string.Format(LocalizationService.Instance["status.productChanged"],
+            productType == ProductType.Standard ? "Стандарт" : "Документообіг");
     }
 
     private static ProjectModule CloneModule(ProjectModule src)
@@ -470,6 +505,29 @@ public class MainViewModel : INotifyPropertyChanged
     {
         MsSqlRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlRanges);
         MsSqlPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlPerformanceRanges);
+
+        var standardModules = _matrix.StandardModules.Count > 0
+            ? _matrix.StandardModules
+            : SizingEngine.DefaultStandardModules();
+        K8sStandardComponents = new ObservableCollection<ServiceComponent>(
+            standardModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
+            {
+                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
+                Replicas = c.FixedReplicas, Category = m.Name
+            }))
+        );
+
+        var docFlowModules = _matrix.DocumentFlowModules.Count > 0
+            ? _matrix.DocumentFlowModules
+            : SizingEngine.DefaultDocumentFlowModules();
+        K8sDocumentFlowComponents = new ObservableCollection<ServiceComponent>(
+            docFlowModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
+            {
+                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
+                Replicas = c.FixedReplicas, Category = m.Name
+            }))
+        );
+
         K8sComponents = new ObservableCollection<ServiceComponent>(
             _matrix.Modules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
@@ -477,12 +535,16 @@ public class MainViewModel : INotifyPropertyChanged
                 Replicas = c.FixedReplicas, Category = m.Name
             }))
         );
+
         InfraNodes = new ObservableCollection<InfrastructureNode>();
         if (_matrix.DefaultK8sSql != null) InfraNodes.Add(_matrix.DefaultK8sSql);
         if (_matrix.DefaultK8sMaster != null) InfraNodes.Add(_matrix.DefaultK8sMaster);
         if (_matrix.DefaultK8sWorker != null) InfraNodes.Add(_matrix.DefaultK8sWorker);
+
         OnPropertyChanged(nameof(MsSqlRanges));
         OnPropertyChanged(nameof(MsSqlPerformanceRanges));
+        OnPropertyChanged(nameof(K8sStandardComponents));
+        OnPropertyChanged(nameof(K8sDocumentFlowComponents));
         OnPropertyChanged(nameof(K8sComponents));
         OnPropertyChanged(nameof(InfraNodes));
     }
@@ -572,6 +634,7 @@ public class MainViewModel : INotifyPropertyChanged
             DeploymentType.Windows => 1,
             _ => 2
         };
+        ProductIndex = config.ProductType == ProductType.DocumentFlow ? 1 : 0;
 
         if (moduleNames.Count > 0)
         {
@@ -581,7 +644,7 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Modules));
         }
 
-        AiQueryResult = $"Застосовано: {config.UserCount} користувачів, {config.DeploymentType}";
+        AiQueryResult = $"Застосовано: {config.UserCount} користувачів, {config.DeploymentType}, {(config.ProductType == ProductType.DocumentFlow ? "Документообіг" : "Стандарт")}";
         IsAiQueryResultVisible = true;
         IsApplyAiQueryVisible = false;
     }

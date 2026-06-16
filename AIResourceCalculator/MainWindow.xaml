@@ -159,8 +159,21 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Expander>
-                        <Expander Header="{loc:Loc matrix.k8sComponents}" IsExpanded="True">
-                            <DataGrid Name="GridMatrixComponents" Height="140" IsReadOnly="False" CanUserAddRows="True">
+                        <Expander Header="{loc:Loc matrix.k8sStandard}" IsExpanded="True">
+                            <DataGrid Name="GridMatrixK8sStandard" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                                      ItemsSource="{Binding K8sStandardComponents}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
+                                    <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas, Mode=TwoWay}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Expander>
+                        <Expander Header="{loc:Loc matrix.k8sDocumentFlow}" IsExpanded="True">
+                            <DataGrid Name="GridMatrixK8sDocumentFlow" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                                      ItemsSource="{Binding K8sDocumentFlowComponents}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
                                     <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
@@ -200,7 +213,7 @@
                                     <StackPanel>
                                         <Grid Margin="0,0,0,8">
                                             <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="180"/><ColumnDefinition Width="*"/>
@@ -208,8 +221,12 @@
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
                                             <TextBox Grid.Row="0" Grid.Column="1" Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"
                                                      PreviewTextInput="NumberValidation"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                            <ComboBox Grid.Row="1" Grid.Column="1" Name="CmbDeployment" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.product}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                            <ComboBox Grid.Row="1" Grid.Column="1" Name="CmbProduct" SelectedIndex="{Binding ProductIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                                <ComboBoxItem Content="{loc:Loc product.standard}"/><ComboBoxItem Content="{loc:Loc product.documentflow}"/>
+                                            </ComboBox>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                            <ComboBox Grid.Row="2" Grid.Column="1" Name="CmbDeployment" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4">
                                                 <ComboBoxItem Content="{loc:Loc deploy.k8s}"/><ComboBoxItem Content="{loc:Loc deploy.windows}"/><ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
                                             </ComboBox>
                                         </Grid>

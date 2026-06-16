@@ -7,6 +7,12 @@ public enum DeploymentType
     Hybrid
 }
 
+public enum ProductType
+{
+    Standard,
+    DocumentFlow
+}
+
 public enum LoadProfile
 {
     Basic,

@@ -56,7 +56,8 @@ public class AiAdvisorService
         recommendations.AddRange(AnalyzeInstanceFit(req));
         recommendations.AddRange(AnalyzeEfficiency(req));
         recommendations.AddRange(AnalyzeScaling(req, config));
-        recommendations.AddRange(AnalyzeStorage(req));
+        recommendations.AddRange(AnalyzeStorage(req, config));
+        recommendations.AddRange(AnalyzeProductSpecific(req, config));
         return recommendations;
     }
 
@@ -283,10 +284,12 @@ public class AiAdvisorService
         return list;
     }
 
-    private List<AiRecommendation> AnalyzeStorage(ResourceRequirement req)
+    private List<AiRecommendation> AnalyzeStorage(ResourceRequirement req, ProjectConfig config)
     {
         var list = new List<AiRecommendation>();
         var tb = req.TotalStorageGb / 1024.0;
+        var isDocFlow = config.ProductType == ProductType.DocumentFlow;
+        var iopsThreshold = isDocFlow ? 5000 : 10000;
 
         if (tb > 2)
         {
@@ -305,7 +308,7 @@ public class AiAdvisorService
             });
         }
 
-        if (req.TotalIops > 10000)
+        if (req.TotalIops > iopsThreshold)
         {
             list.Add(new AiRecommendation
             {
@@ -321,7 +324,7 @@ public class AiAdvisorService
             });
         }
 
-        if (tb <= 2 && req.TotalIops <= 10000)
+        if (tb <= 2 && req.TotalIops <= iopsThreshold)
         {
             list.Add(new AiRecommendation
             {
@@ -332,6 +335,59 @@ public class AiAdvisorService
                     "Storage configuration looks adequate",
                     "Конфігурація сховища достатня"),
                 Action = Loc("✓ Keep current storage configuration", "✓ Залишити поточну конфігурацію")
+            });
+        }
+
+        return list;
+    }
+
+    private List<AiRecommendation> AnalyzeProductSpecific(ResourceRequirement req, ProjectConfig config)
+    {
+        var list = new List<AiRecommendation>();
+        var isDocFlow = config.ProductType == ProductType.DocumentFlow;
+
+        if (isDocFlow)
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("Product Profile", "Профіль продукту"),
+                Severity = "info",
+                Title = Loc(" DocumentFlow: higher resource requirements", "📋 Документообіг: вищі вимоги до ресурсів"),
+                Description = Loc(
+                    "DocumentFlow uses ~30% more CPU/RAM per pod and 2.4x higher IOPS for AppServers",
+                    "Документообіг використовує ~30% більше CPU/RAM на под та 2.4x вищий IOPS для AppServer"),
+                Action = Loc(
+                    "Ensure io2/gp3 volumes with 1200+ IOPS. Consider larger worker nodes (16 CPU / 64 GB)",
+                    "Використовуйте io2/gp3 з 1200+ IOPS. Розгляньте більші вузли (16 CPU / 64 GB)")
+            });
+
+            if (req.TotalIops > 1200)
+            {
+                list.Add(new AiRecommendation
+                {
+                    Category = Loc("DocumentFlow IOPS", "IOPS Документообіг"),
+                    Severity = "warning",
+                    Title = Loc($"🟡 DocumentFlow IOPS: {req.TotalIops:N0} (base 1200/server)", $"🟡 IOPS Документообіг: {req.TotalIops:N0} (база 1200/сервер)"),
+                    Description = Loc(
+                        "DocumentFlow AppServers require 1200 IOPS each vs 500 for Standard",
+                        "AppServer Документообіг потребує 1200 IOPS кожен проти 500 для Стандарт"),
+                    Action = Loc(
+                        " PROVISION: io2 with 3000+ IOPS or gp3 with IOPS burst",
+                        "🔼 ВИДІЛІТЬ: io2 з 3000+ IOPS або gp3 з burst IOPS")
+                });
+            }
+        }
+        else
+        {
+            list.Add(new AiRecommendation
+            {
+                Category = Loc("Product Profile", "Профіль продукту"),
+                Severity = "ok",
+                Title = Loc("✅ Standard: baseline resource requirements", "✅ Стандарт: базові вимоги до ресурсів"),
+                Description = Loc(
+                    "Standard uses baseline resources. AppServers require 500 IOPS each",
+                    "Стандарт використовує базові ресурси. AppServer потребує 500 IOPS кожен"),
+                Action = Loc("✓ gp3 volumes sufficient for Standard workloads", "✓ gp3 диски достатні для Стандарт")
             });
         }
 

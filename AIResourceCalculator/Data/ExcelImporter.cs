@@ -110,11 +110,12 @@ public class ExcelImporter
 
         // Parse module sections (rows 13-45)
         var modules = ParseK8sModules(ws, isPerf);
+        var targetList = isPerf ? matrix.DocumentFlowModules : matrix.StandardModules;
         foreach (var mod in modules)
         {
-            var existing = matrix.Modules.FirstOrDefault(m => m.Name == mod.Name);
+            var existing = targetList.FirstOrDefault(m => m.Name == mod.Name);
             if (existing == null)
-                matrix.Modules.Add(mod);
+                targetList.Add(mod);
             else
             {
                 foreach (var comp in mod.Components)
@@ -122,7 +123,24 @@ public class ExcelImporter
                     var existingComp = existing.Components.FirstOrDefault(c => c.Name == comp.Name);
                     if (existingComp == null)
                         existing.Components.Add(comp);
-                    else if (isPerf)
+                }
+            }
+        }
+
+        // Also populate the legacy Modules list for backward compatibility
+        foreach (var mod in modules)
+        {
+            var existing = matrix.Modules.FirstOrDefault(m => m.Name == mod.Name);
+            if (existing == null)
+                matrix.Modules.Add(mod);
+            else if (isPerf)
+            {
+                foreach (var comp in mod.Components)
+                {
+                    var existingComp = existing.Components.FirstOrDefault(c => c.Name == comp.Name);
+                    if (existingComp == null)
+                        existing.Components.Add(comp);
+                    else
                     {
                         existingComp.PerfCpu = comp.Cpu;
                         existingComp.PerfRamGb = comp.RamGb;

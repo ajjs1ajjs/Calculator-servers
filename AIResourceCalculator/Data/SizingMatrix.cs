@@ -91,6 +91,9 @@ public class SizingMatrix
 
     public List<ProjectModule> Modules { get; set; } = new();
 
+    public List<ProjectModule> StandardModules { get; set; } = new();
+    public List<ProjectModule> DocumentFlowModules { get; set; } = new();
+
     public InfrastructureNode? DefaultK8sSql { get; set; }
     public InfrastructureNode? DefaultK8sMaster { get; set; }
     public InfrastructureNode? DefaultK8sWorker { get; set; }

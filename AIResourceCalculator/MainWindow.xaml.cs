@@ -19,7 +19,8 @@ public partial class MainWindow : Window
         ModulesPanel.ItemsSource = _vm.Modules;
         GridMatrixMsSql.ItemsSource = _vm.MsSqlRanges;
         GridMatrixMsSqlPerf.ItemsSource = _vm.MsSqlPerformanceRanges;
-        GridMatrixComponents.ItemsSource = _vm.K8sComponents;
+        GridMatrixK8sStandard.ItemsSource = _vm.K8sStandardComponents;
+        GridMatrixK8sDocumentFlow.ItemsSource = _vm.K8sDocumentFlowComponents;
         GridMatrixInfra.ItemsSource = _vm.InfraNodes;
         GridInfrastructure.ItemsSource = _vm.ResultInfrastructure;
         AiTableResults.ItemsSource = _vm.AiInfrastructure;
@@ -45,8 +46,10 @@ public partial class MainWindow : Window
             { GridMatrixMsSql.ItemsSource = null; GridMatrixMsSql.ItemsSource = _vm.MsSqlRanges; }
         else if (e.PropertyName == nameof(MainViewModel.MsSqlPerformanceRanges))
             { GridMatrixMsSqlPerf.ItemsSource = null; GridMatrixMsSqlPerf.ItemsSource = _vm.MsSqlPerformanceRanges; }
-        else if (e.PropertyName == nameof(MainViewModel.K8sComponents))
-            { GridMatrixComponents.ItemsSource = null; GridMatrixComponents.ItemsSource = _vm.K8sComponents; }
+        else if (e.PropertyName == nameof(MainViewModel.K8sStandardComponents))
+            { GridMatrixK8sStandard.ItemsSource = null; GridMatrixK8sStandard.ItemsSource = _vm.K8sStandardComponents; }
+        else if (e.PropertyName == nameof(MainViewModel.K8sDocumentFlowComponents))
+            { GridMatrixK8sDocumentFlow.ItemsSource = null; GridMatrixK8sDocumentFlow.ItemsSource = _vm.K8sDocumentFlowComponents; }
         else if (e.PropertyName == nameof(MainViewModel.InfraNodes))
             { GridMatrixInfra.ItemsSource = null; GridMatrixInfra.ItemsSource = _vm.InfraNodes; }
         else if (e.PropertyName == nameof(MainViewModel.Modules))

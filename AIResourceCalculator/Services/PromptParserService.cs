@@ -19,8 +19,15 @@ public class PromptParserService
         else if (Regex.IsMatch(prompt, @"гібрид|hybrid|змішан", RegexOptions.IgnoreCase))
             config.DeploymentType = DeploymentType.Hybrid;
 
-        if (Regex.IsMatch(prompt, @"performance|продуктивн|perf", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"performance|продуктивн|perf|документообіг|document", RegexOptions.IgnoreCase))
+        {
             config.LoadProfile = LoadProfile.Performance;
+            config.ProductType = ProductType.DocumentFlow;
+        }
+        else
+        {
+            config.ProductType = ProductType.Standard;
+        }
 
         if (Regex.IsMatch(prompt, @"app.?server|appserver|as\b", RegexOptions.IgnoreCase))
             modules.Add("App Server");
