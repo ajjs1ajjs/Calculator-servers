@@ -24,6 +24,16 @@ public class AiAdvisorService
     {
         var result = new AiDualProfileResult();
 
+        // Always run rule-based analysis (includes SQL config, GPU, Redis, Deployment checks)
+        result.Balance.Recommendations = Analyze(req, config);
+        result.Balance.Infrastructure = BuildAiInfrastructure(req, config);
+        if (perfReq != null)
+        {
+            result.Performance.Recommendations = Analyze(perfReq, config);
+            result.Performance.Infrastructure = BuildAiInfrastructure(perfReq, config);
+        }
+
+        // Merge real AI recommendations if available
         if (_api != null)
         {
             try
@@ -34,19 +44,24 @@ public class AiAdvisorService
                 {
                     var parsed = ParseDualResponse(response);
                     if (parsed != null)
-                        return parsed;
+                    {
+                        // Merge: add AI recommendations that don't duplicate rule-based ones
+                        var existingTitles = result.Balance.Recommendations
+                            .Select(r => r.Category).ToHashSet();
+                        foreach (var rec in parsed.Balance.Recommendations)
+                        {
+                            if (!existingTitles.Contains(rec.Category))
+                                result.Balance.Recommendations.Add(rec);
+                        }
+                        // Use AI infrastructure if it has more nodes
+                        if (parsed.Balance.Infrastructure.Count > result.Balance.Infrastructure.Count)
+                            result.Balance.Infrastructure = parsed.Balance.Infrastructure;
+                    }
                 }
             }
             catch { }
         }
 
-        result.Balance.Recommendations = Analyze(req, config);
-        result.Balance.Infrastructure = BuildAiInfrastructure(req, config);
-        if (perfReq != null)
-        {
-            result.Performance.Recommendations = Analyze(perfReq, config);
-            result.Performance.Infrastructure = BuildAiInfrastructure(perfReq, config);
-        }
         return result;
     }
 
