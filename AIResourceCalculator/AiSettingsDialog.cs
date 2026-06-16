@@ -18,6 +18,8 @@ public class AiSettingsDialog : Window
     private TextBlock _txtStatus = null!;
     private Button _btnFetch = null!;
     private StackPanel _configPanel = null!;
+    private StackPanel _urlPanel = null!;
+    private TextBox _txtEndpointUrl = null!;
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
 
     public AiSettingsDialog(AiSettings current)
@@ -102,6 +104,16 @@ public class AiSettingsDialog : Window
         keyPanel.Children.Add(_btnFetch);
         _configPanel.Children.Add(keyPanel);
 
+        _urlPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 5) };
+        _urlPanel.Children.Add(MakeLabel("Endpoint URL:"));
+        _txtEndpointUrl = new TextBox
+        {
+            Text = Settings.EndpointUrl, Margin = new Thickness(0, 2, 0, 10),
+            Padding = new Thickness(6, 4, 6, 4), FontSize = 13
+        };
+        _urlPanel.Children.Add(_txtEndpointUrl);
+        _configPanel.Children.Add(_urlPanel);
+
         _configPanel.Children.Add(MakeLabel("Model:"));
         _cmbModel = new ComboBox
         {
@@ -136,6 +148,7 @@ public class AiSettingsDialog : Window
             };
             Settings.ApiKey = _txtApiKey.Password.Trim();
             Settings.ModelName = _cmbModel.Text.Trim();
+            Settings.EndpointUrl = _txtEndpointUrl.Text.Trim();
             Settings.EnableRealAi = _chkEnabled.IsChecked ?? false;
             Settings.Temperature = 0.3;
             Settings.Save();
@@ -334,13 +347,55 @@ public class AiSettingsDialog : Window
 
     private async Task FetchFallbackModels()
     {
-        _txtStatus.Text = "OpenCode: set custom endpoint URL in settings";
-        _txtStatus.Foreground = Brushes.Gray;
+        var endpoint = _txtEndpointUrl.Text.Trim();
+        if (string.IsNullOrEmpty(endpoint))
+            endpoint = "http://localhost:11434/v1/chat/completions";
+
+        try
+        {
+            _txtStatus.Text = "Fetching models from endpoint...";
+            _txtStatus.Foreground = Brushes.Gray;
+
+            var modelsUrl = endpoint
+                .Replace("/chat/completions", "/models")
+                .Replace("/v1/completions", "/models");
+            if (!modelsUrl.StartsWith("http"))
+                modelsUrl = "http://localhost:11434/v1/models";
+
+            var req = new HttpRequestMessage(HttpMethod.Get, modelsUrl);
+            var key = _txtApiKey.Password.Trim();
+            if (!string.IsNullOrEmpty(key))
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+
+            var resp = await _http.SendAsync(req);
+            resp.EnsureSuccessStatusCode();
+
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+            {
+                _cmbModel.Items.Clear();
+                foreach (var m in data.EnumerateArray())
+                {
+                    var id = m.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+                    if (!string.IsNullOrEmpty(id))
+                        _cmbModel.Items.Add(id);
+                }
+                _txtStatus.Text = $"Found {_cmbModel.Items.Count} model(s)";
+                _txtStatus.Foreground = Brushes.Green;
+                if (_cmbModel.Items.Count > 0 && string.IsNullOrEmpty(_cmbModel.Text))
+                    _cmbModel.Text = _cmbModel.Items[0]?.ToString() ?? "";
+                return;
+            }
+        }
+        catch { }
+
         _cmbModel.Items.Clear();
-        foreach (var m in new[] { "custom-model", "gpt-4o-mini", "deepseek-chat", "llama3.2" })
+        foreach (var m in new[] { "gpt-4o-mini", "deepseek-chat", "llama3.2", "mistral", "gemma2" })
             _cmbModel.Items.Add(m);
-        _cmbModel.Text = "custom-model";
-        await Task.CompletedTask;
+        _cmbModel.Text = "gpt-4o-mini";
+        _txtStatus.Text = "Could not connect — using suggested models";
+        _txtStatus.Foreground = Brushes.Orange;
     }
 
     private void AddFallbackModels()
@@ -362,6 +417,7 @@ public class AiSettingsDialog : Window
         _txtApiKey.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
         _btnFetch.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
         _cmbModel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        _urlPanel.Visibility = (enabled && (idx == 3 || idx == 5)) ? Visibility.Visible : Visibility.Collapsed;
 
         if (!enabled) _txtStatus.Text = "AI disabled";
         else if (idx == 3) _txtStatus.Text = "Click Fetch Models to detect local models";
