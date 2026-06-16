@@ -48,7 +48,14 @@ public class SizingEngine
         else if (config.DeploymentType == DeploymentType.Kubernetes)
             CalculateK8s(req, config);
         else
-            CalculateWindows(req, config);
+        {
+            // Windows mode: check if K8s modules are selected
+            var hasK8sModules = _modules.Any(m => m.IsEnabled && !m.Name.Contains("Windows"));
+            if (hasK8sModules)
+                CalculateHybrid(req, config); // Auto-switch to Hybrid
+            else
+                CalculateWindows(req, config);
+        }
 
         return req;
     }
