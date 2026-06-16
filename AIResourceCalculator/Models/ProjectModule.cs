@@ -34,6 +34,7 @@ public class ProjectModule
 
     public (double cpu, double ram) CalculateReplicas(int userCount, LoadProfile profile = LoadProfile.Basic)
     {
+        if (userCount < 0) userCount = 0;
         double totalCpu = 0, totalRam = 0;
 
         foreach (var comp in Components)

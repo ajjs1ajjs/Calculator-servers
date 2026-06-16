@@ -3,18 +3,24 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using AIResourceCalculator.Models;
+using AIResourceCalculator.Localization;
 
 namespace AIResourceCalculator.Services;
 
 public class AiApiService
 {
-    private readonly HttpClient _http;
+    private static readonly HttpClient _http = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2)
+    })
+    { Timeout = TimeSpan.FromSeconds(120) };
+
     private readonly AiSettings _settings;
 
     public AiApiService(AiSettings settings)
     {
         _settings = settings;
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
     }
 
     public async Task<string?> GetRecommendation(string prompt)
@@ -38,15 +44,15 @@ public class AiApiService
         }
         catch (TaskCanceledException)
         {
-            return "Помилка: перевищено час очікування (120 с). Перевірте з'єднання з API або спробуйте ще раз.";
+            return LocalizationService.Instance["ai.apiTimeout"];
         }
         catch (HttpRequestException ex)
         {
-            return $"Помилка мережі: {ex.Message}";
+            return $"{LocalizationService.Instance["ai.apiNetworkError"]} {ex.Message}";
         }
         catch (Exception ex)
         {
-            return $"Помилка AI: {ex.Message}";
+            return $"{LocalizationService.Instance["ai.apiError"]} {ex.Message}";
         }
     }
 
@@ -119,11 +125,11 @@ public class AiApiService
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             var ping = await _http.GetAsync(baseUrl, cts.Token);
             if (!ping.IsSuccessStatusCode)
-                return "⚠️ Ollama сервер недоступний. Переконайтесь, що Ollama запущена (ollama serve).";
+                return LocalizationService.Instance["ai.ollamaUnavailable"];
         }
         catch
         {
-            return "⚠️ Ollama сервер не відповідає. Запустіть Ollama та перевірте http://localhost:11434";
+            return LocalizationService.Instance["ai.ollamaNoResponse"];
         }
 
         var body = new

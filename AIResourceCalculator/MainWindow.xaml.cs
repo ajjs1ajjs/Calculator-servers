@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using AIResourceCalculator.Services;
 using AIResourceCalculator.ViewModels;
@@ -26,9 +27,23 @@ public partial class MainWindow : Window
         AiTableResults.ItemsSource = _vm.AiInfrastructure;
         QuickRecList.ItemsSource = _vm.AiRecommendations;
 
-        DataObject.AddPastingHandler(TxtUserCount, NumberPaste);
+        CommandManager.AddPreviewExecutedHandler(TxtUserCount, OnPaste);
+        PreviewTextInput += (_, e) =>
+        {
+            if (e.Text != null && e.Text.Any(c => !char.IsDigit(c)))
+                e.Handled = true;
+        };
 
         _vm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnPaste(object? sender, ExecutedRoutedEventArgs e)
+    {
+        if (e.Command == ApplicationCommands.Paste && Clipboard.ContainsText())
+        {
+            if (!int.TryParse(Clipboard.GetText().Trim(), out _))
+                e.Handled = true;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
@@ -59,12 +74,4 @@ public partial class MainWindow : Window
             { ModulesPanel.ItemsSource = null; ModulesPanel.ItemsSource = _vm.Modules; }
     }
 
-    private void NumberValidation(object sender, TextCompositionEventArgs e) =>
-        e.Handled = !int.TryParse(e.Text, out _);
-
-    private void NumberPaste(object sender, DataObjectPastingEventArgs e)
-    {
-        if (e.DataObject.GetDataPresent(typeof(string)))
-            e.Handled = !int.TryParse((string)e.DataObject.GetData(typeof(string)), out _);
-    }
 }

@@ -7,7 +7,6 @@ public class ProjectConfig
     public DeploymentType DeploymentType { get; set; } = DeploymentType.Kubernetes;
     public ProductType ProductType { get; set; } = ProductType.Standard;
     public LoadProfile LoadProfile { get; set; } = LoadProfile.Basic;
-    public bool HaEnabled => true;
-    public double OverprovisioningFactor => 1.0;
+    public bool HaEnabled { get; set; } = true;
     public List<string> SelectedModules { get; set; } = new();
 }

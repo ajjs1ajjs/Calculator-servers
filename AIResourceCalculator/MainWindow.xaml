@@ -219,8 +219,7 @@
                                                 <ColumnDefinition Width="180"/><ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                            <TextBox Grid.Row="0" Grid.Column="1" Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"
-                                                     PreviewTextInput="NumberValidation"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"/>
                                             <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.product}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
                                             <ComboBox Grid.Row="1" Grid.Column="1" Name="CmbProduct" SelectedIndex="{Binding ProductIndex, Mode=TwoWay}" Margin="3" Padding="4">
                                                 <ComboBoxItem Content="{loc:Loc product.standard}"/><ComboBoxItem Content="{loc:Loc product.documentflow}"/>

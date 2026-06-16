@@ -835,8 +835,16 @@ public class MainViewModel : INotifyPropertyChanged
         if (_lastResult == null) return;
         var svc = new ConfigExportService();
         var mermaid = svc.ExportMermaid(_lastResult, GetConfig());
-        Clipboard.SetText(mermaid);
-        StatusText = LocalizationService.Instance["status.copied"];
+        var saveDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "Mermaid files (*.mmd)|*.mmd|Text files (*.txt)|*.txt",
+            FileName = "infrastructure.mmd"
+        };
+        if (saveDialog.ShowDialog() == true)
+        {
+            System.IO.File.WriteAllText(saveDialog.FileName, mermaid);
+            StatusText = string.Format(LocalizationService.Instance["status.saved"], saveDialog.FileName);
+        }
     }
 
     private void ExportConfig(string content, string extension)

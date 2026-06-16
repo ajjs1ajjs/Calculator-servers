@@ -343,20 +343,22 @@ public class ExcelImporter
 
     private static double GetDouble(ExcelWorksheet ws, int row, int col)
     {
-        var val = ws.Cells[row, col].Text?.Trim() ?? "";
-        if (string.IsNullOrEmpty(val)) return 0;
-        if (double.TryParse(val.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
+        var cell = ws.Cells[row, col];
+        if (cell.Value is double or int or decimal)
+            return Convert.ToDouble(cell.Value, CultureInfo.InvariantCulture);
+        var text = cell.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(text)) return 0;
+        if (double.TryParse(text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
             return d;
-        if (double.TryParse(val.Replace(".", ","), out var d2))
+        if (double.TryParse(text.Replace(".", ","), out var d2))
             return d2;
         return 0;
     }
 
     private static int GetInt(ExcelWorksheet ws, int row, int col)
     {
-        var val = ws.Cells[row, col].Text?.Trim() ?? "";
-        if (string.IsNullOrEmpty(val)) return 0;
-        if (int.TryParse(val, out var i)) return i;
+        var cell = ws.Cells[row, col];
+        if (cell.Value is int i) return i;
         return (int)Math.Round(GetDouble(ws, row, col));
     }
 

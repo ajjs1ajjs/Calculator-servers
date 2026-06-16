@@ -5,6 +5,8 @@ namespace AIResourceCalculator.Services;
 
 public class ConfigExportService
 {
+    public string AzureRegion { get; set; } = "West Europe";
+
     public string ExportTerraform(ResourceRequirement req, ProjectConfig config)
     {
         var sb = new StringBuilder();
@@ -19,7 +21,7 @@ public class ConfigExportService
 
         sb.AppendLine($"resource \"azurerm_resource_group\" \"rg\" {{");
         sb.AppendLine($"  name     = \"rg-{config.ProjectName.ToLower().Replace(" ", "-")}\"");
-        sb.AppendLine("  location = \"West Europe\"");
+        sb.AppendLine("  location = \"" + AzureRegion + "\"");
         sb.AppendLine("}");
         sb.AppendLine();
 
@@ -161,6 +163,7 @@ public class ConfigExportService
         sb.AppendLine($"    project_name: {config.ProjectName}");
         sb.AppendLine($"    user_count: {config.UserCount}");
         sb.AppendLine($"    deployment_type: {config.DeploymentType}");
+        sb.AppendLine("  tasks:");
         foreach (var infra in req.Infrastructure)
         {
             sb.AppendLine($"    - name: Configure {infra.Name} on Azure");
@@ -320,15 +323,18 @@ public class ConfigExportService
         sb.AppendLine("var resourceGroup = new ResourceGroup(\"rg\", new ResourceGroupArgs");
         sb.AppendLine("{");
         sb.AppendLine("    ResourceGroupName = \"rg-\" + projectName.ToLower().Replace(\" \", \"-\"),");
-        sb.AppendLine("    Location = \"WestEurope\"");
+        sb.AppendLine("    Location = \"" + AzureRegion.Replace(" ", "") + "\"");
         sb.AppendLine("});");
         sb.AppendLine();
 
         foreach (var infra in req.Infrastructure)
         {
             var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var varName = name.Replace("-", "");
+            if (varName.Length > 0 && !char.IsLetter(varName[0]))
+                varName = "_" + varName;
             var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
-            sb.AppendLine($"var {name.Replace("-", "")}Vm = new VirtualMachine(\"vm-{name}\", new VirtualMachineArgs");
+            sb.AppendLine($"var {varName}Vm = new VirtualMachine(\"vm-{name}\", new VirtualMachineArgs");
             sb.AppendLine("{");
             sb.AppendLine("    ResourceGroupName = resourceGroup.Name,");
             sb.AppendLine("    Location = resourceGroup.Location,");
@@ -376,7 +382,7 @@ public class ConfigExportService
         {
             var name = infra.Name.Replace(" ", "").Replace("(", "").Replace(")", "");
             var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
-            sb.AppendLine($"resource {name}Vm 'Microsoft.Compute/virtualMachines@{DateTime.Now.Year}-07-01' = [for i in range(0, {infra.NodeCount}): {{");
+            sb.AppendLine($"resource {name}Vm 'Microsoft.Compute/virtualMachines@2024-07-01' = [for i in range(0, {infra.NodeCount}): {{");
             sb.AppendLine($"  name: 'vm-{name.ToLower()}-${{i}}'");
             sb.AppendLine("  location: location");
             sb.AppendLine("  properties: {");

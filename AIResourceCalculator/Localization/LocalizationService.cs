@@ -105,6 +105,11 @@ public class LocalizationService : INotifyPropertyChanged
         ["diagram.copyMermaid"] = "Копіювати Mermaid",
         ["dialog.matrixSaved"] = "Матрицю збережено",
         ["settings.ai"] = "Налаштування AI",
+        ["ai.apiTimeout"] = "Помилка: перевищено час очікування (120 с). Перевірте з'єднання з API або спробуйте ще раз.",
+        ["ai.apiNetworkError"] = "Помилка мережі:",
+        ["ai.apiError"] = "Помилка AI:",
+        ["ai.ollamaUnavailable"] = "⚠️ Ollama сервер недоступний. Переконайтесь, що Ollama запущена (ollama serve).",
+        ["ai.ollamaNoResponse"] = "⚠️ Ollama сервер не відповідає. Запустіть Ollama та перевірте http://localhost:11434",
     };
 
     private static readonly Dictionary<string, string> StringsEn = new()
@@ -207,6 +212,11 @@ public class LocalizationService : INotifyPropertyChanged
         ["diagram.copyMermaid"] = "Copy Mermaid",
         ["dialog.matrixSaved"] = "Matrix saved",
         ["settings.ai"] = "AI Settings",
+        ["ai.apiTimeout"] = "Error: API timeout exceeded (120s). Check your API connection or try again.",
+        ["ai.apiNetworkError"] = "Network error:",
+        ["ai.apiError"] = "AI error:",
+        ["ai.ollamaUnavailable"] = "Ollama server unavailable. Make sure Ollama is running (ollama serve).",
+        ["ai.ollamaNoResponse"] = "Ollama server not responding. Start Ollama and check http://localhost:11434",
     };
 
     private static readonly LocalizationService _instance = new();
