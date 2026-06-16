@@ -53,6 +53,8 @@
   "col.latency": "Затримка",
   "col.category": "Категорія",
   "col.replicas": "Репліки",
+  "col.storageType": "Тип диску",
+  "col.notes": "Примітки",
   "setup.import": "Імпорт Excel",
 
   "status.ready": "Готово",

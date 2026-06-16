@@ -422,16 +422,29 @@ public class AiAdvisorService
 
         // SQL Server — common to all deployments
         var isWindowsDeploy = config.DeploymentType == DeploymentType.Windows;
-        nodes.Add(new InfrastructureNode
+        var sqlRam = Math.Ceiling(req.TotalRamGb * (isWindowsDeploy ? 0.25 : 0.2));
+        var sqlStorage = Math.Max(isWindowsDeploy ? 300 : 500, req.TotalStorageGb / (isWindowsDeploy ? 2 : 3));
+        var sqlNode = new InfrastructureNode
         {
             Name = "SQL Server",
             Os = isWindowsDeploy ? "Windows Server 2025" : "PaaS (Azure SQL / RDS)",
             Cpu = Math.Ceiling(req.TotalCpu * (isWindowsDeploy ? 0.15 : 0.1)),
-            RamGb = Math.Ceiling(req.TotalRamGb * (isWindowsDeploy ? 0.25 : 0.2)),
+            RamGb = sqlRam,
             NodeCount = 1,
-            StorageGb = Math.Max(isWindowsDeploy ? 300 : 500, req.TotalStorageGb / (isWindowsDeploy ? 2 : 3)),
-            StorageType = "Premium SSD"
-        });
+            StorageGb = sqlStorage,
+            StorageType = "Premium SSD",
+            PageFileGb = isWindowsDeploy ? (int)sqlRam : 0,
+            PageFileType = isWindowsDeploy ? "Auto" : ""
+        };
+        if (sqlRam > 64)
+        {
+            sqlNode.StorageType2 = "Premium SSD";
+            sqlNode.StorageGb2 = Math.Max(100, (int)(sqlRam * 1.5));
+            sqlNode.StorageType3 = "Standard SSD";
+            sqlNode.StorageGb3 = Math.Max(100, (int)(sqlStorage * 0.15));
+            sqlNode.Notes = "Separate Data / Logs / TempDB disks";
+        }
+        nodes.Add(sqlNode);
 
         if (config.DeploymentType == DeploymentType.Kubernetes || config.DeploymentType == DeploymentType.Hybrid)
         {
@@ -450,7 +463,8 @@ public class AiAdvisorService
             {
                 Name = "Worker Node",
                 Os = "Ubuntu 24.04 LTS", Cpu = workerCpu, RamGb = workerRam,
-                NodeCount = aiWorkers, StorageGb = 200, StorageType = instanceType
+                NodeCount = aiWorkers, StorageGb = 200, StorageType = "SSD",
+                Notes = instanceType
             });
         }
 

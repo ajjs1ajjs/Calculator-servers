@@ -53,6 +53,8 @@
   "col.latency": "Latency",
   "col.category": "Category",
   "col.replicas": "Replicas",
+  "col.storageType": "Storage Type",
+  "col.notes": "Notes",
   "setup.import": "Import Excel",
 
   "status.ready": "Ready",
