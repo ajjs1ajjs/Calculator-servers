@@ -18,3 +18,13 @@ public enum LoadProfile
     Basic,
     Performance
 }
+
+public enum AiProvider
+{
+    None,
+    OpenAI,
+    Claude,
+    Google,
+    LocalOllama,
+    DeepSeek
+}

@@ -99,9 +99,9 @@ public class SizingMatrix
             IsEnabled = true,
             Components = new List<ModuleComponent>
             {
-                new() { Name = "AS (App Server)", Cpu = 1.0, RamGb = 8, Formula = ReplicaFormula.Per25Users },
-                new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 3, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                new() { Name = "AS-Redis", Cpu = 0.1, RamGb = 0.1, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
+                new() { Name = "AS (App Server)", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
+                new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 3, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                new() { Name = "AS-Redis", Cpu = 0.1, RamGb = 0.1, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
             }
         },
         new()
@@ -110,9 +110,9 @@ public class SizingMatrix
             IsEnabled = true,
             Components = new List<ModuleComponent>
             {
-                new() { Name = "ROBOT", Cpu = 1.0, RamGb = 8, Formula = ReplicaFormula.Per100Plus1000 },
-                new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 3, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                new() { Name = "ROBOT-Redis", Cpu = 0.1, RamGb = 0.1, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
+                new() { Name = "ROBOT", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
+                new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 3, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                new() { Name = "ROBOT-Redis", Cpu = 0.1, RamGb = 0.1, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
             }
         },
         new()
@@ -123,7 +123,7 @@ public class SizingMatrix
             {
                 new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },
                 new() { Name = "SmartID", Cpu = 0.2, RamGb = 0.5, Formula = ReplicaFormula.Per25Users },
-                new() { Name = "WS (WebSocket)", Cpu = 0.25, RamGb = 0.5, Formula = ReplicaFormula.Per50Plus500 },
+                new() { Name = "WS (WebSocket)", Cpu = 0.25, RamGb = 0.5, PerfCpu = 0.35, PerfRamGb = 0.6, Formula = ReplicaFormula.Per50Plus500 },
                 new() { Name = "WS-SignalR", Cpu = 0.25, RamGb = 0.5, Formula = ReplicaFormula.Per25Users }
             }
         },
@@ -172,8 +172,8 @@ public class SizingMatrix
             IsEnabled = true,
             Components = new List<ModuleComponent>
             {
-                new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 16, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" },
-                new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
+                new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 16, PerfCpu = 4.0, PerfRamGb = 16, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" },
+                new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, PerfCpu = 4.0, PerfRamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
             }
         }
     };
@@ -186,9 +186,9 @@ public class SizingMatrix
             IsEnabled = true,
             Components = new List<ModuleComponent>
             {
-                new() { Name = "AS (App Server)", Cpu = 1.3, RamGb = 10, Formula = ReplicaFormula.Per25Users },
-                new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                new() { Name = "AS-Redis", Cpu = 0.2, RamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
+                new() { Name = "AS (App Server)", Cpu = 1.3, RamGb = 10, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
+                new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 5, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                new() { Name = "AS-Redis", Cpu = 0.2, RamGb = 0.2, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
             }
         },
         new()
@@ -197,9 +197,9 @@ public class SizingMatrix
             IsEnabled = true,
             Components = new List<ModuleComponent>
             {
-                new() { Name = "ROBOT", Cpu = 1.3, RamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
-                new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                new() { Name = "ROBOT-Redis", Cpu = 0.2, RamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
+                new() { Name = "ROBOT", Cpu = 1.3, RamGb = 10, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
+                new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 5, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
+                new() { Name = "ROBOT-Redis", Cpu = 0.2, RamGb = 0.2, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
             }
         },
         new()
@@ -210,7 +210,7 @@ public class SizingMatrix
             {
                 new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },
                 new() { Name = "SmartID", Cpu = 0.2, RamGb = 0.5, Formula = ReplicaFormula.Per25Users },
-                new() { Name = "WS (WebSocket)", Cpu = 0.35, RamGb = 0.6, Formula = ReplicaFormula.Per50Plus500 },
+                new() { Name = "WS (WebSocket)", Cpu = 0.35, RamGb = 0.6, PerfCpu = 0.35, PerfRamGb = 0.6, Formula = ReplicaFormula.Per50Plus500 },
                 new() { Name = "WS-SignalR", Cpu = 0.25, RamGb = 0.5, Formula = ReplicaFormula.Per25Users }
             }
         },
@@ -259,8 +259,8 @@ public class SizingMatrix
             IsEnabled = true,
             Components = new List<ModuleComponent>
             {
-                new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 24, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM (DocumentFlow)" },
-                new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
+                new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 24, PerfCpu = 4.0, PerfRamGb = 24, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM (DocumentFlow)" },
+                new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, PerfCpu = 4.0, PerfRamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
             }
         }
     };

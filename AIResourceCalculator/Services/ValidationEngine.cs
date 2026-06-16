@@ -78,7 +78,7 @@ public class ValidationEngine
         foreach (var infra in calculated.Infrastructure)
         {
             var actual = actualResources.FirstOrDefault(a =>
-                a.Name.Contains(infra.Name, StringComparison.OrdinalIgnoreCase));
+                a.Name.Equals(infra.Name, StringComparison.OrdinalIgnoreCase));
 
             if (actual == null)
             {

@@ -83,6 +83,8 @@ public class SizingEngine
                     Cpu = cpu * rep,
                     RamGb = ram * rep,
                     Replicas = rep,
+                    FixedReplicas = comp.FixedReplicas,
+                    Formula = comp.Formula,
                     Category = module.Name,
                     HasLocalSql = comp.HasLocalSql,
                     HasRedis = comp.HasRedis,
@@ -167,7 +169,7 @@ public class SizingEngine
         var appNode = _matrix.DefaultWindowsApp;
         var webNode = _matrix.DefaultWindowsWeb;
 
-        var enabledModules = _modules.Where(m => m.IsEnabled && m.Name.Contains("Windows")).ToList();
+        var enabledModules = _modules.Where(m => m.IsEnabled).ToList();
         double totalCpu = 0, totalRam = 0;
 
         foreach (var module in enabledModules)
@@ -272,10 +274,17 @@ public class SizingEngine
         if (sqlNodes.Count > 1)
         {
             var best = sqlNodes.OrderByDescending(n => n.RamGb).First();
-            var other = sqlNodes.Where(n => n != best).ToList();
-            best.StorageGb += other.Sum(o => o.StorageGb * o.NodeCount);
-            best.Iops += other.Sum(o => o.Iops);
-            foreach (var dup in other) req.Infrastructure.Remove(dup);
+            foreach (var other in sqlNodes.Where(n => n != best))
+            {
+                best.StorageGb += other.StorageGb * other.NodeCount;
+                best.StorageGb2 += other.StorageGb2 * other.NodeCount;
+                best.StorageGb3 += other.StorageGb3 * other.NodeCount;
+                best.StorageGb4 += other.StorageGb4 * other.NodeCount;
+                best.Iops = Math.Max(best.Iops, other.Iops);
+                best.Latency = Math.Min(best.Latency, other.Latency);
+                best.PageFileGb = Math.Max(best.PageFileGb, other.PageFileGb);
+                req.Infrastructure.Remove(other);
+            }
         }
     }
 

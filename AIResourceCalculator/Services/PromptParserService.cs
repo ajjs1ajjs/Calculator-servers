@@ -14,12 +14,17 @@ public class PromptParserService
         if (userMatch.Success)
             config.UserCount = int.Parse(userMatch.Groups[1].Value);
 
-        if (Regex.IsMatch(prompt, @"windows", RegexOptions.IgnoreCase))
-            config.DeploymentType = DeploymentType.Windows;
-        else if (Regex.IsMatch(prompt, @"гібрид|hybrid|змішан", RegexOptions.IgnoreCase))
-            config.DeploymentType = DeploymentType.Hybrid;
+        var hasK8s = Regex.IsMatch(prompt, @"\b(k8s|kubernetes|кубер)\b", RegexOptions.IgnoreCase);
+        var hasWindows = Regex.IsMatch(prompt, @"\bwindows\b(?!\s+infra|infrastructure)", RegexOptions.IgnoreCase);
+        var hasHybrid = Regex.IsMatch(prompt, @"\b(гібрид|hybrid|змішан)\b", RegexOptions.IgnoreCase);
 
-        if (Regex.IsMatch(prompt, @"performance|продуктивн|perf|документообіг|document", RegexOptions.IgnoreCase))
+        if (hasHybrid)
+            config.DeploymentType = DeploymentType.Hybrid;
+        else if (hasWindows && !hasK8s)
+            config.DeploymentType = DeploymentType.Windows;
+
+        var hasPerformance = Regex.IsMatch(prompt, @"\b(performance|продуктивн|perf|документообіг|document\s*flow)\b", RegexOptions.IgnoreCase);
+        if (hasPerformance)
         {
             config.LoadProfile = LoadProfile.Performance;
             config.ProductType = ProductType.DocumentFlow;
@@ -29,19 +34,19 @@ public class PromptParserService
             config.ProductType = ProductType.Standard;
         }
 
-        if (Regex.IsMatch(prompt, @"app.?server|appserver|as\b", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\b(app\s*server|appserver)\b", RegexOptions.IgnoreCase))
             modules.Add("App Server");
-        if (Regex.IsMatch(prompt, @"robot|робот", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\b(robot|робот)\b", RegexOptions.IgnoreCase))
             modules.Add("ROBOT");
-        if (Regex.IsMatch(prompt, @"web|веб", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\bweb\b|веб", RegexOptions.IgnoreCase))
             modules.Add("Web");
-        if (Regex.IsMatch(prompt, @"bpm|force.?bpm|forcebpm", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\b(bpm|force\s*bpm|forcebpm)\b", RegexOptions.IgnoreCase))
             modules.Add("ForceBPM");
-        if (Regex.IsMatch(prompt, @"lms|learning|навчан", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\b(lms|learning|навчан)\b", RegexOptions.IgnoreCase))
             modules.Add("LMS");
-        if (Regex.IsMatch(prompt, @"hr|portal|портал|hr.?portal", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\bhr\b|портал|hr\s*portal", RegexOptions.IgnoreCase))
             modules.Add("HR Portal");
-        if (Regex.IsMatch(prompt, @"windows.?infra|windows.?server", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(prompt, @"\bwindows\s+(infra|infrastructure|server)\b", RegexOptions.IgnoreCase))
             modules.Add("Windows Infrastructure");
 
         if (modules.Count == 0)

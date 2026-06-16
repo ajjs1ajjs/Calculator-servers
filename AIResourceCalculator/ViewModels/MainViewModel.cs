@@ -48,6 +48,8 @@ public class MainViewModel : INotifyPropertyChanged
         _aiSettings = AiSettings.Load();
         _advisor.UpdateSettings(_aiSettings);
 
+        _isDarkTheme = ThemeService.IsDark;
+
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         _statusText = LocalizationService.Instance["status.ready"];
         _aiNoDataText = LocalizationService.Instance["ai.noData"];
@@ -72,6 +74,7 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TabMatrixHeader));
         OnPropertyChanged(nameof(TabSetupHeader));
         OnPropertyChanged(nameof(TabResultsHeader));
+        OnPropertyChanged(nameof(TabAssistantHeader));
     }
 
     #region Properties
@@ -191,6 +194,30 @@ public class MainViewModel : INotifyPropertyChanged
         set { _quickRecText = value; OnPropertyChanged(); }
     }
 
+    private string _assistantPrompt = "";
+    public string AssistantPrompt
+    {
+        get => _assistantPrompt;
+        set { _assistantPrompt = value; OnPropertyChanged(); }
+    }
+
+    private string _assistantResult = "";
+    public string AssistantResult
+    {
+        get => _assistantResult;
+        set { _assistantResult = value; OnPropertyChanged(); }
+    }
+
+    private bool _isAssistantResultVisible;
+    public bool IsAssistantResultVisible
+    {
+        get => _isAssistantResultVisible;
+        set { _isAssistantResultVisible = value; OnPropertyChanged(); }
+    }
+
+    private ProjectConfig? _parsedConfig;
+    private List<string>? _parsedModules;
+
     #endregion
 
     #region Matrix Properties
@@ -225,6 +252,16 @@ public class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
     public ObservableCollection<ValidationResult> ValidationResults { get; private set; } = new();
 
+    public ObservableCollection<CalculationHistoryItem> HistoryItems { get; private set; } = new();
+    public bool HasHistory => HistoryItems.Count > 0;
+
+    private int _selectedHistoryIndex = -1;
+    public int SelectedHistoryIndex
+    {
+        get => _selectedHistoryIndex;
+        set { _selectedHistoryIndex = value; OnPropertyChanged(); }
+    }
+
     #endregion
 
     #region Tab Headers
@@ -232,6 +269,7 @@ public class MainViewModel : INotifyPropertyChanged
     public string TabMatrixHeader => LocalizationService.Instance["tab.matrixTitle"];
     public string TabSetupHeader => LocalizationService.Instance["tab.setupTitle"];
     public string TabResultsHeader => LocalizationService.Instance["tab.resultsTitle"];
+    public string TabAssistantHeader => LocalizationService.Instance["tab.assistantTitle"];
 
     #endregion
 
@@ -250,6 +288,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ToggleThemeCommand { get; private set; } = null!;
     public ICommand AnalyzeAiCommand { get; private set; } = null!;
     public ICommand AiSettingsCommand { get; private set; } = null!;
+    public ICommand AnalyzePromptCommand { get; private set; } = null!;
+    public ICommand ApplyParsedConfigCommand { get; private set; } = null!;
+    public ICommand UseTemplateCommand { get; private set; } = null!;
+    public ICommand RecallHistoryCommand { get; private set; } = null!;
 
     private void InitializeCommands()
     {
@@ -266,6 +308,12 @@ public class MainViewModel : INotifyPropertyChanged
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
         AnalyzeAiCommand = new RelayCommand(async _ => await AnalyzeWithAiAsync());
+        AnalyzePromptCommand = new RelayCommand(_ => AnalyzePrompt());
+        ApplyParsedConfigCommand = new RelayCommand(_ => ApplyParsedConfig());
+        UseTemplateCommand = new RelayCommand(p => UseTemplate(p?.ToString() ?? ""));
+        RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
+
+        LoadHistory();
     }
 
     #endregion
@@ -301,6 +349,8 @@ public class MainViewModel : INotifyPropertyChanged
             _lastResult = req;
             _lastResultPerf = perfReq;
             ShowResults(req, perfReq);
+            CalculationHistoryService.SaveToHistory(config, req);
+            LoadHistory();
             SelectedTabIndex = 2;
             StatusText = string.Format(LocalizationService.Instance["status.calculated"],
                 config.UserCount, req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"));
@@ -401,6 +451,140 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private void AnalyzePrompt()
+    {
+        if (string.IsNullOrWhiteSpace(AssistantPrompt)) return;
+
+        try
+        {
+            var parser = new PromptParserService();
+            var (config, modules) = parser.Parse(AssistantPrompt);
+            _parsedConfig = config;
+            _parsedModules = modules;
+
+            var loc = LocalizationService.Instance;
+            var deployName = config.DeploymentType switch
+            {
+                DeploymentType.Kubernetes => loc["deploy.k8sName"],
+                DeploymentType.Windows => loc["deploy.windowsName"],
+                _ => loc["deploy.hybridName"]
+            };
+            var productName = config.ProductType == ProductType.DocumentFlow
+                ? loc["product.documentflow"] : loc["product.standard"];
+
+            var result = $"Users: {config.UserCount}\n" +
+                         $"Deployment: {deployName}\n" +
+                         $"Product: {productName}\n" +
+                         $"Modules: {string.Join(", ", modules)}";
+
+            if (loc.CurrentLang == "uk")
+                result = $"Користувачів: {config.UserCount}\n" +
+                         $"Розгортання: {deployName}\n" +
+                         $"Продукт: {productName}\n" +
+                         $"Модулі: {string.Join(", ", modules)}";
+
+            AssistantResult = result;
+            IsAssistantResultVisible = true;
+            StatusText = loc["assistant.analyze"];
+        }
+        catch (Exception ex)
+        {
+            AssistantResult = $"Error: {ex.Message}";
+            IsAssistantResultVisible = true;
+        }
+    }
+
+    private void ApplyParsedConfig()
+    {
+        if (_parsedConfig == null) return;
+
+        UserCount = _parsedConfig.UserCount.ToString();
+        DeploymentIndex = _parsedConfig.DeploymentType switch
+        {
+            DeploymentType.Kubernetes => 0,
+            DeploymentType.Windows => 1,
+            _ => 2
+        };
+        ProductIndex = _parsedConfig.ProductType == ProductType.DocumentFlow ? 1 : 0;
+
+        if (_parsedModules != null)
+        {
+            foreach (var mod in Modules)
+            {
+                mod.IsEnabled = _parsedModules.Contains(mod.Name);
+            }
+            Modules = new ObservableCollection<ProjectModule>(Modules);
+            OnPropertyChanged(nameof(Modules));
+        }
+
+        SelectedTabIndex = 1;
+        Calculate();
+
+        var loc = LocalizationService.Instance;
+        StatusText = loc.CurrentLang == "uk"
+            ? $"Застосовано: {_parsedConfig.UserCount} користувачів, {_parsedModules?.Count ?? 0} модулів"
+            : $"Applied: {_parsedConfig.UserCount} users, {_parsedModules?.Count ?? 0} modules";
+    }
+
+    private void UseTemplate(string template)
+    {
+        var loc = LocalizationService.Instance;
+        var templates = new Dictionary<string, string>
+        {
+            ["tpl1"] = loc.CurrentLang == "uk"
+                ? "система на 200 користувачів з LMS та HR Portal"
+                : "system for 200 users with LMS and HR Portal",
+            ["tpl2"] = loc.CurrentLang == "uk"
+                ? "високонавантажена система на 1000 користувачів"
+                : "high-load system for 1000 users",
+            ["tpl3"] = loc.CurrentLang == "uk"
+                ? "мінімальна система на 25 користувачів"
+                : "minimal system for 25 users"
+        };
+
+        if (templates.TryGetValue(template, out var text))
+        {
+            AssistantPrompt = text;
+            AnalyzePrompt();
+        }
+    }
+
+    private void LoadHistory()
+    {
+        HistoryItems = new ObservableCollection<CalculationHistoryItem>(CalculationHistoryService.LoadHistory());
+        OnPropertyChanged(nameof(HistoryItems));
+        OnPropertyChanged(nameof(HasHistory));
+    }
+
+    private void RecallHistory()
+    {
+        if (SelectedHistoryIndex < 0 || SelectedHistoryIndex >= HistoryItems.Count) return;
+
+        var item = HistoryItems[SelectedHistoryIndex];
+        var config = item.Config;
+
+        UserCount = config.UserCount.ToString();
+        DeploymentIndex = config.DeploymentType switch
+        {
+            DeploymentType.Kubernetes => 0,
+            DeploymentType.Windows => 1,
+            _ => 2
+        };
+        ProductIndex = config.ProductType == ProductType.DocumentFlow ? 1 : 0;
+
+        if (config.SelectedModules.Count > 0)
+        {
+            foreach (var mod in Modules)
+            {
+                mod.IsEnabled = config.SelectedModules.Contains(mod.Name);
+            }
+            Modules = new ObservableCollection<ProjectModule>(Modules);
+            OnPropertyChanged(nameof(Modules));
+        }
+
+        Calculate();
+    }
+
     private void ImportMatrix()
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
@@ -469,8 +653,8 @@ public class MainViewModel : INotifyPropertyChanged
                     Name = comp.Name,
                     Cpu = comp.Cpu,
                     RamGb = comp.RamGb,
-                    FixedReplicas = comp.Replicas,
-                    Formula = ReplicaFormula.Fixed
+                    FixedReplicas = comp.FixedReplicas,
+                    Formula = comp.Formula
                 });
             }
         }
@@ -522,7 +706,7 @@ public class MainViewModel : INotifyPropertyChanged
             mod.IsEnabled = deploymentType switch
             {
                 DeploymentType.Kubernetes => !mod.Name.Contains("Windows"),
-                DeploymentType.Windows => mod.Name.Contains("Windows"),
+                DeploymentType.Windows => true,
                 DeploymentType.Hybrid => true,
                 _ => mod.IsEnabled
             };
@@ -568,7 +752,8 @@ public class MainViewModel : INotifyPropertyChanged
             standardModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
                 Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, Category = m.Name
+                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
+                Formula = c.Formula, Category = m.Name
             }))
         );
 
@@ -579,7 +764,8 @@ public class MainViewModel : INotifyPropertyChanged
             docFlowModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
                 Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, Category = m.Name
+                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
+                Formula = c.Formula, Category = m.Name
             }))
         );
 
@@ -587,7 +773,8 @@ public class MainViewModel : INotifyPropertyChanged
             _matrix.Modules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
                 Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, Category = m.Name
+                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
+                Formula = c.Formula, Category = m.Name
             }))
         );
 

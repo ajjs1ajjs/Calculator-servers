@@ -297,6 +297,14 @@
                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
                         <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                    Visibility="{Binding HasHistory, Converter={StaticResource VisibilityConverter}}">
+                            <ComboBox ItemsSource="{Binding HistoryItems}" SelectedIndex="{Binding SelectedHistoryIndex, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayText" Width="350" Margin="0,0,8,0" Padding="4" FontSize="12"/>
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
+                                    Command="{Binding RecallHistoryCommand}" Content="Recall"/>
+                        </StackPanel>
+
                         <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -370,7 +378,7 @@
                         <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
                         <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,8" Margin="0,0,0,8"
                                 Command="{Binding AnalyzeAiCommand}" HorizontalAlignment="Left">
-                            <TextBlock Text="&#x1F9E0; Run AI Analysis"/>
+                            <TextBlock Text="{loc:Loc results.runAi}"/>
                         </Button>
                         <TextBlock Text="{Binding AiBadgeResultText}" FontSize="12" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4"/>
                         <DataGrid Name="AiTableResults" MinHeight="320" AutoGenerateColumns="False" IsReadOnly="True"
@@ -404,6 +412,57 @@
                                    Visibility="{Binding IsAiNoDataVisible, Converter={StaticResource VisibilityConverter}}"/>
                     </StackPanel>
                 </Grid>
+            </TabItem>
+
+            <!-- TAB 4: AI Assistant -->
+            <TabItem Header="{Binding TabAssistantHeader}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="15">
+                        <TextBlock Text="{loc:Loc assistant.title}" Style="{StaticResource SectionHeader}"/>
+                        <TextBlock Text="{loc:Loc assistant.desc}" FontSize="13" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                        <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <StackPanel>
+                                <TextBox Name="TxtAssistantPrompt" Text="{Binding AssistantPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="100" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         Margin="0,0,0,8" Padding="8" FontSize="13"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
+                                            Command="{Binding AnalyzePromptCommand}" FontSize="13">
+                                        <TextBlock Text="{loc:Loc assistant.analyze}"/>
+                                    </Button>
+                                    <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
+                                            Command="{Binding ApplyParsedConfigCommand}" FontSize="13"
+                                            Visibility="{Binding IsAssistantResultVisible, Converter={StaticResource VisibilityConverter}}">
+                                        <TextBlock Text="{loc:Loc assistant.apply}"/>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{loc:Loc assistant.templates}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,15,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
+                                    Command="{Binding UseTemplateCommand}" CommandParameter="tpl1">
+                                <TextBlock Text="{loc:Loc assistant.tpl1}"/>
+                            </Button>
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
+                                    Command="{Binding UseTemplateCommand}" CommandParameter="tpl2">
+                                <TextBlock Text="{loc:Loc assistant.tpl2}"/>
+                            </Button>
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
+                                    Command="{Binding UseTemplateCommand}" CommandParameter="tpl3">
+                                <TextBlock Text="{loc:Loc assistant.tpl3}"/>
+                            </Button>
+                        </StackPanel>
+                        <Border Background="{DynamicResource HighlightBg}" Padding="12" CornerRadius="8" Margin="0,12,0,0"
+                                Visibility="{Binding IsAssistantResultVisible, Converter={StaticResource VisibilityConverter}}"
+                                BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="{loc:Loc assistant.result}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
+                                <TextBlock Text="{Binding AssistantResult}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
         </TabControl>

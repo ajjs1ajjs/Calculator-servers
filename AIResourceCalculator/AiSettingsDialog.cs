@@ -241,13 +241,13 @@ public class AiSettingsDialog : Window
 
     private async Task FetchClaudeModels(string key)
     {
-        var models = new[] { "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307", "claude-3-5-sonnet-20241022" };
+        var models = new[] { "claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229", "claude-3-haiku-20240307" };
 
         var req = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
         req.Headers.Add("x-api-key", key);
         req.Headers.Add("anthropic-version", "2023-06-01");
         req.Content = new StringContent(
-            JsonSerializer.Serialize(new { model = "claude-3-haiku-20240307", max_tokens = 5, messages = new[] { new { role = "user", content = "ok" } } }),
+            JsonSerializer.Serialize(new { model = "claude-3-haiku-20240307", max_tokens = 1, messages = new[] { new { role = "user", content = "ok" } } }),
             System.Text.Encoding.UTF8, "application/json");
 
         var resp = await _http.SendAsync(req);
@@ -255,7 +255,7 @@ public class AiSettingsDialog : Window
 
         _cmbModel.Items.Clear();
         foreach (var m in models) _cmbModel.Items.Add(m);
-        _cmbModel.Text = "claude-3-haiku-20240307";
+        _cmbModel.Text = "claude-3-5-haiku-20241022";
     }
 
     private async Task FetchGoogleModels(string key)

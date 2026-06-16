@@ -6,9 +6,11 @@ public class ServiceComponent
     public double Cpu { get; set; }
     public double RamGb { get; set; }
     public int Replicas { get; set; }
+    public int FixedReplicas { get; set; }
     public int Instances { get; set; }
     public bool HasLocalSql { get; set; }
     public bool HasRedis { get; set; }
     public string Notes { get; set; } = "";
     public string Category { get; set; } = "";
+    public ReplicaFormula Formula { get; set; } = ReplicaFormula.Fixed;
 }

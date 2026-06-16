@@ -103,7 +103,7 @@ public class ValidationEngineTests
 
         var actualResources = new List<InfrastructureNode>
         {
-            new() { Name = "SQL Server Production", Cpu = 4, RamGb = 16, NodeCount = 1 }
+            new() { Name = "SQL Server", Cpu = 4, RamGb = 16, NodeCount = 1 }
         };
 
         var results = _validator.ValidateProject(new ProjectConfig(), calculated, actualResources);

@@ -4,16 +4,6 @@ using System.Text.Json;
 
 namespace AIResourceCalculator.Models;
 
-public enum AiProvider
-{
-    None,
-    OpenAI,
-    Claude,
-    Google,
-    LocalOllama,
-    DeepSeek
-}
-
 public class AiSettings
 {
     public AiProvider Provider { get; set; } = AiProvider.None;
@@ -91,7 +81,7 @@ public class AiSettings
             ),
             AiProvider.Claude => (
                 string.IsNullOrEmpty(EndpointUrl) ? "https://api.anthropic.com/v1/messages" : EndpointUrl,
-                string.IsNullOrEmpty(ModelName) ? "claude-3-haiku-20240307" : ModelName
+                string.IsNullOrEmpty(ModelName) ? "claude-3-5-haiku-20241022" : ModelName
             ),
             AiProvider.Google => (
                 "https://generativelanguage.googleapis.com/v1beta",
