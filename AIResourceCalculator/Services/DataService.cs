@@ -20,8 +20,15 @@ public static class DataService
 
     public static void SaveMatrix(SizingMatrix matrix)
     {
-        var json = JsonSerializer.Serialize(matrix, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(MatrixPath, json);
+        try
+        {
+            var dir = Path.GetDirectoryName(MatrixPath);
+            if (dir != null && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            var json = JsonSerializer.Serialize(matrix, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(MatrixPath, json);
+        }
+        catch { }
     }
 
     public static SizingMatrix LoadMatrix()
@@ -41,7 +48,11 @@ public static class DataService
 
     public static void ClearMatrix()
     {
-        if (File.Exists(MatrixPath))
-            File.Delete(MatrixPath);
+        try
+        {
+            if (File.Exists(MatrixPath))
+                File.Delete(MatrixPath);
+        }
+        catch { }
     }
 }

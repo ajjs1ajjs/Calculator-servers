@@ -154,10 +154,10 @@ public static class DiagramBuilder
         };
     }
 
-    public static string BuildSvg(ResourceRequirement req)
+    public static string BuildSvg(ResourceRequirement req, ProjectConfig? config = null)
     {
         var svc = new ConfigExportService();
-        return svc.ExportSvg(req, new ProjectConfig());
+        return svc.ExportSvg(req, config ?? new ProjectConfig { ProjectName = "Project" });
     }
 
     private static Color GetNodeColor(string name)

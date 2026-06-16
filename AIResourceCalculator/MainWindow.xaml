@@ -361,6 +361,7 @@
                         <StackPanel Orientation="Horizontal">
                             <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportTxtCommand}" Content="TXT"/>
                             <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportHtmlCommand}" Content="HTML"/>
+                            <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportSvgCommand}" Content="SVG"/>
                             <Button Background="{DynamicResource PurpleBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"
                                     Command="{Binding ShowDiagramCommand}" Content="{loc:Loc diagram.show}"/>
                             <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportMermaidCommand}" Content="Mermaid"/>

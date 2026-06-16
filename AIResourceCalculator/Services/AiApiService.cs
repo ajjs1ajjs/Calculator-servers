@@ -154,6 +154,7 @@ public class AiApiService
         };
         var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         var response = await _http.PostAsync(url, content);
+        response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)

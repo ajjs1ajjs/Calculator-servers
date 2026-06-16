@@ -398,9 +398,9 @@ public class MainViewModel : INotifyPropertyChanged
         ResultComponents = new ObservableCollection<ServiceComponent>(req.Components);
         OnPropertyChanged(nameof(ResultComponents));
 
-        if (_lastResult != null)
+        if (_lastResult != null && _lastResultPerf != null)
         {
-            ValidationResults = new ObservableCollection<ValidationResult>(_validator.Validate(req, req));
+            ValidationResults = new ObservableCollection<ValidationResult>(_validator.Validate(_lastResult, _lastResultPerf));
             OnPropertyChanged(nameof(ValidationResults));
         }
 
@@ -817,7 +817,7 @@ public class MainViewModel : INotifyPropertyChanged
     private void ExportSvg()
     {
         if (_lastResult == null) return;
-        var svg = DiagramBuilder.BuildSvg(_lastResult);
+        var svg = DiagramBuilder.BuildSvg(_lastResult, GetConfig());
         var saveDialog = new Microsoft.Win32.SaveFileDialog
         {
             Filter = "SVG files (*.svg)|*.svg",

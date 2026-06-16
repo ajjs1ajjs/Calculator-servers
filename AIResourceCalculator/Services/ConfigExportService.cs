@@ -45,6 +45,7 @@ public class ConfigExportService
             sb.AppendLine("    username   = \"azureuser\"");
             sb.AppendLine("    public_key = file(\"~/.ssh/id_rsa.pub\")");
             sb.AppendLine("  }");
+            sb.AppendLine("  # Note: On Windows, replace ~ with your user directory, e.g. \"C:/Users/YourName/.ssh/id_rsa.pub\"");
             sb.AppendLine("  os_disk {");
             sb.AppendLine("    caching              = \"ReadWrite\"");
             sb.AppendLine("    storage_account_type = \"Premium_LRS\"");
