@@ -34,7 +34,7 @@ public class AiSettings
             AiProvider.Claude => !string.IsNullOrWhiteSpace(ApiKey),
             AiProvider.DeepSeek => !string.IsNullOrWhiteSpace(ApiKey),
             AiProvider.LocalOllama => true,
-            AiProvider.OpenCode => true,
+            AiProvider.OpenCode => !string.IsNullOrWhiteSpace(ApiKey),
             _ => false
         };
     }

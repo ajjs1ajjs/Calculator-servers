@@ -356,7 +356,7 @@ public class AiSettingsDialog : Window
     {
         var enabled = _chkEnabled.IsChecked ?? false;
         var idx = _cmbProvider.SelectedIndex;
-        var isCloud = idx >= 0 && idx <= 2 || idx == 4;
+        var isCloud = idx >= 0 && idx <= 2 || idx >= 4;
 
         _configPanel.IsEnabled = enabled;
         _txtApiKey.Visibility = (enabled && isCloud) ? Visibility.Visible : Visibility.Collapsed;
@@ -365,7 +365,7 @@ public class AiSettingsDialog : Window
 
         if (!enabled) _txtStatus.Text = "AI disabled";
         else if (idx == 3) _txtStatus.Text = "Click Fetch Models to detect local models";
-        else if (idx == 5) _txtStatus.Text = "Enter endpoint URL (or use default), then click Fetch Models";
+        else if (idx == 5) _txtStatus.Text = "Enter endpoint URL and API key (if required), then click Fetch Models";
         else if (string.IsNullOrWhiteSpace(_txtApiKey.Password)) _txtStatus.Text = "Paste API key, then click Fetch Models";
         else _txtStatus.Text = "Click Fetch Models to load available models";
     }
