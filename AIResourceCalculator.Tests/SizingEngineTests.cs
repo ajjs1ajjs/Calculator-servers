@@ -251,33 +251,33 @@ public class SizingEngineTests
     }
 
     [Fact]
-    public void FindDatabaseRange_Postgres_ReturnsCorrectRange()
+    public void FindDatabaseRange_Postgres_50Users_ReturnsCorrectRange()
     {
         var range = _matrix.PostgresRanges.FirstOrDefault(r => 50 >= r.MinUsers && 50 <= r.MaxUsers);
         Assert.NotNull(range);
         Assert.Equal(26, range!.MinUsers);
-        Assert.Equal(100, range.MaxUsers);
+        Assert.Equal(50, range.MaxUsers);
         Assert.Equal(4, range.Cpu);
     }
 
     [Fact]
-    public void FindDatabaseRange_MySql_ReturnsCorrectRange()
+    public void FindDatabaseRange_MySql_300Users_ReturnsCorrectRange()
     {
         var range = _matrix.MySqlRanges.FirstOrDefault(r => 300 >= r.MinUsers && 300 <= r.MaxUsers);
         Assert.NotNull(range);
-        Assert.Equal(101, range!.MinUsers);
+        Assert.Equal(201, range!.MinUsers);
         Assert.Equal(500, range.MaxUsers);
         Assert.Equal(8, range.Cpu);
     }
 
     [Fact]
-    public void FindDatabaseRange_MongoDb_ReturnsCorrectRange()
+    public void FindDatabaseRange_MongoDb_1000Users_ReturnsCorrectRange()
     {
         var range = _matrix.MongoDbRanges.FirstOrDefault(r => 1000 >= r.MinUsers && 1000 <= r.MaxUsers);
         Assert.NotNull(range);
         Assert.Equal(501, range!.MinUsers);
-        Assert.Equal(2000, range.MaxUsers);
-        Assert.Equal(12, range.Cpu);
+        Assert.Equal(1000, range.MaxUsers);
+        Assert.Equal(16, range.Cpu);
     }
 
     [Fact]

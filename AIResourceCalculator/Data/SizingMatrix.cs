@@ -91,29 +91,47 @@ public class SizingMatrix
 
     public List<UserLoadRange> PostgresRanges { get; set; } = new()
     {
-        new() { MinUsers = 1, MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 150,  Latency = 5 },
-        new() { MinUsers = 26, MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 300,  Latency = 3 },
-        new() { MinUsers = 101, MaxUsers = 500, Cpu = 8,  RamMin = 8,  RamRec = 16,  Iops = 600,  Latency = 2 },
-        new() { MinUsers = 501, MaxUsers = 2000, Cpu = 12, RamMin = 16, RamRec = 32,  Iops = 1200, Latency = 1 },
-        new() { MinUsers = 2001, MaxUsers = 5000, Cpu = 16, RamMin = 32, RamRec = 64, Iops = 2400, Latency = 0.5 },
+        // PostgreSQL: ~65-75% RAM vs SQL Server. Better MVCC, connection pooling, parallel queries.
+        // At scale, Postgres handles memory more efficiently with shared_buffers + OS cache.
+        new() { MinUsers = 1,   MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 150,  Latency = 5 },
+        new() { MinUsers = 26,  MaxUsers = 50,   Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 250,  Latency = 3 },
+        new() { MinUsers = 51,  MaxUsers = 100,  Cpu = 6,  RamMin = 8,  RamRec = 16,  Iops = 400,  Latency = 2 },
+        new() { MinUsers = 101, MaxUsers = 200,  Cpu = 8,  RamMin = 16, RamRec = 32,  Iops = 600,  Latency = 1.5 },
+        new() { MinUsers = 201, MaxUsers = 500,  Cpu = 12, RamMin = 32, RamRec = 64,  Iops = 1000, Latency = 1 },
+        new() { MinUsers = 501, MaxUsers = 1000, Cpu = 16, RamMin = 64, RamRec = 128, Iops = 2000, Latency = 0.5 },
+        new() { MinUsers = 1001,MaxUsers = 2000, Cpu = 20, RamMin = 128,RamRec = 256, Iops = 4000, Latency = 0.3 },
+        new() { MinUsers = 2001,MaxUsers = 3000, Cpu = 24, RamMin = 192,RamRec = 384, Iops = 8000, Latency = 0.2 },
+        new() { MinUsers = 3001,MaxUsers = 5000, Cpu = 32, RamMin = 256,RamRec = 512, Iops = 12000,Latency = 0.1 },
     };
 
     public List<UserLoadRange> MySqlRanges { get; set; } = new()
     {
-        new() { MinUsers = 1, MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 150,  Latency = 5 },
-        new() { MinUsers = 26, MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 250,  Latency = 3 },
-        new() { MinUsers = 101, MaxUsers = 500, Cpu = 8,  RamMin = 8,  RamRec = 16,  Iops = 500,  Latency = 2 },
-        new() { MinUsers = 501, MaxUsers = 2000, Cpu = 12, RamMin = 16, RamRec = 24,  Iops = 1000, Latency = 1 },
-        new() { MinUsers = 2001, MaxUsers = 5000, Cpu = 16, RamMin = 24, RamRec = 48, Iops = 2000, Latency = 0.5 },
+        // MySQL: ~50-60% RAM vs SQL Server. Lighter optimizer, simpler storage engine.
+        // Efficient for OLTP, lower overhead per connection. Higher IO efficiency.
+        new() { MinUsers = 1,   MaxUsers = 25,   Cpu = 2,  RamMin = 1,  RamRec = 2,   Iops = 100,  Latency = 5 },
+        new() { MinUsers = 26,  MaxUsers = 50,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 200,  Latency = 3 },
+        new() { MinUsers = 51,  MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 300,  Latency = 2 },
+        new() { MinUsers = 101, MaxUsers = 200,  Cpu = 6,  RamMin = 8,  RamRec = 16,  Iops = 500,  Latency = 1.5 },
+        new() { MinUsers = 201, MaxUsers = 500,  Cpu = 8,  RamMin = 16, RamRec = 32,  Iops = 800,  Latency = 1 },
+        new() { MinUsers = 501, MaxUsers = 1000, Cpu = 12, RamMin = 32, RamRec = 64,  Iops = 1500, Latency = 0.5 },
+        new() { MinUsers = 1001,MaxUsers = 2000, Cpu = 16, RamMin = 64, RamRec = 128, Iops = 3000, Latency = 0.3 },
+        new() { MinUsers = 2001,MaxUsers = 3000, Cpu = 20, RamMin = 96, RamRec = 192, Iops = 6000, Latency = 0.2 },
+        new() { MinUsers = 3001,MaxUsers = 5000, Cpu = 24, RamMin = 128,RamRec = 256, Iops = 10000,Latency = 0.1 },
     };
 
     public List<UserLoadRange> MongoDbRanges { get; set; } = new()
     {
-        new() { MinUsers = 1, MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 200,  Latency = 4 },
-        new() { MinUsers = 26, MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 400,  Latency = 2 },
-        new() { MinUsers = 101, MaxUsers = 500, Cpu = 8,  RamMin = 8,  RamRec = 16,  Iops = 800,  Latency = 1 },
-        new() { MinUsers = 501, MaxUsers = 2000, Cpu = 12, RamMin = 16, RamRec = 32, Iops = 1600, Latency = 0.5 },
-        new() { MinUsers = 2001, MaxUsers = 5000, Cpu = 16, RamMin = 32, RamRec = 64, Iops = 3200, Latency = 0.2 },
+        // MongoDB: Document-oriented, needs working set in RAM. Higher IOPS per op.
+        // WiredTiger storage engine good compression. Scales horizontally with sharding.
+        new() { MinUsers = 1,   MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 200,  Latency = 4 },
+        new() { MinUsers = 26,  MaxUsers = 50,   Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 400,  Latency = 2 },
+        new() { MinUsers = 51,  MaxUsers = 100,  Cpu = 6,  RamMin = 8,  RamRec = 16,  Iops = 600,  Latency = 1.5 },
+        new() { MinUsers = 101, MaxUsers = 200,  Cpu = 8,  RamMin = 16, RamRec = 32,  Iops = 1000, Latency = 1 },
+        new() { MinUsers = 201, MaxUsers = 500,  Cpu = 12, RamMin = 32, RamRec = 64,  Iops = 2000, Latency = 0.8 },
+        new() { MinUsers = 501, MaxUsers = 1000, Cpu = 16, RamMin = 64, RamRec = 128, Iops = 4000, Latency = 0.5 },
+        new() { MinUsers = 1001,MaxUsers = 2000, Cpu = 20, RamMin = 128,RamRec = 256, Iops = 8000, Latency = 0.3 },
+        new() { MinUsers = 2001,MaxUsers = 3000, Cpu = 24, RamMin = 192,RamRec = 384, Iops = 16000,Latency = 0.2 },
+        new() { MinUsers = 3001,MaxUsers = 5000, Cpu = 28, RamMin = 256,RamRec = 512, Iops = 24000,Latency = 0.1 },
     };
 
     public List<ProjectModule> Modules { get; set; } = new();
