@@ -279,4 +279,58 @@ public class SizingEngineTests
         Assert.Equal(2000, range.MaxUsers);
         Assert.Equal(12, range.Cpu);
     }
+
+    [Fact]
+    public void Calculate_K8s_Postgres_ReturnsPostgresNode()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Kubernetes,
+            DatabaseType = DatabaseType.PostgreSQL
+        };
+        var result = _engine.Calculate(config);
+        Assert.Contains(result.Infrastructure, n => n.Name == "PostgreSQL");
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name == "SQL Server");
+    }
+
+    [Fact]
+    public void Calculate_K8s_MySql_ReturnsMySqlNode()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Kubernetes,
+            DatabaseType = DatabaseType.MySql
+        };
+        var result = _engine.Calculate(config);
+        Assert.Contains(result.Infrastructure, n => n.Name == "MySQL");
+    }
+
+    [Fact]
+    public void Calculate_K8s_MongoDb_ReturnsMongoDbNode()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Kubernetes,
+            DatabaseType = DatabaseType.MongoDB
+        };
+        var result = _engine.Calculate(config);
+        Assert.Contains(result.Infrastructure, n => n.Name == "MongoDB");
+    }
+
+    [Fact]
+    public void Calculate_Windows_Postgres_ReturnsPostgresNode()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Windows,
+            DatabaseType = DatabaseType.PostgreSQL
+        };
+        var result = _engine.Calculate(config);
+        Assert.Contains(result.Infrastructure, n => n.Name == "PostgreSQL");
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name == "SQL Server");
+    }
 }

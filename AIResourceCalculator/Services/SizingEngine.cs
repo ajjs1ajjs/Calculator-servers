@@ -102,10 +102,11 @@ public class SizingEngine : ISizingEngine
         req.WorkerNodeCount = workerCount;
         req.MasterNodeCount = masterNode.NodeCount > 0 ? masterNode.NodeCount : 1;
 
+        var dbName = GetDatabaseNodeName(config.DatabaseType);
         var sqlNode = _matrix.DefaultK8sSql ?? _defaultSql;
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "SQL Server", Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+            Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
             RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
             StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
             StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
@@ -192,9 +193,10 @@ public class SizingEngine : ISizingEngine
         req.WorkerNodeCount = appCount + webCount;
         req.MasterNodeCount = 1;
 
+        var dbName = GetDatabaseNodeName(config.DatabaseType);
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "SQL Server", Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+            Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
             RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
             StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
             StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
@@ -204,9 +206,9 @@ public class SizingEngine : ISizingEngine
             PageFileType = sqlNode.PageFileType ?? "Auto",
             Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
         });
-        // Disk separation for SQL Server >64 GB RAM
+        // Disk separation for >64 GB RAM
         var sqlRam = sqlRange?.RamRec ?? sqlNode.RamGb;
-        var sqlNodeRef = req.Infrastructure.Last(n => n.Name == "SQL Server");
+        var sqlNodeRef = req.Infrastructure.Last(n => n.Name == dbName);
         if (sqlRam > 64)
         {
             sqlNodeRef.StorageType2 = "Premium SSD";
@@ -268,8 +270,9 @@ public class SizingEngine : ISizingEngine
         req.Components.AddRange(k8sReq.Components);
         req.Components.AddRange(winReq.Components);
 
-        // Deduplicate SQL Server (Hybrid runs both K8s + Windows, both add SQL)
-        var sqlNodes = req.Infrastructure.Where(n => n.Name == "SQL Server").ToList();
+        // Deduplicate database nodes (Hybrid runs both K8s + Windows, both add DB)
+        var dbNodeName = GetDatabaseNodeName(config.DatabaseType);
+        var sqlNodes = req.Infrastructure.Where(n => n.Name == dbNodeName).ToList();
         if (sqlNodes.Count > 1)
         {
             var best = sqlNodes.OrderByDescending(n => n.RamGb).First();
@@ -325,6 +328,14 @@ public class SizingEngine : ISizingEngine
             _ => Math.Max(1, comp.FixedReplicas)
         };
     }
+
+    private static string GetDatabaseNodeName(DatabaseType dbType) => dbType switch
+    {
+        DatabaseType.PostgreSQL => "PostgreSQL",
+        DatabaseType.MySql => "MySQL",
+        DatabaseType.MongoDB => "MongoDB",
+        _ => "SQL Server"
+    };
 
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
