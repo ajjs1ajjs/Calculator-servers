@@ -72,6 +72,17 @@
                     <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*"/>
                 </DataGrid.Columns>
             </DataGrid>
+            <Expander Header="{loc:Loc results.validations}" IsExpanded="False" Margin="0,0,0,8">
+                <DataGrid x:Name="GridValidation" MinHeight="80" MaxHeight="200" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,4,0,0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{loc:Loc col.resource}" Binding="{Binding ResourceName}" Width="120"/>
+                        <DataGridTextColumn Header="{loc:Loc col.required}" Binding="{Binding Required}" Width="70"/>
+                        <DataGridTextColumn Header="{loc:Loc col.allocated}" Binding="{Binding Allocated}" Width="70"/>
+                        <DataGridTextColumn Header="{loc:Loc col.severity}" Binding="{Binding Severity}" Width="100"/>
+                        <DataGridTextColumn Header="{loc:Loc col.recommendation}" Binding="{Binding Recommendation}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Expander>
             <StackPanel Orientation="Horizontal">
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportTxtCommand}" Content="TXT"/>
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportHtmlCommand}" Content="HTML"/>

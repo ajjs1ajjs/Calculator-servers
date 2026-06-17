@@ -11,9 +11,9 @@ public partial class MatrixTabControl : UserControl
         Loaded += (_, _) =>
         {
             if (DataContext is not MainViewModel vm) return;
-            GridMatrixMsSql.ItemsSource = vm.MsSqlRanges;
-            GridMatrixMsSqlPerf.ItemsSource = vm.MsSqlPerformanceRanges;
-            GridMatrixInfra.ItemsSource = vm.InfraNodes;
+            GridMatrixMsSql.ItemsSource = vm.MatrixVM.MsSqlRanges;
+            GridMatrixMsSqlPerf.ItemsSource = vm.MatrixVM.MsSqlPerformanceRanges;
+            GridMatrixInfra.ItemsSource = vm.MatrixVM.InfraNodes;
         };
     }
 }

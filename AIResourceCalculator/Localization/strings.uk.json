@@ -117,5 +117,7 @@
   "col.required": "Потрібно",
   "col.allocated": "Виділено",
   "col.delta": "Різниця",
-  "col.severity": "Статус"
+  "col.severity": "Статус",
+  "col.resource": "Ресурс",
+  "col.recommendation": "Рекомендація"
 }

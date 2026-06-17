@@ -9,14 +9,14 @@
             </Border>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                 <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
-                        Command="{Binding ImportMatrixCommand}">
+                        Command="{Binding MatrixVM.ImportMatrixCommand}">
                     <TextBlock Text="{loc:Loc setup.import}"/>
                 </Button>
                 <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
-                        Command="{Binding SaveMatrixCommand}">
+                        Command="{Binding MatrixVM.SaveMatrixCommand}">
                     <TextBlock Text="{loc:Loc matrix.save}"/>
                 </Button>
-                <Button Command="{Binding ResetMatrixCommand}" Padding="12,8">
+                <Button Command="{Binding MatrixVM.ResetMatrixCommand}" Padding="12,8">
                     <TextBlock Text="{loc:Loc matrix.reset}"/>
                 </Button>
             </StackPanel>
@@ -48,7 +48,7 @@
             </Expander>
             <Expander Header="{loc:Loc matrix.k8sStandard}" IsExpanded="True">
                 <DataGrid Height="140" IsReadOnly="False" CanUserAddRows="True"
-                          ItemsSource="{Binding K8sStandardComponents}">
+                          ItemsSource="{Binding MatrixVM.K8sStandardComponents}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
                         <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
@@ -60,7 +60,7 @@
             </Expander>
             <Expander Header="{loc:Loc matrix.k8sDocumentFlow}" IsExpanded="True">
                 <DataGrid Height="140" IsReadOnly="False" CanUserAddRows="True"
-                          ItemsSource="{Binding K8sDocumentFlowComponents}">
+                          ItemsSource="{Binding MatrixVM.K8sDocumentFlowComponents}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
                         <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>

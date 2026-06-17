@@ -117,5 +117,7 @@
   "col.required": "Required",
   "col.allocated": "Allocated",
   "col.delta": "Delta",
-  "col.severity": "Status"
+  "col.severity": "Status",
+  "col.resource": "Resource",
+  "col.recommendation": "Recommendation"
 }

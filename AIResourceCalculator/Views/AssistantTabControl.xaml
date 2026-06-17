@@ -12,17 +12,17 @@
             <TextBlock Text="{loc:Loc assistant.desc}" FontSize="13" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,12" TextWrapping="Wrap"/>
             <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                 <StackPanel>
-                    <TextBox x:Name="TxtAssistantPrompt" Text="{Binding AssistantPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox x:Name="TxtAssistantPrompt" Text="{Binding AssistantVM.AssistantPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="100" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                              Margin="0,0,0,8" Padding="8" FontSize="13"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
-                                Command="{Binding AnalyzePromptCommand}" FontSize="13">
+                                Command="{Binding AssistantVM.AnalyzePromptCommand}" FontSize="13">
                             <TextBlock Text="{loc:Loc assistant.analyze}"/>
                         </Button>
                         <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
-                                Command="{Binding ApplyParsedConfigCommand}" FontSize="13"
-                                Visibility="{Binding IsAssistantResultVisible, Converter={StaticResource VisibilityConverter}}">
+                                Command="{Binding AssistantVM.ApplyParsedConfigCommand}" FontSize="13"
+                                Visibility="{Binding AssistantVM.IsAssistantResultVisible, Converter={StaticResource VisibilityConverter}}">
                             <TextBlock Text="{loc:Loc assistant.apply}"/>
                         </Button>
                     </StackPanel>
@@ -31,24 +31,24 @@
             <TextBlock Text="{loc:Loc assistant.templates}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,15,0,5"/>
             <StackPanel Orientation="Horizontal">
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
-                        Command="{Binding UseTemplateCommand}" CommandParameter="tpl1">
+                        Command="{Binding AssistantVM.UseTemplateCommand}" CommandParameter="tpl1">
                     <TextBlock Text="{loc:Loc assistant.tpl1}"/>
                 </Button>
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
-                        Command="{Binding UseTemplateCommand}" CommandParameter="tpl2">
+                        Command="{Binding AssistantVM.UseTemplateCommand}" CommandParameter="tpl2">
                     <TextBlock Text="{loc:Loc assistant.tpl2}"/>
                 </Button>
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Padding="10,5" FontSize="12"
-                        Command="{Binding UseTemplateCommand}" CommandParameter="tpl3">
+                        Command="{Binding AssistantVM.UseTemplateCommand}" CommandParameter="tpl3">
                     <TextBlock Text="{loc:Loc assistant.tpl3}"/>
                 </Button>
             </StackPanel>
             <Border Background="{DynamicResource HighlightBg}" Padding="12" CornerRadius="8" Margin="0,12,0,0"
-                    Visibility="{Binding IsAssistantResultVisible, Converter={StaticResource VisibilityConverter}}"
+                    Visibility="{Binding AssistantVM.IsAssistantResultVisible, Converter={StaticResource VisibilityConverter}}"
                     BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
                 <StackPanel>
                     <TextBlock Text="{loc:Loc assistant.result}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
-                    <TextBlock Text="{Binding AssistantResult}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding AssistantVM.AssistantResult}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
         </StackPanel>

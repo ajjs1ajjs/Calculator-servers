@@ -16,7 +16,7 @@ public class SizingEngine : ISizingEngine
     public SizingEngine(SizingMatrix matrix)
     {
         _matrix = matrix;
-        _modules = matrix.StandardModules.Select(m => m.Clone()).ToList();
+        _modules = matrix.StandardModules.ToClonedList();
     }
 
     public void SetModules(List<ProjectModule> modules)
@@ -30,7 +30,7 @@ public class SizingEngine : ISizingEngine
         var source = productType == ProductType.DocumentFlow
             ? _matrix.DocumentFlowModules
             : _matrix.StandardModules;
-        _modules = source.Select(m => m.Clone()).ToList();
+        _modules = source.ToClonedList();
     }
 
     public ResourceRequirement Calculate(ProjectConfig config)

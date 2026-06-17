@@ -11,16 +11,19 @@ public class MatrixManager
 
     public SizingMatrix Matrix => _matrix;
 
-    public MatrixManager(IDataService dataService)
+    public MatrixManager(IDataService dataService, SizingMatrix matrix)
     {
         _dataService = dataService;
-        _matrix = dataService.LoadMatrix();
+        _matrix = matrix;
+        var saved = dataService.LoadMatrix();
+        CopyMatrix(saved, _matrix);
     }
 
     public void Import(string filePath)
     {
         var importer = new ExcelImporter();
-        _matrix = importer.Import(filePath);
+        var imported = importer.Import(filePath);
+        CopyMatrix(imported, _matrix);
         _dataService.SaveMatrix(_matrix);
     }
 
@@ -32,7 +35,28 @@ public class MatrixManager
     public void Reset()
     {
         _dataService.ClearMatrix();
-        _matrix = new SizingMatrix();
+        CopyMatrix(new SizingMatrix(), _matrix);
+    }
+
+    private static void CopyMatrix(SizingMatrix source, SizingMatrix target)
+    {
+        target.MsSqlRanges = source.MsSqlRanges;
+        target.MsSqlPerformanceRanges = source.MsSqlPerformanceRanges;
+        target.AppServerRanges = source.AppServerRanges;
+        target.AppServerPerformanceRanges = source.AppServerPerformanceRanges;
+        target.WebServerRanges = source.WebServerRanges;
+        target.WebServerPerformanceRanges = source.WebServerPerformanceRanges;
+        target.PostgresRanges = source.PostgresRanges;
+        target.OracleRanges = source.OracleRanges;
+        target.StandardModules = source.StandardModules;
+        target.DocumentFlowModules = source.DocumentFlowModules;
+        target.Modules = source.Modules;
+        target.DefaultK8sSql = source.DefaultK8sSql;
+        target.DefaultK8sMaster = source.DefaultK8sMaster;
+        target.DefaultK8sWorker = source.DefaultK8sWorker;
+        target.DefaultWindowsSql = source.DefaultWindowsSql;
+        target.DefaultWindowsApp = source.DefaultWindowsApp;
+        target.DefaultWindowsWeb = source.DefaultWindowsWeb;
     }
 
     public void SyncGridsToMatrix(

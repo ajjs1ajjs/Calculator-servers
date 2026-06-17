@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
-using AIResourceCalculator.Data;
 using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Localization;
 using AIResourceCalculator.Models;
@@ -17,16 +16,16 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly ISizingEngine _engine;
     private readonly IAiAdvisorService _advisor;
     private readonly IValidationEngine _validator;
-    private readonly IDataService _dataService;
     private readonly ICalculationHistoryService _historyService;
     private readonly IThemeService _themeService;
     private readonly ILocalizationService _loc;
-    private readonly MatrixManager _matrixManager;
     private readonly ResultsPresenter _results;
-    private SizingMatrix _matrix;
     private AiSettings _aiSettings;
     private ResourceRequirement? _lastResult;
     private ResourceRequirement? _lastResultPerf;
+
+    public MatrixViewModel MatrixVM { get; }
+    public AiAssistantViewModel AssistantVM { get; }
 
     private string _userCount = "100";
     private int _deploymentIndex;
@@ -47,24 +46,27 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _isDarkTheme;
 
     public MainViewModel(
-        ISizingEngine? engine = null,
-        IAiAdvisorService? advisor = null,
-        IValidationEngine? validator = null,
-        IDataService? dataService = null,
-        ICalculationHistoryService? historyService = null,
-        IThemeService? themeService = null,
-        ILocalizationService? localization = null)
+        ILocalizationService localization,
+        IDataService dataService,
+        ICalculationHistoryService historyService,
+        IThemeService themeService,
+        IAiAdvisorService advisor,
+        IValidationEngine validator,
+        MatrixManager matrixManager,
+        ResultsPresenter results,
+        ISizingEngine engine)
     {
-        _loc = localization ?? LocalizationService.Instance;
-        _dataService = dataService ?? new DataService();
-        _historyService = historyService ?? new CalculationHistoryService();
-        _themeService = themeService ?? new ThemeService();
-        _advisor = advisor ?? new AiAdvisorService();
-        _validator = validator ?? new ValidationEngine();
-        _matrixManager = new MatrixManager(dataService ?? new DataService());
-        _results = new ResultsPresenter();
-        _matrix = _matrixManager.Matrix;
-        _engine = engine ?? new SizingEngine(_matrix);
+        _loc = localization;
+        _historyService = historyService;
+        _themeService = themeService;
+        _advisor = advisor;
+        _validator = validator;
+        _results = results;
+        _engine = engine;
+
+        MatrixVM = new MatrixViewModel(_loc, matrixManager);
+        AssistantVM = new AiAssistantViewModel();
+
         _engine.SetProductType(ProductType.Standard);
         _aiSettings = AiSettings.Load();
         _advisor.UpdateSettings(_aiSettings);
@@ -75,10 +77,12 @@ public class MainViewModel : INotifyPropertyChanged
         _statusText = _loc["status.ready"];
         _aiNoDataText = _loc["ai.noData"];
 
-        LoadMatrixGrids();
+        MatrixVM.LoadMatrixGrids();
         UpdateAiBadge();
 
         _loc.PropertyChanged += (_, _) => OnLanguageChanged();
+        AssistantVM.ConfigParsed += OnAssistantConfigParsed;
+        MatrixVM.MatrixChanged += OnMatrixChanged;
 
         InitializeCommands();
 
@@ -221,41 +225,15 @@ public class MainViewModel : INotifyPropertyChanged
         set { _quickRecText = value; OnPropertyChanged(); }
     }
 
-    private string _assistantPrompt = "";
-    public string AssistantPrompt
-    {
-        get => _assistantPrompt;
-        set { _assistantPrompt = value; OnPropertyChanged(); }
-    }
-
-    private string _assistantResult = "";
-    public string AssistantResult
-    {
-        get => _assistantResult;
-        set { _assistantResult = value; OnPropertyChanged(); }
-    }
-
-    private bool _isAssistantResultVisible;
-    public bool IsAssistantResultVisible
-    {
-        get => _isAssistantResultVisible;
-        set { _isAssistantResultVisible = value; OnPropertyChanged(); }
-    }
-
-    private ProjectConfig? _parsedConfig;
-    private List<string>? _parsedModules;
-
     #endregion
 
-    #region Matrix Properties
+    #region Matrix Properties (delegated to MatrixVM)
 
-    public ObservableCollection<UserLoadRange> MsSqlRanges { get; private set; } = new();
-    public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges { get; private set; } = new();
-    public ObservableCollection<ServiceComponent> K8sStandardComponents { get; private set; } = new();
-    public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents { get; private set; } = new();
-    public ObservableCollection<ServiceComponent> K8sComponents { get; private set; } = new();
-    public ObservableCollection<InfrastructureNode> InfraNodes { get; private set; } = new();
-    public ObservableCollection<ProjectModule> Modules { get; private set; }
+    public ObservableCollection<UserLoadRange> MsSqlRanges => MatrixVM.MsSqlRanges;
+    public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges => MatrixVM.MsSqlPerformanceRanges;
+    public ObservableCollection<ServiceComponent> K8sStandardComponents => MatrixVM.K8sStandardComponents;
+    public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents => MatrixVM.K8sDocumentFlowComponents;
+    public ObservableCollection<InfrastructureNode> InfraNodes => MatrixVM.InfraNodes;
 
     #endregion
 
@@ -297,6 +275,8 @@ public class MainViewModel : INotifyPropertyChanged
         set { _selectedHistoryIndex = value; OnPropertyChanged(); }
     }
 
+    public ObservableCollection<ProjectModule> Modules { get; private set; }
+
     #endregion
 
     #region Tab Headers
@@ -311,9 +291,6 @@ public class MainViewModel : INotifyPropertyChanged
     #region Commands
 
     public ICommand CalculateCommand { get; private set; } = null!;
-    public ICommand ImportMatrixCommand { get; private set; } = null!;
-    public ICommand SaveMatrixCommand { get; private set; } = null!;
-    public ICommand ResetMatrixCommand { get; private set; } = null!;
     public ICommand ExportTxtCommand { get; private set; } = null!;
     public ICommand ExportHtmlCommand { get; private set; } = null!;
     public ICommand ShowDiagramCommand { get; private set; } = null!;
@@ -323,18 +300,12 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ToggleThemeCommand { get; private set; } = null!;
     public ICommand AnalyzeAiCommand { get; private set; } = null!;
     public ICommand AiSettingsCommand { get; private set; } = null!;
-    public ICommand AnalyzePromptCommand { get; private set; } = null!;
-    public ICommand ApplyParsedConfigCommand { get; private set; } = null!;
-    public ICommand UseTemplateCommand { get; private set; } = null!;
     public ICommand RecallHistoryCommand { get; private set; } = null!;
     public ICommand ShowScalingCommand { get; private set; } = null!;
 
     private void InitializeCommands()
     {
         CalculateCommand = new RelayCommand(_ => Calculate());
-        ImportMatrixCommand = new RelayCommand(_ => ImportMatrix());
-        SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
-        ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
         ExportTxtCommand = new RelayCommand(_ => ExportTxt());
         ExportHtmlCommand = new RelayCommand(_ => ExportHtml());
         ShowDiagramCommand = new RelayCommand(_ => ShowDiagram());
@@ -344,9 +315,6 @@ public class MainViewModel : INotifyPropertyChanged
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
         AnalyzeAiCommand = new RelayCommand(async _ => await AnalyzeWithAiAsync());
-        AnalyzePromptCommand = new RelayCommand(_ => AnalyzePrompt());
-        ApplyParsedConfigCommand = new RelayCommand(_ => ApplyParsedConfig());
-        UseTemplateCommand = new RelayCommand(p => UseTemplate(p?.ToString() ?? ""));
         RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
         ShowScalingCommand = new RelayCommand(_ => ShowScaling());
 
@@ -415,8 +383,7 @@ public class MainViewModel : INotifyPropertyChanged
             LoadProfile = otherProfile
         };
         _engine.SetProductType(otherProduct);
-        var otherModules = _engine.Modules.Select(m => m.Clone()).ToList();
-        _engine.SetModules(otherModules);
+        _engine.SetModules(_engine.Modules.ToClonedList());
         perfReq = _engine.Calculate(otherConfig);
         _engine.SetProductType(config.ProductType);
         _engine.SetModules(Modules.ToList());
@@ -481,109 +448,13 @@ public class MainViewModel : INotifyPropertyChanged
                 : "";
             AiBadgeResultText = $"{balance.Recommendations.Count} rec{savingsText}";
             AiRecCountText = _loc.CurrentLang == "uk"
-                ? $"📋 {balance.Recommendations.Count} рекомендацій"
-                : $"📋 {balance.Recommendations.Count} recommendations";
+                ? $"\U0001F4CB {balance.Recommendations.Count} рекомендацій"
+                : $"\U0001F4CB {balance.Recommendations.Count} recommendations";
         }
         else
         {
             AiNoDataText = _loc["ai.noData"];
             IsAiNoDataVisible = true;
-        }
-    }
-
-    private void AnalyzePrompt()
-    {
-        if (string.IsNullOrWhiteSpace(AssistantPrompt)) return;
-
-        try
-        {
-            var parser = new PromptParserService();
-            var (config, modules) = parser.Parse(AssistantPrompt);
-            _parsedConfig = config;
-            _parsedModules = modules;
-
-            var loc = _loc;
-            var deployName = config.DeploymentType switch
-            {
-                DeploymentType.Kubernetes => loc["deploy.k8sName"],
-                DeploymentType.Windows => loc["deploy.windowsName"],
-                _ => loc["deploy.hybridName"]
-            };
-            var productName = config.ProductType == ProductType.DocumentFlow
-                ? loc["product.documentflow"] : loc["product.standard"];
-
-            var result = $"Users: {config.UserCount}\n" +
-                         $"Deployment: {deployName}\n" +
-                         $"Product: {productName}\n" +
-                         $"Modules: {string.Join(", ", modules)}";
-
-            if (loc.CurrentLang == "uk")
-                result = $"Користувачів: {config.UserCount}\n" +
-                         $"Розгортання: {deployName}\n" +
-                         $"Продукт: {productName}\n" +
-                         $"Модулі: {string.Join(", ", modules)}";
-
-            AssistantResult = result;
-            IsAssistantResultVisible = true;
-            StatusText = loc["assistant.analyze"];
-        }
-        catch (Exception ex)
-        {
-            AssistantResult = $"Error: {ex.Message}";
-            IsAssistantResultVisible = true;
-        }
-    }
-
-    private void ApplyParsedConfig()
-    {
-        if (_parsedConfig == null) return;
-
-        UserCount = _parsedConfig.UserCount.ToString();
-        DeploymentIndex = _parsedConfig.DeploymentType switch
-        {
-            DeploymentType.Kubernetes => 0,
-            DeploymentType.Windows => 1,
-            _ => 2
-        };
-        ProductIndex = _parsedConfig.ProductType == ProductType.DocumentFlow ? 1 : 0;
-
-        if (_parsedModules != null)
-        {
-            foreach (var mod in Modules)
-            {
-                mod.IsEnabled = _parsedModules.Contains(mod.Name);
-            }
-            Modules = new ObservableCollection<ProjectModule>(Modules);
-            OnPropertyChanged(nameof(Modules));
-        }
-
-        SelectedTabIndex = 1;
-        Calculate();
-
-        StatusText = string.Format(_loc["status.applied"],
-            _parsedConfig.UserCount, _parsedModules?.Count ?? 0);
-    }
-
-    private void UseTemplate(string template)
-    {
-        var loc = _loc;
-        var templates = new Dictionary<string, string>
-        {
-            ["tpl1"] = loc.CurrentLang == "uk"
-                ? "система на 200 користувачів з LMS та HR Portal"
-                : "system for 200 users with LMS and HR Portal",
-            ["tpl2"] = loc.CurrentLang == "uk"
-                ? "високонавантажена система на 1000 користувачів"
-                : "high-load system for 1000 users",
-            ["tpl3"] = loc.CurrentLang == "uk"
-                ? "мінімальна система на 25 користувачів"
-                : "minimal system for 25 users"
-        };
-
-        if (templates.TryGetValue(template, out var text))
-        {
-            AssistantPrompt = text;
-            AnalyzePrompt();
         }
     }
 
@@ -637,72 +508,50 @@ public class MainViewModel : INotifyPropertyChanged
         StatusText = $"Scaling: {steps.First()}–{steps.Last()} users ({steps.Count} points)";
     }
 
-    private void ImportMatrix()
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Filter = "Excel files (*.xlsx)|*.xlsx",
-            Title = "Import Excel Calculator"
-        };
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                _matrixManager.Import(dialog.FileName);
-                _matrix = _matrixManager.Matrix;
-                ReloadMatrix();
-                StatusText = _loc["status.imported"];
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Import error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-    }
-
-    private void SaveMatrix()
-    {
-        SyncGridsToMatrix();
-        _matrixManager.Save();
-        MessageBox.Show(_loc["dialog.matrixSaved"], "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-    }
-
-    private void SyncGridsToMatrix()
-    {
-        _matrixManager.SyncGridsToMatrix(
-            MsSqlRanges.ToList(), MsSqlPerformanceRanges.ToList(),
-            K8sStandardComponents.ToList(), K8sDocumentFlowComponents.ToList(),
-            K8sComponents.ToList(), InfraNodes.ToList());
-        _matrix = _matrixManager.Matrix;
-    }
-
-    private void ResetMatrix()
-    {
-        _matrixManager.Reset();
-        _matrix = _matrixManager.Matrix;
-        _engine.SetProductType(ProductType.Standard);
-        ReloadMatrix();
-    }
-
-    private void ReloadMatrix()
+    private void OnMatrixChanged()
     {
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         _engine.SetProductType(productType);
-        var freshModules = _engine.Modules.Select(m => m.Clone()).ToList();
-        _engine.SetModules(freshModules);
-        LoadMatrixGrids();
-        Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
+        Modules = new ObservableCollection<ProjectModule>(_engine.Modules.ToClonedList());
+        _engine.SetModules(Modules.ToList());
         OnPropertyChanged(nameof(Modules));
+        OnDeploymentTypeChanged();
+    }
+
+    private void OnAssistantConfigParsed(ProjectConfig config, List<string>? modules)
+    {
+        UserCount = config.UserCount.ToString();
+        DeploymentIndex = config.DeploymentType switch
+        {
+            DeploymentType.Kubernetes => 0,
+            DeploymentType.Windows => 1,
+            _ => 2
+        };
+        ProductIndex = config.ProductType == ProductType.DocumentFlow ? 1 : 0;
+
+        if (modules != null)
+        {
+            foreach (var mod in Modules)
+            {
+                mod.IsEnabled = modules.Contains(mod.Name);
+            }
+            Modules = new ObservableCollection<ProjectModule>(Modules);
+            OnPropertyChanged(nameof(Modules));
+        }
+
+        SelectedTabIndex = 1;
+        Calculate();
+
+        StatusText = string.Format(_loc["status.applied"],
+            config.UserCount, modules?.Count ?? 0);
     }
 
     private void OnProductTypeChanged()
     {
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         _engine.SetProductType(productType);
-        var freshModules = _engine.Modules.Select(m => m.Clone()).ToList();
-        _engine.SetModules(freshModules);
-        Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
-        OnPropertyChanged(nameof(Modules));
+        Modules = new ObservableCollection<ProjectModule>(_engine.Modules.ToClonedList());
+        _engine.SetModules(Modules.ToList());
         OnDeploymentTypeChanged();
         var loc = _loc;
         StatusText = string.Format(loc["status.productChanged"],
@@ -740,51 +589,6 @@ public class MainViewModel : INotifyPropertyChanged
             _ => loc["deploy.hybridName"]
         };
         StatusText = string.Format(loc["status.deploymentChanged"], deployName);
-    }
-
-    private void LoadMatrixGrids()
-    {
-        MsSqlRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlRanges);
-        MsSqlPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlPerformanceRanges);
-
-        K8sStandardComponents = new ObservableCollection<ServiceComponent>(
-            _matrix.StandardModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
-            {
-                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
-                Formula = c.Formula, Category = m.Name
-            }))
-        );
-
-        K8sDocumentFlowComponents = new ObservableCollection<ServiceComponent>(
-            _matrix.DocumentFlowModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
-            {
-                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
-                Formula = c.Formula, Category = m.Name
-            }))
-        );
-
-        K8sComponents = new ObservableCollection<ServiceComponent>(
-            _matrix.Modules.SelectMany(m => m.Components.Select(c => new ServiceComponent
-            {
-                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
-                Formula = c.Formula, Category = m.Name
-            }))
-        );
-
-        InfraNodes = new ObservableCollection<InfrastructureNode>();
-        if (_matrix.DefaultK8sSql != null) InfraNodes.Add(_matrix.DefaultK8sSql);
-        if (_matrix.DefaultK8sMaster != null) InfraNodes.Add(_matrix.DefaultK8sMaster);
-        if (_matrix.DefaultK8sWorker != null) InfraNodes.Add(_matrix.DefaultK8sWorker);
-
-        OnPropertyChanged(nameof(MsSqlRanges));
-        OnPropertyChanged(nameof(MsSqlPerformanceRanges));
-        OnPropertyChanged(nameof(K8sStandardComponents));
-        OnPropertyChanged(nameof(K8sDocumentFlowComponents));
-        OnPropertyChanged(nameof(K8sComponents));
-        OnPropertyChanged(nameof(InfraNodes));
     }
 
     private void ExportTxt()

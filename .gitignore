@@ -23,3 +23,4 @@ build/
 *.autodoc.key
 credentials.txt
 master.key
+publish/

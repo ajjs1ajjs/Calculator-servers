@@ -8,9 +8,20 @@ namespace AIResourceCalculator.Services;
 
 public class AiAdvisorService : IAiAdvisorService
 {
+    private readonly ILocalizationService _loc;
     private AiSettings _settings = new();
     private AiApiService? _api;
-    private bool _isUk => LocalizationService.Instance.CurrentLang == "uk";
+    private bool _isUk => _loc.CurrentLang == "uk";
+
+    public AiAdvisorService()
+        : this(LocalizationService.Instance)
+    {
+    }
+
+    public AiAdvisorService(ILocalizationService loc)
+    {
+        _loc = loc;
+    }
 
     public void UpdateSettings(AiSettings settings)
     {

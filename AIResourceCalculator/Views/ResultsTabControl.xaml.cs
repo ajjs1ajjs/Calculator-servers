@@ -16,6 +16,7 @@ public partial class ResultsTabControl : UserControl
             GridInfrastructure.ItemsSource = vm.ResultInfrastructure;
             AiTableResults.ItemsSource = vm.AiInfrastructure;
             AiRecResults.ItemsSource = vm.AiRecommendations;
+            GridValidation.ItemsSource = vm.ValidationResults;
 
             vm.PropertyChanged += (_, e) =>
             {
@@ -29,6 +30,9 @@ public partial class ResultsTabControl : UserControl
                         break;
                     case nameof(MainViewModel.AiRecommendations):
                         AiRecResults.ItemsSource = vm.AiRecommendations;
+                        break;
+                    case nameof(MainViewModel.ValidationResults):
+                        GridValidation.ItemsSource = vm.ValidationResults;
                         break;
                     case nameof(MainViewModel.IsDiagramVisible):
                         PanelDiagram.Visibility = vm.IsDiagramVisible ? Visibility.Visible : Visibility.Collapsed;
