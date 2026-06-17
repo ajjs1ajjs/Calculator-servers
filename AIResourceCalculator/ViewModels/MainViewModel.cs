@@ -55,7 +55,7 @@ public class MainViewModel : INotifyPropertyChanged
         IThemeService? themeService = null,
         ILocalizationService? localization = null)
     {
-        _loc = localization ?? _loc;
+        _loc = localization ?? LocalizationService.Instance;
         _dataService = dataService ?? new DataService();
         _historyService = historyService ?? new CalculationHistoryService();
         _themeService = themeService ?? new ThemeService();
