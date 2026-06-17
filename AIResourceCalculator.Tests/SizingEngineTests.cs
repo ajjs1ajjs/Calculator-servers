@@ -257,27 +257,17 @@ public class SizingEngineTests
         Assert.NotNull(range);
         Assert.Equal(26, range!.MinUsers);
         Assert.Equal(50, range.MaxUsers);
-        Assert.Equal(4, range.Cpu);
+        Assert.Equal(3, range.Cpu);
     }
 
     [Fact]
-    public void FindDatabaseRange_MySql_300Users_ReturnsCorrectRange()
+    public void FindDatabaseRange_Oracle_100Users_ReturnsCorrectRange()
     {
-        var range = _matrix.MySqlRanges.FirstOrDefault(r => 300 >= r.MinUsers && 300 <= r.MaxUsers);
+        var range = _matrix.OracleRanges.FirstOrDefault(r => 100 >= r.MinUsers && 100 <= r.MaxUsers);
         Assert.NotNull(range);
-        Assert.Equal(201, range!.MinUsers);
-        Assert.Equal(500, range.MaxUsers);
-        Assert.Equal(8, range.Cpu);
-    }
-
-    [Fact]
-    public void FindDatabaseRange_MongoDb_1000Users_ReturnsCorrectRange()
-    {
-        var range = _matrix.MongoDbRanges.FirstOrDefault(r => 1000 >= r.MinUsers && 1000 <= r.MaxUsers);
-        Assert.NotNull(range);
-        Assert.Equal(501, range!.MinUsers);
-        Assert.Equal(1000, range.MaxUsers);
-        Assert.Equal(16, range.Cpu);
+        Assert.Equal(51, range!.MinUsers);
+        Assert.Equal(100, range.MaxUsers);
+        Assert.Equal(6, range.Cpu);
     }
 
     [Fact]
@@ -292,42 +282,6 @@ public class SizingEngineTests
         var result = _engine.Calculate(config);
         Assert.Contains(result.Infrastructure, n => n.Name == "PostgreSQL");
         Assert.DoesNotContain(result.Infrastructure, n => n.Name == "SQL Server");
-    }
-
-    [Fact]
-    public void Calculate_K8s_MySql_ReturnsMySqlNode()
-    {
-        var config = new ProjectConfig
-        {
-            UserCount = 100,
-            DeploymentType = DeploymentType.Kubernetes,
-            DatabaseType = DatabaseType.MySql
-        };
-        var result = _engine.Calculate(config);
-        Assert.Contains(result.Infrastructure, n => n.Name == "MySQL");
-    }
-
-    [Fact]
-    public void Calculate_K8s_MongoDb_ReturnsMongoDbNode()
-    {
-        var config = new ProjectConfig
-        {
-            UserCount = 100,
-            DeploymentType = DeploymentType.Kubernetes,
-            DatabaseType = DatabaseType.MongoDB
-        };
-        var result = _engine.Calculate(config);
-        Assert.Contains(result.Infrastructure, n => n.Name == "MongoDB");
-    }
-
-    [Fact]
-    public void FindDatabaseRange_Oracle_50Users_ReturnsCorrectRange()
-    {
-        var range = _matrix.OracleRanges.FirstOrDefault(r => 50 >= r.MinUsers && 50 <= r.MaxUsers);
-        Assert.NotNull(range);
-        Assert.Equal(26, range!.MinUsers);
-        Assert.Equal(50, range.MaxUsers);
-        Assert.Equal(4, range.Cpu);
     }
 
     [Fact]

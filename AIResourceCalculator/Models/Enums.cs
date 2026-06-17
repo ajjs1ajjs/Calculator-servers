@@ -23,8 +23,6 @@ public enum DatabaseType
 {
     MsSql,
     PostgreSQL,
-    MySql,
-    MongoDB,
     Oracle
 }
 

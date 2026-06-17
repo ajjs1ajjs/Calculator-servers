@@ -295,8 +295,6 @@ public class SizingEngine : ISizingEngine
         var ranges = dbType switch
         {
             DatabaseType.PostgreSQL => _matrix.PostgresRanges,
-            DatabaseType.MySql => _matrix.MySqlRanges,
-            DatabaseType.MongoDB => _matrix.MongoDbRanges,
             DatabaseType.Oracle => _matrix.OracleRanges,
             _ => profile == LoadProfile.Performance
                 ? _matrix.MsSqlPerformanceRanges
@@ -333,8 +331,6 @@ public class SizingEngine : ISizingEngine
     private static string GetDatabaseNodeName(DatabaseType dbType) => dbType switch
     {
         DatabaseType.PostgreSQL => "PostgreSQL",
-        DatabaseType.MySql => "MySQL",
-        DatabaseType.MongoDB => "MongoDB",
         DatabaseType.Oracle => "Oracle 19c",
         _ => "SQL Server"
     };
