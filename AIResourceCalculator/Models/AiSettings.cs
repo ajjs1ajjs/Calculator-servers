@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -53,7 +54,7 @@ public class AiSettings
                 var json = Encoding.UTF8.GetString(decrypted);
                 return JsonSerializer.Deserialize<AiSettings>(json) ?? new AiSettings();
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine($"AiSettings.Load failed: {ex.Message}"); }
         }
         return new AiSettings();
     }

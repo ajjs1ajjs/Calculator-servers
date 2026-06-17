@@ -20,10 +20,13 @@ public class AiSettingsDialog : Window
     private StackPanel _configPanel = null!;
     private StackPanel _urlPanel = null!;
     private TextBox _txtEndpointUrl = null!;
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private HttpClient _http = null!;
 
     public AiSettingsDialog(AiSettings current)
     {
+        _http = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
+        Closed += (_, _) => { _http.Dispose(); };
+
         Title = "AI Settings";
         Width = 520; Height = 440;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;

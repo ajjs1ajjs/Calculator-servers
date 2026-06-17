@@ -1,34 +1,19 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Models;
 
 namespace AIResourceCalculator.Services;
 
-public class CalculationHistoryItem
+public class CalculationHistoryService : ICalculationHistoryService
 {
-    public DateTime Timestamp { get; set; }
-    public ProjectConfig Config { get; set; } = new();
-    public double TotalCpu { get; set; }
-    public double TotalRamGb { get; set; }
-    public double TotalStorageGb { get; set; }
-    public double TotalIops { get; set; }
-    public int TotalNodes { get; set; }
-
-    public string DisplayText()
-    {
-        var ts = Timestamp.ToString("dd.MM HH:mm");
-        return $"{Config.UserCount} users | {Config.DeploymentType} | {TotalCpu:F1} CPU / {TotalRamGb:F1} GB | {ts}";
-    }
-}
-
-public static class CalculationHistoryService
-{
-    private static readonly string HistoryPath = Path.Combine(
+    private readonly string HistoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "AIResourceCalculator", "history.json");
     private const int MaxHistory = 20;
 
-    public static List<CalculationHistoryItem> LoadHistory()
+    public List<CalculationHistoryItem> LoadHistory()
     {
         try
         {
@@ -38,11 +23,11 @@ public static class CalculationHistoryService
                 return JsonSerializer.Deserialize<List<CalculationHistoryItem>>(json) ?? new();
             }
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"CalculationHistoryService.LoadHistory failed: {ex.Message}"); }
         return new();
     }
 
-    public static void SaveToHistory(ProjectConfig config, ResourceRequirement req)
+    public void SaveToHistory(ProjectConfig config, ResourceRequirement req)
     {
         var history = LoadHistory();
         history.Insert(0, new CalculationHistoryItem
@@ -65,6 +50,6 @@ public static class CalculationHistoryService
                 Directory.CreateDirectory(dir);
             File.WriteAllText(HistoryPath, JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true }));
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"CalculationHistoryService.SaveToHistory failed: {ex.Message}"); }
     }
 }

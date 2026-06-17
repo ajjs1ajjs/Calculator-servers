@@ -19,6 +19,14 @@ public enum LoadProfile
     Performance
 }
 
+public enum DatabaseType
+{
+    MsSql,
+    PostgreSQL,
+    MySql,
+    MongoDB
+}
+
 public enum AiProvider
 {
     None,

@@ -1,10 +1,12 @@
+using System.Diagnostics;
 using System.Text.Json;
+using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Localization;
 using AIResourceCalculator.Models;
 
 namespace AIResourceCalculator.Services;
 
-public class AiAdvisorService
+public class AiAdvisorService : IAiAdvisorService
 {
     private AiSettings _settings = new();
     private AiApiService? _api;
@@ -59,7 +61,7 @@ public class AiAdvisorService
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine($"AiAdvisorService.ParseDualResponse failed: {ex.Message}"); }
         }
 
         return result;

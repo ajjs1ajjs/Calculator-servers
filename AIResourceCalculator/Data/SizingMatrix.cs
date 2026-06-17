@@ -89,6 +89,33 @@ public class SizingMatrix
         new() { MinUsers=6401, MaxUsers=12800, InstanceCount=32, Ghz=2.2, Cpu=4, Iops=200, RamMin=14, RamRec=18 },
     };
 
+    public List<UserLoadRange> PostgresRanges { get; set; } = new()
+    {
+        new() { MinUsers = 1, MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 150,  Latency = 5 },
+        new() { MinUsers = 26, MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 300,  Latency = 3 },
+        new() { MinUsers = 101, MaxUsers = 500, Cpu = 8,  RamMin = 8,  RamRec = 16,  Iops = 600,  Latency = 2 },
+        new() { MinUsers = 501, MaxUsers = 2000, Cpu = 12, RamMin = 16, RamRec = 32,  Iops = 1200, Latency = 1 },
+        new() { MinUsers = 2001, MaxUsers = 5000, Cpu = 16, RamMin = 32, RamRec = 64, Iops = 2400, Latency = 0.5 },
+    };
+
+    public List<UserLoadRange> MySqlRanges { get; set; } = new()
+    {
+        new() { MinUsers = 1, MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 150,  Latency = 5 },
+        new() { MinUsers = 26, MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 250,  Latency = 3 },
+        new() { MinUsers = 101, MaxUsers = 500, Cpu = 8,  RamMin = 8,  RamRec = 16,  Iops = 500,  Latency = 2 },
+        new() { MinUsers = 501, MaxUsers = 2000, Cpu = 12, RamMin = 16, RamRec = 24,  Iops = 1000, Latency = 1 },
+        new() { MinUsers = 2001, MaxUsers = 5000, Cpu = 16, RamMin = 24, RamRec = 48, Iops = 2000, Latency = 0.5 },
+    };
+
+    public List<UserLoadRange> MongoDbRanges { get; set; } = new()
+    {
+        new() { MinUsers = 1, MaxUsers = 25,   Cpu = 2,  RamMin = 2,  RamRec = 4,   Iops = 200,  Latency = 4 },
+        new() { MinUsers = 26, MaxUsers = 100,  Cpu = 4,  RamMin = 4,  RamRec = 8,   Iops = 400,  Latency = 2 },
+        new() { MinUsers = 101, MaxUsers = 500, Cpu = 8,  RamMin = 8,  RamRec = 16,  Iops = 800,  Latency = 1 },
+        new() { MinUsers = 501, MaxUsers = 2000, Cpu = 12, RamMin = 16, RamRec = 32, Iops = 1600, Latency = 0.5 },
+        new() { MinUsers = 2001, MaxUsers = 5000, Cpu = 16, RamMin = 32, RamRec = 64, Iops = 3200, Latency = 0.2 },
+    };
+
     public List<ProjectModule> Modules { get; set; } = new();
 
     public List<ProjectModule> StandardModules { get; set; } = new()
@@ -130,7 +157,7 @@ public class SizingMatrix
         new()
         {
             Name = "ForceBPM", Description = "Business process management engine and tools",
-            IsEnabled = true,
+            IsEnabled = true, IsKubernetesOnly = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },
@@ -217,7 +244,7 @@ public class SizingMatrix
         new()
         {
             Name = "ForceBPM", Description = "Business process management engine and tools (DocumentFlow)",
-            IsEnabled = true,
+            IsEnabled = true, IsKubernetesOnly = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },

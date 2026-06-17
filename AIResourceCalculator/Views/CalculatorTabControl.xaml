@@ -1,0 +1,91 @@
+<UserControl x:Class="AIResourceCalculator.Views.CalculatorTabControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:AIResourceCalculator.Converters"
+             xmlns:loc="clr-namespace:AIResourceCalculator.Localization">
+    <UserControl.Resources>
+        <conv:VisibilityConverter x:Key="VisibilityConverter"/>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
+                    <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.product}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" SelectedIndex="{Binding ProductIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                    <ComboBoxItem Content="{loc:Loc product.standard}"/><ComboBoxItem Content="{loc:Loc product.documentflow}"/>
+                                </ComboBox>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                    <ComboBoxItem Content="{loc:Loc deploy.k8s}"/><ComboBoxItem Content="{loc:Loc deploy.windows}"/><ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
+                                </ComboBox>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Database" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                    <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="MySQL"/><ComboBoxItem Content="MongoDB"/>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="{loc:Loc modules.title}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                            <ItemsControl x:Name="ModulesPanel">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" Margin="4,2" FontSize="13" FontWeight="SemiBold"
+                                                  ToolTip="{Binding Description}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                    <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
+                    <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic" TextWrapping="Wrap"/>
+                            <ItemsControl x:Name="QuickRecList" Visibility="{Binding IsQuickRecVisible, Converter={StaticResource VisibilityConverter}}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource CardBg}" Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
+                                                BorderBrush="{Binding Severity, Converter={StaticResource SeverityToColor}}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                                                <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                        <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,12"
+                                Command="{Binding CalculateCommand}" FontSize="15">
+                            <TextBlock Text="{loc:Loc setup.calculate}"/>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

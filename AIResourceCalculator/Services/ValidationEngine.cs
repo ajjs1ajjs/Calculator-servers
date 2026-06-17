@@ -1,9 +1,13 @@
+using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Models;
 
 namespace AIResourceCalculator.Services;
 
-public class ValidationEngine
+public class ValidationEngine : IValidationEngine
 {
+    public List<ValidationResult> CompareProfiles(ResourceRequirement profile1, ResourceRequirement profile2)
+        => Validate(profile1, profile2);
+
     public List<ValidationResult> Validate(ResourceRequirement required, ResourceRequirement allocated)
     {
         var results = new List<ValidationResult>();

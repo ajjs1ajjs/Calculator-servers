@@ -1,11 +1,13 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using AIResourceCalculator.Interfaces;
 
 namespace AIResourceCalculator.Localization;
 
-public class LocalizationService : INotifyPropertyChanged
+public class LocalizationService : ILocalizationService
 {
     private static readonly Dictionary<string, string> StringsUk = new()
     {
@@ -112,6 +114,9 @@ public class LocalizationService : INotifyPropertyChanged
         ["ai.apiError"] = "Помилка AI:",
         ["ai.ollamaUnavailable"] = "⚠️ Ollama сервер недоступний. Переконайтесь, що Ollama запущена (ollama serve).",
         ["ai.ollamaNoResponse"] = "⚠️ Ollama сервер не відповідає. Запустіть Ollama та перевірте http://localhost:11434",
+        ["results.savings"] = "~${0}/mo economy",
+        ["status.diagramBuilt"] = "Схему побудовано",
+        ["status.applied"] = "Застосовано: {0} користувачів, {1} модулів",
     };
 
     private static readonly Dictionary<string, string> StringsEn = new()
@@ -219,6 +224,9 @@ public class LocalizationService : INotifyPropertyChanged
         ["ai.apiError"] = "AI error:",
         ["ai.ollamaUnavailable"] = "Ollama server unavailable. Make sure Ollama is running (ollama serve).",
         ["ai.ollamaNoResponse"] = "Ollama server not responding. Start Ollama and check http://localhost:11434",
+        ["results.savings"] = "~${0}/mo economy",
+        ["status.diagramBuilt"] = "Diagram built",
+        ["status.applied"] = "Applied: {0} users, {1} modules",
     };
 
     private static readonly LocalizationService _instance = new();
@@ -282,6 +290,6 @@ public class LocalizationService : INotifyPropertyChanged
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"Localization merge failed: {ex.Message}"); }
     }
 }

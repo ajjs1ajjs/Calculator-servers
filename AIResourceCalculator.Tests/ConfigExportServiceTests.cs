@@ -99,10 +99,10 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportSvg_ContainsAzureTitle()
+    public void ExportSvg_ContainsCloudTitle()
     {
         var result = _svc.ExportSvg(_req, _config);
-        Assert.Contains("Azure", result);
+        Assert.Contains("Cloud", result);
     }
 
     [Fact]
@@ -144,5 +144,88 @@ public class ConfigExportServiceTests
         var hConfig = new ProjectConfig { ProjectName = "Hybrid", UserCount = 200, DeploymentType = DeploymentType.Hybrid };
         var result = _svc.ExportArmTemplate(hReq, hConfig);
         Assert.Contains("Microsoft.Compute", result);
+    }
+
+    [Fact]
+    public void ExportK8sDeployment_ContainsApiVersion()
+    {
+        var result = _svc.ExportK8sDeployment(_req, _config);
+        Assert.Contains("apiVersion: apps/v1", result);
+        Assert.Contains("kind: Deployment", result);
+    }
+
+    [Fact]
+    public void ExportK8sDeployment_ContainsComponentNames()
+    {
+        var result = _svc.ExportK8sDeployment(_req, _config);
+        Assert.Contains("app: web", result.ToLower());
+        Assert.Contains("Deployment", result);
+    }
+
+    [Fact]
+    public void ExportHelmChart_ContainsChartMetadata()
+    {
+        var result = _svc.ExportHelmChart(_req, _config);
+        Assert.Contains("apiVersion: v2", result);
+        Assert.Contains("TestProject", result);
+    }
+
+    [Fact]
+    public void ExportHelmChart_ContainsComponentValues()
+    {
+        var result = _svc.ExportHelmChart(_req, _config);
+        Assert.Contains("replicaCount", result);
+        Assert.Contains("resources", result);
+    }
+
+    [Fact]
+    public void ExportGcpTerraform_ContainsGoogleProvider()
+    {
+        var result = _svc.ExportGcpTerraform(_req, _config);
+        Assert.Contains("provider \"google\"", result);
+        Assert.Contains("google_compute_instance", result);
+    }
+
+    [Fact]
+    public void ExportAwsTerraform_ContainsAwsProvider()
+    {
+        var result = _svc.ExportAwsTerraform(_req, _config);
+        Assert.Contains("provider \"aws\"", result);
+        Assert.Contains("aws_instance", result);
+    }
+
+    [Fact]
+    public void ExportGcpTerraform_UsesGcpMachineTypes()
+    {
+        var result = _svc.ExportGcpTerraform(_req, _config);
+        Assert.Contains("machine_type", result);
+    }
+
+    [Fact]
+    public void ExportAwsTerraform_UsesAwsInstanceTypes()
+    {
+        var result = _svc.ExportAwsTerraform(_req, _config);
+        Assert.Contains("instance_type", result);
+        Assert.Contains("t3.medium", result);
+    }
+
+    [Fact]
+    public void AwsRegion_DefaultIsEuWest1()
+    {
+        Assert.Equal("eu-west-1", _svc.AwsRegion);
+    }
+
+    [Fact]
+    public void GcpRegion_DefaultIsEuropeWest1()
+    {
+        Assert.Equal("europe-west1", _svc.GcpRegion);
+    }
+
+    [Fact]
+    public void SetAwsRegion_ChangesOutput()
+    {
+        _svc.AwsRegion = "us-east-1";
+        var result = _svc.ExportAwsTerraform(_req, _config);
+        Assert.Contains("us-east-1", result);
     }
 }

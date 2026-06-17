@@ -23,6 +23,13 @@ public class ModuleComponent
     public bool HasLocalSql { get; set; }
     public bool HasRedis { get; set; }
     public string Notes { get; set; } = "";
+
+    public ModuleComponent Clone() => new()
+    {
+        Name = Name, Cpu = Cpu, RamGb = RamGb, PerfCpu = PerfCpu, PerfRamGb = PerfRamGb,
+        FixedReplicas = FixedReplicas, Formula = Formula, HasLocalSql = HasLocalSql,
+        HasRedis = HasRedis, Notes = Notes
+    };
 }
 
 public class ProjectModule
@@ -30,7 +37,15 @@ public class ProjectModule
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public bool IsEnabled { get; set; } = true;
+    public bool IsKubernetesOnly { get; set; }
     public List<ModuleComponent> Components { get; set; } = new();
+
+    public ProjectModule Clone() => new()
+    {
+        Name = Name, Description = Description, IsEnabled = IsEnabled,
+        IsKubernetesOnly = IsKubernetesOnly,
+        Components = Components.Select(c => c.Clone()).ToList()
+    };
 
     public (double cpu, double ram) CalculateReplicas(int userCount, LoadProfile profile = LoadProfile.Basic)
     {

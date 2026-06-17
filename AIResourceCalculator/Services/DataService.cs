@@ -1,15 +1,17 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using AIResourceCalculator.Data;
+using AIResourceCalculator.Interfaces;
 
 namespace AIResourceCalculator.Services;
 
-public static class DataService
+public class DataService : IDataService
 {
-    private static readonly string DataDir;
-    private static readonly string MatrixPath;
+    private readonly string DataDir;
+    private readonly string MatrixPath;
 
-    static DataService()
+    public DataService()
     {
         DataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -18,7 +20,7 @@ public static class DataService
         Directory.CreateDirectory(DataDir);
     }
 
-    public static void SaveMatrix(SizingMatrix matrix)
+    public void SaveMatrix(SizingMatrix matrix)
     {
         try
         {
@@ -28,10 +30,10 @@ public static class DataService
             var json = JsonSerializer.Serialize(matrix, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(MatrixPath, json);
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"DataService.SaveMatrix failed: {ex.Message}"); }
     }
 
-    public static SizingMatrix LoadMatrix()
+    public SizingMatrix LoadMatrix()
     {
         if (!File.Exists(MatrixPath))
             return new SizingMatrix();
@@ -40,19 +42,20 @@ public static class DataService
             var json = File.ReadAllText(MatrixPath);
             return JsonSerializer.Deserialize<SizingMatrix>(json) ?? new SizingMatrix();
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"DataService.LoadMatrix failed: {ex.Message}");
             return new SizingMatrix();
         }
     }
 
-    public static void ClearMatrix()
+    public void ClearMatrix()
     {
         try
         {
             if (File.Exists(MatrixPath))
                 File.Delete(MatrixPath);
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"DataService.ClearMatrix failed: {ex.Message}"); }
     }
 }

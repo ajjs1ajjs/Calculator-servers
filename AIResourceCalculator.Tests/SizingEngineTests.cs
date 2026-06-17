@@ -176,4 +176,107 @@ public class SizingEngineTests
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("Worker"));
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("Master"));
     }
+
+    [Fact]
+    public void Calculate_Windows_ExcludesForceBpm()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Windows,
+            LoadProfile = LoadProfile.Basic
+        };
+
+        _engine.SetProductType(ProductType.Standard);
+        var forceBpm = _engine.Modules.FirstOrDefault(m => m.Name == "ForceBPM");
+        Assert.NotNull(forceBpm);
+        Assert.True(forceBpm!.IsKubernetesOnly);
+
+        var result = _engine.Calculate(config);
+
+        Assert.DoesNotContain(result.Components, c => c.Name.Contains("ForceBPM"));
+    }
+
+    [Fact]
+    public void Calculate_K8s_IncludesForceBpm()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Kubernetes,
+            LoadProfile = LoadProfile.Basic
+        };
+
+        var result = _engine.Calculate(config);
+
+        Assert.Contains(result.Components, c =>
+            c.Name.Contains("ForceBPM") || c.Category == "ForceBPM");
+    }
+
+    [Fact]
+    public void Calculate_Windows_ExcludesAllKubernetesOnlyModules()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Windows,
+            LoadProfile = LoadProfile.Basic
+        };
+
+        var k8sOnlyModules = _engine.Modules.Where(m => m.IsKubernetesOnly).ToList();
+        Assert.NotEmpty(k8sOnlyModules);
+
+        var result = _engine.Calculate(config);
+
+        foreach (var mod in k8sOnlyModules)
+        {
+            Assert.DoesNotContain(result.Components, c => c.Category == mod.Name);
+        }
+    }
+
+    [Fact]
+    public void CloneModule_PreservesIsKubernetesOnly()
+    {
+        var src = _engine.Modules.First(m => m.Name == "ForceBPM");
+        Assert.True(src.IsKubernetesOnly);
+    }
+
+    [Fact]
+    public void SetProductType_PreservesIsKubernetesOnly()
+    {
+        _engine.SetProductType(ProductType.DocumentFlow);
+        var forceBpm = _engine.Modules.FirstOrDefault(m => m.Name == "ForceBPM");
+        Assert.NotNull(forceBpm);
+        Assert.True(forceBpm!.IsKubernetesOnly);
+    }
+
+    [Fact]
+    public void FindDatabaseRange_Postgres_ReturnsCorrectRange()
+    {
+        var range = _matrix.PostgresRanges.FirstOrDefault(r => 50 >= r.MinUsers && 50 <= r.MaxUsers);
+        Assert.NotNull(range);
+        Assert.Equal(26, range!.MinUsers);
+        Assert.Equal(100, range.MaxUsers);
+        Assert.Equal(4, range.Cpu);
+    }
+
+    [Fact]
+    public void FindDatabaseRange_MySql_ReturnsCorrectRange()
+    {
+        var range = _matrix.MySqlRanges.FirstOrDefault(r => 300 >= r.MinUsers && 300 <= r.MaxUsers);
+        Assert.NotNull(range);
+        Assert.Equal(101, range!.MinUsers);
+        Assert.Equal(500, range.MaxUsers);
+        Assert.Equal(8, range.Cpu);
+    }
+
+    [Fact]
+    public void FindDatabaseRange_MongoDb_ReturnsCorrectRange()
+    {
+        var range = _matrix.MongoDbRanges.FirstOrDefault(r => 1000 >= r.MinUsers && 1000 <= r.MaxUsers);
+        Assert.NotNull(range);
+        Assert.Equal(501, range!.MinUsers);
+        Assert.Equal(2000, range.MaxUsers);
+        Assert.Equal(12, range.Cpu);
+    }
 }

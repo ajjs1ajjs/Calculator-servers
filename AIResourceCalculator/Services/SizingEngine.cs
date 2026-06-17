@@ -1,9 +1,10 @@
 using AIResourceCalculator.Data;
+using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Models;
 
 namespace AIResourceCalculator.Services;
 
-public class SizingEngine
+public class SizingEngine : ISizingEngine
 {
     private readonly SizingMatrix _matrix;
     private List<ProjectModule> _modules;
@@ -15,9 +16,7 @@ public class SizingEngine
     public SizingEngine(SizingMatrix matrix)
     {
         _matrix = matrix;
-        _modules = matrix.Modules.Count > 0
-            ? matrix.Modules.Select(m => CloneModule(m)).ToList()
-            : DefaultStandardModules();
+        _modules = matrix.StandardModules.Select(m => m.Clone()).ToList();
     }
 
     public void SetModules(List<ProjectModule> modules)
@@ -29,9 +28,9 @@ public class SizingEngine
     {
         _currentProduct = productType;
         var source = productType == ProductType.DocumentFlow
-            ? (_matrix.DocumentFlowModules.Count > 0 ? _matrix.DocumentFlowModules : DefaultDocumentFlowModules())
-            : (_matrix.StandardModules.Count > 0 ? _matrix.StandardModules : DefaultStandardModules());
-        _modules = source.Select(m => CloneModule(m)).ToList();
+            ? _matrix.DocumentFlowModules
+            : _matrix.StandardModules;
+        _modules = source.Select(m => m.Clone()).ToList();
     }
 
     public ResourceRequirement Calculate(ProjectConfig config)
@@ -55,7 +54,7 @@ public class SizingEngine
 
     private void CalculateK8s(ResourceRequirement req, ProjectConfig config)
     {
-        var sqlRange = FindMsSqlRange(config.UserCount, config.LoadProfile);
+        var sqlRange = FindDatabaseRange(config.UserCount, config.LoadProfile, config.DatabaseType);
         var masterNode = _matrix.DefaultK8sMaster ?? _defaultMaster;
         var workerNode = _matrix.DefaultK8sWorker ?? _defaultWorker;
 
@@ -163,13 +162,13 @@ public class SizingEngine
             _matrix.AppServerPerformanceRanges, config.LoadProfile);
         var webRange = FindWindowsRange(config.UserCount, _matrix.WebServerRanges,
             _matrix.WebServerPerformanceRanges ?? new(), config.LoadProfile);
-        var sqlRange = FindMsSqlRange(config.UserCount, config.LoadProfile);
+        var sqlRange = FindDatabaseRange(config.UserCount, config.LoadProfile, config.DatabaseType);
 
         var sqlNode = _matrix.DefaultWindowsSql ?? _defaultSql;
         var appNode = _matrix.DefaultWindowsApp;
         var webNode = _matrix.DefaultWindowsWeb;
 
-        var enabledModules = _modules.Where(m => m.IsEnabled).ToList();
+        var enabledModules = _modules.Where(m => m.IsEnabled && !m.IsKubernetesOnly).ToList();
         double totalCpu = 0, totalRam = 0;
 
         foreach (var module in enabledModules)
@@ -288,11 +287,17 @@ public class SizingEngine
         }
     }
 
-    private UserLoadRange? FindMsSqlRange(int userCount, LoadProfile profile)
+    private UserLoadRange? FindDatabaseRange(int userCount, LoadProfile profile, DatabaseType dbType)
     {
-        var ranges = profile == LoadProfile.Performance
-            ? _matrix.MsSqlPerformanceRanges
-            : _matrix.MsSqlRanges;
+        var ranges = dbType switch
+        {
+            DatabaseType.PostgreSQL => _matrix.PostgresRanges,
+            DatabaseType.MySql => _matrix.MySqlRanges,
+            DatabaseType.MongoDB => _matrix.MongoDbRanges,
+            _ => profile == LoadProfile.Performance
+                ? _matrix.MsSqlPerformanceRanges
+                : _matrix.MsSqlRanges
+        };
         return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
                ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }
@@ -318,204 +323,6 @@ public class SizingEngine
             ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(userCount / 500.0),
             ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
             _ => Math.Max(1, comp.FixedReplicas)
-        };
-    }
-
-    private static ProjectModule CloneModule(ProjectModule src)
-    {
-        return new ProjectModule
-        {
-            Name = src.Name,
-            Description = src.Description,
-            IsEnabled = src.IsEnabled,
-            Components = src.Components.Select(c => new ModuleComponent
-            {
-                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                PerfCpu = c.PerfCpu, PerfRamGb = c.PerfRamGb,
-                Formula = c.Formula, FixedReplicas = c.FixedReplicas,
-                HasLocalSql = c.HasLocalSql, HasRedis = c.HasRedis,
-                Notes = c.Notes
-            }).ToList()
-        };
-    }
-
-    public static List<ProjectModule> DefaultStandardModules()
-    {
-        return new List<ProjectModule>
-        {
-            new()
-            {
-                Name = "App Server", Description = "Core application server with local SQL and Redis cache",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "AS (App Server)", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 3, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "AS-Redis", Cpu = 0.1, RamGb = 0.1, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
-                }
-            },
-            new()
-            {
-                Name = "ROBOT", Description = "Robot process automation services",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "ROBOT", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
-                    new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 3, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "ROBOT-Redis", Cpu = 0.1, RamGb = 0.1, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
-                }
-            },
-            new()
-            {
-                Name = "Web", Description = "Web services including WebSocket and SmartID",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "SmartID", Cpu = 0.2, RamGb = 0.5, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "WS (WebSocket)", Cpu = 0.25, RamGb = 0.5, PerfCpu = 0.35, PerfRamGb = 0.6, Formula = ReplicaFormula.Per50Plus500 },
-                    new() { Name = "WS-SignalR", Cpu = 0.25, RamGb = 0.5, Formula = ReplicaFormula.Per25Users }
-                }
-            },
-            new()
-            {
-                Name = "ForceBPM", Description = "Business process management engine and tools",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "ForceBPM Engine", Cpu = 1.0, RamGb = 4, Formula = ReplicaFormula.OnePlusPer100, HasLocalSql = true },
-                    new() { Name = "ForceBPM Modeler", Cpu = 0.5, RamGb = 0.5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 },
-                    new() { Name = "ForceBPM Processes", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "ForceBPM Tasks", Cpu = 0.3, RamGb = 2, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "ForceBPM Tasks-Graphql", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users }
-                }
-            },
-            new()
-            {
-                Name = "LMS", Description = "Learning management system with video utilities",
-                IsEnabled = false,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "LMS-SmartID", Cpu = 0.006, RamGb = 0.05, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "LMS", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "LMS-GraphQL", Cpu = 0.09, RamGb = 0.3, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "LMS-Videoutilities", Cpu = 4.0, RamGb = 6, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true, Notes = "Requires GPU for video transcoding" },
-                    new() { Name = "LMS-Fileserver", Cpu = 0.5, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 }
-                }
-            },
-            new()
-            {
-                Name = "HR Portal", Description = "HR self-service portal with modeler and player",
-                IsEnabled = false,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "HR-SmartID", Cpu = 0.006, RamGb = 0.05, Formula = ReplicaFormula.Per100Users },
-                    new() { Name = "HR-GraphQL", Cpu = 0.01, RamGb = 0.06, Formula = ReplicaFormula.Per100Users },
-                    new() { Name = "WebAppModeler", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "CommonAppPlayer", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true }
-                }
-            },
-            new()
-            {
-                Name = "Windows Infrastructure", Description = "Windows App Servers and Web Servers",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 16, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" },
-                    new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
-                }
-            }
-        };
-    }
-
-    public static List<ProjectModule> DefaultDocumentFlowModules()
-    {
-        return new List<ProjectModule>
-        {
-            new()
-            {
-                Name = "App Server", Description = "Core application server with local SQL and Redis cache (DocumentFlow)",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "AS (App Server)", Cpu = 1.3, RamGb = 10, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "AS-Local SQL", Cpu = 1.0, RamGb = 5, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "AS-Redis", Cpu = 0.2, RamGb = 0.2, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
-                }
-            },
-            new()
-            {
-                Name = "ROBOT", Description = "Robot process automation services (DocumentFlow)",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "ROBOT", Cpu = 1.3, RamGb = 10, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
-                    new() { Name = "ROBOT-Local SQL", Cpu = 1.0, RamGb = 5, PerfCpu = 1.0, PerfRamGb = 5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "ROBOT-Redis", Cpu = 0.2, RamGb = 0.2, PerfCpu = 0.2, PerfRamGb = 0.2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasRedis = true }
-                }
-            },
-            new()
-            {
-                Name = "Web", Description = "Web services including WebSocket and SmartID (DocumentFlow)",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "SmartID", Cpu = 0.2, RamGb = 0.5, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "WS (WebSocket)", Cpu = 0.35, RamGb = 0.6, PerfCpu = 0.35, PerfRamGb = 0.6, Formula = ReplicaFormula.Per50Plus500 },
-                    new() { Name = "WS-SignalR", Cpu = 0.25, RamGb = 0.5, Formula = ReplicaFormula.Per25Users }
-                }
-            },
-            new()
-            {
-                Name = "ForceBPM", Description = "Business process management engine and tools (DocumentFlow)",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "ForceBPM Engine", Cpu = 1.0, RamGb = 4, Formula = ReplicaFormula.OnePlusPer100, HasLocalSql = true },
-                    new() { Name = "ForceBPM Modeler", Cpu = 0.5, RamGb = 0.5, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 },
-                    new() { Name = "ForceBPM Processes", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "ForceBPM Tasks", Cpu = 0.3, RamGb = 2, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "ForceBPM Tasks-Graphql", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users }
-                }
-            },
-            new()
-            {
-                Name = "LMS", Description = "Learning management system with video utilities (DocumentFlow)",
-                IsEnabled = false,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "LMS-SmartID", Cpu = 0.006, RamGb = 0.05, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "LMS", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "LMS-GraphQL", Cpu = 0.09, RamGb = 0.3, Formula = ReplicaFormula.Per25Users },
-                    new() { Name = "LMS-Videoutilities", Cpu = 4.0, RamGb = 6, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true, Notes = "Requires GPU for video transcoding" },
-                    new() { Name = "LMS-Fileserver", Cpu = 0.5, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 }
-                }
-            },
-            new()
-            {
-                Name = "HR Portal", Description = "HR self-service portal with modeler and player (DocumentFlow)",
-                IsEnabled = false,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "HR-SmartID", Cpu = 0.006, RamGb = 0.05, Formula = ReplicaFormula.Per100Users },
-                    new() { Name = "HR-GraphQL", Cpu = 0.01, RamGb = 0.06, Formula = ReplicaFormula.Per100Users },
-                    new() { Name = "WebAppModeler", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                    new() { Name = "CommonAppPlayer", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true }
-                }
-            },
-            new()
-            {
-                Name = "Windows Infrastructure", Description = "Windows App Servers and Web Servers (DocumentFlow)",
-                IsEnabled = true,
-                Components = new List<ModuleComponent>
-                {
-                    new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 24, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM (DocumentFlow)" },
-                    new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
-                }
-            }
         };
     }
 

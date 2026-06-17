@@ -1,31 +1,33 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using AIResourceCalculator.Interfaces;
 
 namespace AIResourceCalculator.Services;
 
-public static class ThemeService
+public class ThemeService : IThemeService
 {
-    private static readonly string ThemeConfigPath = Path.Combine(
+    private readonly string ThemeConfigPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "AIResourceCalculator", "theme.json");
 
-    public static bool IsDark { get; private set; }
+    public bool IsDark { get; private set; }
 
-    public static void Initialize()
+    public void Initialize()
     {
         IsDark = LoadThemeSetting();
         ApplyTheme();
     }
 
-    public static void Toggle()
+    public void Toggle()
     {
         IsDark = !IsDark;
         SaveThemeSetting();
         ApplyTheme();
     }
 
-    private static void ApplyTheme()
+    private void ApplyTheme()
     {
         var app = Application.Current;
         if (app == null) return;
@@ -47,7 +49,7 @@ public static class ThemeService
         app.Resources.MergedDictionaries.Add(dict);
     }
 
-    private static bool LoadThemeSetting()
+    private bool LoadThemeSetting()
     {
         try
         {
@@ -58,11 +60,11 @@ public static class ThemeService
                 return settings?.IsDark ?? false;
             }
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"ThemeService.LoadThemeSetting failed: {ex.Message}"); }
         return false;
     }
 
-    private static void SaveThemeSetting()
+    private void SaveThemeSetting()
     {
         try
         {
@@ -73,7 +75,7 @@ public static class ThemeService
             var json = JsonSerializer.Serialize(new ThemeSettings { IsDark = IsDark });
             File.WriteAllText(ThemeConfigPath, json);
         }
-        catch { }
+        catch (Exception ex) { Debug.WriteLine($"ThemeService.SaveThemeSetting failed: {ex.Message}"); }
     }
 
     private class ThemeSettings

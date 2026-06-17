@@ -17,6 +17,7 @@ public class AiApiService
     { Timeout = TimeSpan.FromSeconds(120) };
 
     private readonly AiSettings _settings;
+    private static readonly int[] RetryDelaysMs = { 1000, 3000, 7000 };
 
     public AiApiService(AiSettings settings)
     {
@@ -28,32 +29,41 @@ public class AiApiService
         if (!_settings.EnableRealAi || _settings.Provider == AiProvider.None)
             return null;
 
-        try
-        {
-            var (endpoint, model) = _settings.GetEndpoint();
+        var lastException = default(Exception);
 
-            return _settings.Provider switch
+        for (int attempt = 0; attempt <= RetryDelaysMs.Length; attempt++)
+        {
+            try
             {
-                AiProvider.OpenAI => await CallOpenAi(endpoint, model, prompt),
-                AiProvider.Claude => await CallClaude(endpoint, model, prompt),
-                AiProvider.Google => await CallGoogle(endpoint, model, prompt),
-                AiProvider.LocalOllama => await CallOllama(endpoint, model, prompt),
-                AiProvider.DeepSeek => await CallOpenAi(endpoint, model, prompt),
-                _ => null
-            };
+                var (endpoint, model) = _settings.GetEndpoint();
+
+                var result = _settings.Provider switch
+                {
+                    AiProvider.OpenAI => await CallOpenAi(endpoint, model, prompt),
+                    AiProvider.Claude => await CallClaude(endpoint, model, prompt),
+                    AiProvider.Google => await CallGoogle(endpoint, model, prompt),
+                    AiProvider.LocalOllama => await CallOllama(endpoint, model, prompt),
+                    AiProvider.DeepSeek => await CallOpenAi(endpoint, model, prompt),
+                    _ => null
+                };
+
+                if (result != null && !result.StartsWith("Error") && !result.StartsWith("\u26A0"))
+                    return result;
+            }
+            catch (TaskCanceledException ex) { lastException = ex; }
+            catch (HttpRequestException ex) { lastException = ex; }
+            catch (Exception ex) { lastException = ex; }
+
+            if (attempt < RetryDelaysMs.Length)
+                await Task.Delay(RetryDelaysMs[attempt]);
         }
-        catch (TaskCanceledException)
+
+        return lastException switch
         {
-            return LocalizationService.Instance["ai.apiTimeout"];
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"{LocalizationService.Instance["ai.apiNetworkError"]} {ex.Message}";
-        }
-        catch (Exception ex)
-        {
-            return $"{LocalizationService.Instance["ai.apiError"]} {ex.Message}";
-        }
+            TaskCanceledException => LocalizationService.Instance["ai.apiTimeout"],
+            HttpRequestException ex => $"{LocalizationService.Instance["ai.apiNetworkError"]} (HTTP {(int?)ex.StatusCode ?? 0})",
+            _ => LocalizationService.Instance["ai.apiError"]
+        };
     }
 
     private async Task<string> CallOpenAi(string endpoint, string model, string prompt)
@@ -153,13 +163,15 @@ public class AiApiService
 
     private async Task<string?> CallGoogle(string endpoint, string model, string prompt)
     {
-        var url = $"{endpoint}/models/{model}:generateContent?key={_settings.ApiKey}";
+        var url = $"{endpoint}/models/{model}:generateContent";
         var body = new
         {
             contents = new[] { new { parts = new[] { new { text = prompt } } } }
         };
-        var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync(url, content);
+        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.Add("x-goog-api-key", _settings.ApiKey);
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+        var response = await _http.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);

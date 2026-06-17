@@ -1,0 +1,36 @@
+========================================
+  Project - Resource Report
+========================================
+  Users:       25
+  Deployment:  Kubernetes
+  Profile:     Basic
+  HA:          Enabled
+----------------------------------------
+  vCPU:        153,4 cores
+  RAM:         818,2 GB
+  Storage:     5500 GB
+  IOPS:        4000
+----------------------------------------
+  Infrastructure:
+    SQL Server: 1x (20 vCPU, 384 GB, 200 GB)
+    Master Node: 1x (4 vCPU, 6 GB, 100 GB)
+    Worker Node: 26x (8 vCPU, 32 GB, 200 GB)
+----------------------------------------
+  Components:
+    AS (App Server): 40,0 vCPU, 320,0 GB, 40 replicas
+    AS-Local SQL: 1,0 vCPU, 3,0 GB, 1 replicas
+    AS-Redis: 0,1 vCPU, 0,1 GB, 1 replicas
+    ROBOT: 12,0 vCPU, 96,0 GB, 12 replicas
+    ROBOT-Local SQL: 1,0 vCPU, 3,0 GB, 1 replicas
+    ROBOT-Redis: 0,1 vCPU, 0,1 GB, 1 replicas
+    Webrmd: 8,0 vCPU, 60,0 GB, 40 replicas
+    SmartID: 8,0 vCPU, 20,0 GB, 40 replicas
+    WS (WebSocket): 5,8 vCPU, 11,5 GB, 23 replicas
+    WS-SignalR: 10,0 vCPU, 20,0 GB, 40 replicas
+    GraphQL: 12,0 vCPU, 40,0 GB, 40 replicas
+    ForceBPM Engine: 11,0 vCPU, 44,0 GB, 11 replicas
+    ForceBPM Modeler: 0,5 vCPU, 0,5 GB, 1 replicas
+    ForceBPM Processes: 20,0 vCPU, 80,0 GB, 40 replicas
+    ForceBPM Tasks: 12,0 vCPU, 80,0 GB, 40 replicas
+    ForceBPM Tasks-Graphql: 12,0 vCPU, 40,0 GB, 40 replicas
+========================================

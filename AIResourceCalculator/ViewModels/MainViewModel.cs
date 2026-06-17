@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using AIResourceCalculator.Data;
+using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Localization;
 using AIResourceCalculator.Models;
 using AIResourceCalculator.Services;
@@ -13,9 +14,15 @@ namespace AIResourceCalculator.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    private SizingEngine _engine;
-    private readonly AiAdvisorService _advisor;
-    private readonly ValidationEngine _validator;
+    private readonly ISizingEngine _engine;
+    private readonly IAiAdvisorService _advisor;
+    private readonly IValidationEngine _validator;
+    private readonly IDataService _dataService;
+    private readonly ICalculationHistoryService _historyService;
+    private readonly IThemeService _themeService;
+    private readonly ILocalizationService _loc;
+    private readonly MatrixManager _matrixManager;
+    private readonly ResultsPresenter _results;
     private SizingMatrix _matrix;
     private AiSettings _aiSettings;
     private ResourceRequirement? _lastResult;
@@ -24,6 +31,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string _userCount = "100";
     private int _deploymentIndex;
     private int _productIndex;
+    private int _databaseIndex;
     private string _statusText = "";
     private string _aiBadgeText = "";
     private string _aiBadgeResultText = "";
@@ -38,26 +46,39 @@ public class MainViewModel : INotifyPropertyChanged
     private string _quickRecText = "";
     private bool _isDarkTheme;
 
-    public MainViewModel()
+    public MainViewModel(
+        ISizingEngine? engine = null,
+        IAiAdvisorService? advisor = null,
+        IValidationEngine? validator = null,
+        IDataService? dataService = null,
+        ICalculationHistoryService? historyService = null,
+        IThemeService? themeService = null,
+        ILocalizationService? localization = null)
     {
-        _advisor = new AiAdvisorService();
-        _validator = new ValidationEngine();
-        _matrix = DataService.LoadMatrix();
-        _engine = new SizingEngine(_matrix);
+        _loc = localization ?? _loc;
+        _dataService = dataService ?? new DataService();
+        _historyService = historyService ?? new CalculationHistoryService();
+        _themeService = themeService ?? new ThemeService();
+        _advisor = advisor ?? new AiAdvisorService();
+        _validator = validator ?? new ValidationEngine();
+        _matrixManager = new MatrixManager(dataService ?? new DataService());
+        _results = new ResultsPresenter();
+        _matrix = _matrixManager.Matrix;
+        _engine = engine ?? new SizingEngine(_matrix);
         _engine.SetProductType(ProductType.Standard);
         _aiSettings = AiSettings.Load();
         _advisor.UpdateSettings(_aiSettings);
 
-        _isDarkTheme = ThemeService.IsDark;
+        _isDarkTheme = _themeService.IsDark;
 
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
-        _statusText = LocalizationService.Instance["status.ready"];
-        _aiNoDataText = LocalizationService.Instance["ai.noData"];
+        _statusText = _loc["status.ready"];
+        _aiNoDataText = _loc["ai.noData"];
 
         LoadMatrixGrids();
         UpdateAiBadge();
 
-        LocalizationService.Instance.PropertyChanged += (_, _) => OnLanguageChanged();
+        _loc.PropertyChanged += (_, _) => OnLanguageChanged();
 
         InitializeCommands();
 
@@ -66,7 +87,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void OnLanguageChanged()
     {
-        var loc = LocalizationService.Instance;
+        var loc = _loc;
         LangFlag = loc.Flag;
         LangName = loc.LangName;
         StatusText = loc["status.ready"];
@@ -105,6 +126,12 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnProductTypeChanged();
         }
+    }
+
+    public int DatabaseIndex
+    {
+        get => _databaseIndex;
+        set { _databaseIndex = value; OnPropertyChanged(); }
     }
 
     public string StatusText
@@ -274,10 +301,10 @@ public class MainViewModel : INotifyPropertyChanged
 
     #region Tab Headers
 
-    public string TabMatrixHeader => LocalizationService.Instance["tab.matrixTitle"];
-    public string TabSetupHeader => LocalizationService.Instance["tab.setupTitle"];
-    public string TabResultsHeader => LocalizationService.Instance["tab.resultsTitle"];
-    public string TabAssistantHeader => LocalizationService.Instance["tab.assistantTitle"];
+    public string TabMatrixHeader => _loc["tab.matrixTitle"];
+    public string TabSetupHeader => _loc["tab.setupTitle"];
+    public string TabResultsHeader => _loc["tab.resultsTitle"];
+    public string TabAssistantHeader => _loc["tab.assistantTitle"];
 
     #endregion
 
@@ -346,7 +373,8 @@ public class MainViewModel : INotifyPropertyChanged
                 _ => DeploymentType.Hybrid
             },
             ProductType = productType,
-            LoadProfile = loadProfile
+            LoadProfile = loadProfile,
+            DatabaseType = (DatabaseType)DatabaseIndex
         };
     }
 
@@ -359,10 +387,10 @@ public class MainViewModel : INotifyPropertyChanged
             _lastResult = req;
             _lastResultPerf = perfReq;
             ShowResults(req, perfReq);
-            CalculationHistoryService.SaveToHistory(config, req);
+            _historyService.SaveToHistory(config, req);
             LoadHistory();
             SelectedTabIndex = 2;
-            StatusText = string.Format(LocalizationService.Instance["status.calculated"],
+            StatusText = string.Format(_loc["status.calculated"],
                 config.UserCount, req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"));
         }
         catch (Exception ex)
@@ -387,7 +415,7 @@ public class MainViewModel : INotifyPropertyChanged
             LoadProfile = otherProfile
         };
         _engine.SetProductType(otherProduct);
-        var otherModules = _engine.Modules.Select(m => CloneModule(m)).ToList();
+        var otherModules = _engine.Modules.Select(m => m.Clone()).ToList();
         _engine.SetModules(otherModules);
         perfReq = _engine.Calculate(otherConfig);
         _engine.SetProductType(config.ProductType);
@@ -410,11 +438,11 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (_lastResult != null && _lastResultPerf != null)
         {
-            ValidationResults = new ObservableCollection<ValidationResult>(_validator.Validate(_lastResult, _lastResultPerf));
+            ValidationResults = new ObservableCollection<ValidationResult>(_results.CompareProfiles(_lastResult, _lastResultPerf));
             OnPropertyChanged(nameof(ValidationResults));
         }
 
-        AiNoDataText = LocalizationService.Instance["ai.noData"];
+        AiNoDataText = _loc["ai.noData"];
         IsAiNoDataVisible = true;
         IsAiRecListVisible = false;
         IsQuickRecVisible = false;
@@ -428,7 +456,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         if (_lastResult == null) return;
 
-        AiNoDataText = LocalizationService.Instance["results.aiAnalyzing"];
+        AiNoDataText = _loc["results.aiAnalyzing"];
         IsAiNoDataVisible = true;
         IsAiRecListVisible = false;
         IsQuickRecVisible = false;
@@ -448,15 +476,17 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(AiInfrastructure));
 
             var totalSavings = balance.Recommendations.Sum(r => r.PotentialSavings);
-            AiBadgeResultText = $"{balance.Recommendations.Count} rec" +
-                (totalSavings > 0 ? $" | ~${totalSavings:F0}/mo economy" : "");
-            AiRecCountText = LocalizationService.Instance.CurrentLang == "uk"
+            var savingsText = totalSavings > 0
+                ? " | " + string.Format(_loc["results.savings"], (int)totalSavings)
+                : "";
+            AiBadgeResultText = $"{balance.Recommendations.Count} rec{savingsText}";
+            AiRecCountText = _loc.CurrentLang == "uk"
                 ? $"📋 {balance.Recommendations.Count} рекомендацій"
                 : $"📋 {balance.Recommendations.Count} recommendations";
         }
         else
         {
-            AiNoDataText = LocalizationService.Instance["ai.noData"];
+            AiNoDataText = _loc["ai.noData"];
             IsAiNoDataVisible = true;
         }
     }
@@ -472,7 +502,7 @@ public class MainViewModel : INotifyPropertyChanged
             _parsedConfig = config;
             _parsedModules = modules;
 
-            var loc = LocalizationService.Instance;
+            var loc = _loc;
             var deployName = config.DeploymentType switch
             {
                 DeploymentType.Kubernetes => loc["deploy.k8sName"],
@@ -530,15 +560,13 @@ public class MainViewModel : INotifyPropertyChanged
         SelectedTabIndex = 1;
         Calculate();
 
-        var loc = LocalizationService.Instance;
-        StatusText = loc.CurrentLang == "uk"
-            ? $"Застосовано: {_parsedConfig.UserCount} користувачів, {_parsedModules?.Count ?? 0} модулів"
-            : $"Applied: {_parsedConfig.UserCount} users, {_parsedModules?.Count ?? 0} modules";
+        StatusText = string.Format(_loc["status.applied"],
+            _parsedConfig.UserCount, _parsedModules?.Count ?? 0);
     }
 
     private void UseTemplate(string template)
     {
-        var loc = LocalizationService.Instance;
+        var loc = _loc;
         var templates = new Dictionary<string, string>
         {
             ["tpl1"] = loc.CurrentLang == "uk"
@@ -561,7 +589,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void LoadHistory()
     {
-        HistoryItems = new ObservableCollection<CalculationHistoryItem>(CalculationHistoryService.LoadHistory());
+        HistoryItems = new ObservableCollection<CalculationHistoryItem>(_historyService.LoadHistory());
         OnPropertyChanged(nameof(HistoryItems));
         OnPropertyChanged(nameof(HasHistory));
     }
@@ -598,33 +626,9 @@ public class MainViewModel : INotifyPropertyChanged
     private void ShowScaling()
     {
         var config = GetConfig();
-        var points = new List<ServiceComponent>();
+        var points = ResultsPresenter.ComputeScaling(config, new List<ServiceComponent>(), _engine, Modules.ToList());
         var step = config.UserCount <= 100 ? 25 : config.UserCount <= 500 ? 50 : 100;
-        var steps = new List<int>();
-        for (int u = step; u <= config.UserCount * 2; u += step)
-            steps.Add(u);
-        if (steps.Count > 30) steps = steps.Where((_, i) => i % (steps.Count / 20) == 0).ToList();
-
-        _engine.SetModules(Modules.ToList());
-        foreach (var uc in steps)
-        {
-            var cfg = new ProjectConfig
-            {
-                ProjectName = config.ProjectName, UserCount = uc,
-                DeploymentType = config.DeploymentType,
-                ProductType = config.ProductType, LoadProfile = config.LoadProfile
-            };
-            var req = _engine.Calculate(cfg);
-            points.Add(new ServiceComponent
-            {
-                Name = $"{uc} users",
-                Cpu = Math.Round(req.TotalCpu, 1),
-                RamGb = Math.Round(req.TotalRamGb, 1),
-                Replicas = req.Infrastructure.Sum(n => n.NodeCount),
-                Notes = $"IOPS:{req.TotalIops}, Storage:{req.TotalStorageGb}GB"
-            });
-        }
-        _engine.SetModules(Modules.ToList());
+        var steps = Enumerable.Range(1, 30).Select(i => i * step).TakeWhile(s => s <= config.UserCount * 2).ToList();
 
         ScalingData = new ObservableCollection<ServiceComponent>(points);
         OnPropertyChanged(nameof(ScalingData));
@@ -644,11 +648,10 @@ public class MainViewModel : INotifyPropertyChanged
         {
             try
             {
-                var importer = new ExcelImporter();
-                _matrix = importer.Import(dialog.FileName);
-                DataService.SaveMatrix(_matrix);
+                _matrixManager.Import(dialog.FileName);
+                _matrix = _matrixManager.Matrix;
                 ReloadMatrix();
-                StatusText = LocalizationService.Instance["status.imported"];
+                StatusText = _loc["status.imported"];
             }
             catch (Exception ex)
             {
@@ -660,59 +663,24 @@ public class MainViewModel : INotifyPropertyChanged
     private void SaveMatrix()
     {
         SyncGridsToMatrix();
-        DataService.SaveMatrix(_matrix);
-        var lang = LocalizationService.Instance;
-        MessageBox.Show(lang["dialog.matrixSaved"], "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+        _matrixManager.Save();
+        MessageBox.Show(_loc["dialog.matrixSaved"], "Info", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void SyncGridsToMatrix()
     {
-        _matrix.MsSqlRanges = MsSqlRanges.ToList();
-        _matrix.MsSqlPerformanceRanges = MsSqlPerformanceRanges.ToList();
-
-        SyncComponentsToModules(K8sStandardComponents, _matrix.StandardModules);
-        SyncComponentsToModules(K8sDocumentFlowComponents, _matrix.DocumentFlowModules);
-        SyncComponentsToModules(K8sComponents, _matrix.Modules);
-
-        _matrix.DefaultK8sSql = InfraNodes.FirstOrDefault(n => n.Name.Contains("SQL"));
-        _matrix.DefaultK8sMaster = InfraNodes.FirstOrDefault(n => n.Name.Contains("Master"));
-        _matrix.DefaultK8sWorker = InfraNodes.FirstOrDefault(n => n.Name.Contains("Worker"));
-    }
-
-    private void SyncComponentsToModules(ObservableCollection<ServiceComponent> components, List<ProjectModule> modules)
-    {
-        if (components.Count == 0) return;
-
-        var grouped = components.GroupBy(c => c.Category);
-        foreach (var group in grouped)
-        {
-            var module = modules.FirstOrDefault(m => m.Name == group.Key);
-            if (module == null)
-            {
-                module = new ProjectModule { Name = group.Key, Description = group.Key, IsEnabled = true };
-                modules.Add(module);
-            }
-
-            module.Components.Clear();
-            foreach (var comp in group)
-            {
-                module.Components.Add(new ModuleComponent
-                {
-                    Name = comp.Name,
-                    Cpu = comp.Cpu,
-                    RamGb = comp.RamGb,
-                    FixedReplicas = comp.FixedReplicas,
-                    Formula = comp.Formula
-                });
-            }
-        }
+        _matrixManager.SyncGridsToMatrix(
+            MsSqlRanges.ToList(), MsSqlPerformanceRanges.ToList(),
+            K8sStandardComponents.ToList(), K8sDocumentFlowComponents.ToList(),
+            K8sComponents.ToList(), InfraNodes.ToList());
+        _matrix = _matrixManager.Matrix;
     }
 
     private void ResetMatrix()
     {
-        DataService.ClearMatrix();
-        _matrix = new SizingMatrix();
-        _engine = new SizingEngine(_matrix);
+        _matrixManager.Reset();
+        _matrix = _matrixManager.Matrix;
+        _engine.SetProductType(ProductType.Standard);
         ReloadMatrix();
     }
 
@@ -720,7 +688,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         _engine.SetProductType(productType);
-        var freshModules = _engine.Modules.Select(m => CloneModule(m)).ToList();
+        var freshModules = _engine.Modules.Select(m => m.Clone()).ToList();
         _engine.SetModules(freshModules);
         LoadMatrixGrids();
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
@@ -731,13 +699,14 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         _engine.SetProductType(productType);
-        var freshModules = _engine.Modules.Select(m => CloneModule(m)).ToList();
+        var freshModules = _engine.Modules.Select(m => m.Clone()).ToList();
         _engine.SetModules(freshModules);
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         OnPropertyChanged(nameof(Modules));
         OnDeploymentTypeChanged();
-        StatusText = string.Format(LocalizationService.Instance["status.productChanged"],
-            productType == ProductType.Standard ? "Стандарт" : "Документообіг");
+        var loc = _loc;
+        StatusText = string.Format(loc["status.productChanged"],
+            productType == ProductType.Standard ? loc["product.standard"] : loc["product.documentflow"]);
     }
 
     private void OnDeploymentTypeChanged()
@@ -753,8 +722,8 @@ public class MainViewModel : INotifyPropertyChanged
         {
             mod.IsEnabled = deploymentType switch
             {
-                DeploymentType.Kubernetes => !mod.Name.Contains("Windows"),
-                DeploymentType.Windows => true,
+                DeploymentType.Kubernetes => !mod.Name.Contains("Windows") && !mod.Name.Contains("Сервери додатків") && !mod.Name.Contains("Веб сервери"),
+                DeploymentType.Windows => !mod.IsKubernetesOnly,
                 DeploymentType.Hybrid => true,
                 _ => mod.IsEnabled
             };
@@ -763,7 +732,7 @@ public class MainViewModel : INotifyPropertyChanged
         Modules = new ObservableCollection<ProjectModule>(Modules);
         OnPropertyChanged(nameof(Modules));
 
-        var loc = LocalizationService.Instance;
+        var loc = _loc;
         var deployName = deploymentType switch
         {
             DeploymentType.Kubernetes => loc["deploy.k8sName"],
@@ -773,31 +742,13 @@ public class MainViewModel : INotifyPropertyChanged
         StatusText = string.Format(loc["status.deploymentChanged"], deployName);
     }
 
-    private static ProjectModule CloneModule(ProjectModule src)
-    {
-        return new ProjectModule
-        {
-            Name = src.Name, Description = src.Description, IsEnabled = src.IsEnabled,
-            Components = src.Components.Select(c => new ModuleComponent
-            {
-                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                PerfCpu = c.PerfCpu, PerfRamGb = c.PerfRamGb,
-                Formula = c.Formula, FixedReplicas = c.FixedReplicas,
-                HasLocalSql = c.HasLocalSql, HasRedis = c.HasRedis, Notes = c.Notes
-            }).ToList()
-        };
-    }
-
     private void LoadMatrixGrids()
     {
         MsSqlRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlRanges);
         MsSqlPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlPerformanceRanges);
 
-        var standardModules = _matrix.StandardModules.Count > 0
-            ? _matrix.StandardModules
-            : SizingEngine.DefaultStandardModules();
         K8sStandardComponents = new ObservableCollection<ServiceComponent>(
-            standardModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
+            _matrix.StandardModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
                 Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
                 Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
@@ -805,11 +756,8 @@ public class MainViewModel : INotifyPropertyChanged
             }))
         );
 
-        var docFlowModules = _matrix.DocumentFlowModules.Count > 0
-            ? _matrix.DocumentFlowModules
-            : SizingEngine.DefaultDocumentFlowModules();
         K8sDocumentFlowComponents = new ObservableCollection<ServiceComponent>(
-            docFlowModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
+            _matrix.DocumentFlowModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
                 Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
                 Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
@@ -842,30 +790,26 @@ public class MainViewModel : INotifyPropertyChanged
     private void ExportTxt()
     {
         if (_lastResult == null) return;
-        var svc = new ConfigExportService();
-        var text = svc.ExportTxt(_lastResult, GetConfig());
-        ExportConfig(text, "txt");
+        ExportConfig(_results.ExportText(_lastResult, GetConfig()), "txt");
     }
 
     private void ExportHtml()
     {
         if (_lastResult == null) return;
-        var svc = new ConfigExportService();
-        var html = svc.ExportHtml(_lastResult, GetConfig());
-        ExportConfig(html, "html");
+        ExportConfig(_results.ExportHtml(_lastResult, GetConfig()), "html");
     }
 
     private void ShowDiagram()
     {
         if (_lastResult == null) return;
         IsDiagramVisible = true;
-        StatusText = "Схему побудовано";
+        StatusText = _loc["status.diagramBuilt"];
     }
 
     private void ExportSvg()
     {
         if (_lastResult == null) return;
-        var svg = DiagramBuilder.BuildSvg(_lastResult, GetConfig());
+        var svg = ResultsPresenter.BuildSvgDiagram(_lastResult, GetConfig());
         var saveDialog = new Microsoft.Win32.SaveFileDialog
         {
             Filter = "SVG files (*.svg)|*.svg",
@@ -874,15 +818,14 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             System.IO.File.WriteAllText(saveDialog.FileName, svg);
-            StatusText = string.Format(LocalizationService.Instance["status.saved"], saveDialog.FileName);
+            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
     }
 
     private void ExportMermaid()
     {
         if (_lastResult == null) return;
-        var svc = new ConfigExportService();
-        var mermaid = svc.ExportMermaid(_lastResult, GetConfig());
+        var mermaid = _results.ExportMermaid(_lastResult, GetConfig());
         var saveDialog = new Microsoft.Win32.SaveFileDialog
         {
             Filter = "Mermaid files (*.mmd)|*.mmd|Text files (*.txt)|*.txt",
@@ -891,7 +834,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             System.IO.File.WriteAllText(saveDialog.FileName, mermaid);
-            StatusText = string.Format(LocalizationService.Instance["status.saved"], saveDialog.FileName);
+            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
     }
 
@@ -910,7 +853,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             System.IO.File.WriteAllText(saveDialog.FileName, content);
-            StatusText = string.Format(LocalizationService.Instance["status.saved"], saveDialog.FileName);
+            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
     }
 
@@ -928,14 +871,14 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void SwitchLanguage()
     {
-        var loc = LocalizationService.Instance;
+        var loc = _loc;
         loc.LoadLanguage(loc.CurrentLang == "uk" ? "en" : "uk");
     }
 
     private void ToggleTheme()
     {
-        ThemeService.Toggle();
-        IsDarkTheme = ThemeService.IsDark;
+        _themeService.Toggle();
+        IsDarkTheme = _themeService.IsDark;
     }
 
     private void UpdateAiBadge()
@@ -946,7 +889,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
         else
         {
-            AiBadgeText = LocalizationService.Instance["ai.badgeDisabled"];
+            AiBadgeText = _loc["ai.badgeDisabled"];
         }
     }
 
@@ -965,7 +908,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     #region Helper
 
-    public SizingEngine Engine => _engine;
+    public ISizingEngine Engine => _engine;
     public ResourceRequirement? LastResult => _lastResult;
     public ResourceRequirement? LastResultPerf => _lastResultPerf;
 

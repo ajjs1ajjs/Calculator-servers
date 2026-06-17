@@ -16,7 +16,7 @@ public class PromptParserService
 
         var hasK8s = Regex.IsMatch(prompt, @"\b(k8s|kubernetes|кубер)\b", RegexOptions.IgnoreCase);
         var hasWindows = Regex.IsMatch(prompt, @"\bwindows\b(?!\s+infra|infrastructure)", RegexOptions.IgnoreCase);
-        var hasHybrid = Regex.IsMatch(prompt, @"\b(гібрид|hybrid|змішан)\b", RegexOptions.IgnoreCase);
+        var hasHybrid = Regex.IsMatch(prompt, @"\bгібрид\w*\b|\bhybrid\b|\bзмішан\w*\b", RegexOptions.IgnoreCase);
 
         if (hasHybrid)
             config.DeploymentType = DeploymentType.Hybrid;

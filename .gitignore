@@ -9,5 +9,5 @@ obj/
 .DS_Store
 Thumbs.db
 build/
-*.svg
-resources.*
+/build/*.svg
+/build/resources.*
