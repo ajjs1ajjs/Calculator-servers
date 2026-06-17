@@ -11,3 +11,15 @@ Thumbs.db
 build/
 /build/*.svg
 /build/resources.*
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+*.crt
+*.pfx
+*.jwt.secret
+*.autodoc.key
+credentials.txt
+master.key
