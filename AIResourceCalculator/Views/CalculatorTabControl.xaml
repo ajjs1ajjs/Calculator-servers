@@ -36,7 +36,7 @@
                                 </ComboBox>
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Database" FontSize="14" VerticalAlignment="Center" Margin="3"/>
                                 <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4">
-                                    <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="MySQL"/><ComboBoxItem Content="MongoDB"/>
+                                    <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="MySQL"/><ComboBoxItem Content="MongoDB"/><ComboBoxItem Content="Oracle 19c"/>
                                 </ComboBox>
                             </Grid>
                         </StackPanel>

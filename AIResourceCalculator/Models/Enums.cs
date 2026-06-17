@@ -24,7 +24,8 @@ public enum DatabaseType
     MsSql,
     PostgreSQL,
     MySql,
-    MongoDB
+    MongoDB,
+    Oracle
 }
 
 public enum AiProvider

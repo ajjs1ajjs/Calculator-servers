@@ -321,6 +321,30 @@ public class SizingEngineTests
     }
 
     [Fact]
+    public void FindDatabaseRange_Oracle_50Users_ReturnsCorrectRange()
+    {
+        var range = _matrix.OracleRanges.FirstOrDefault(r => 50 >= r.MinUsers && 50 <= r.MaxUsers);
+        Assert.NotNull(range);
+        Assert.Equal(26, range!.MinUsers);
+        Assert.Equal(50, range.MaxUsers);
+        Assert.Equal(4, range.Cpu);
+    }
+
+    [Fact]
+    public void Calculate_K8s_Oracle_ReturnsOracleNode()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Kubernetes,
+            DatabaseType = DatabaseType.Oracle
+        };
+        var result = _engine.Calculate(config);
+        Assert.Contains(result.Infrastructure, n => n.Name == "Oracle 19c");
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name == "SQL Server");
+    }
+
+    [Fact]
     public void Calculate_Windows_Postgres_ReturnsPostgresNode()
     {
         var config = new ProjectConfig

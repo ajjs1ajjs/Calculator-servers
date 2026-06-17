@@ -134,6 +134,21 @@ public class SizingMatrix
         new() { MinUsers = 3001,MaxUsers = 5000, Cpu = 28, RamMin = 256,RamRec = 512, Iops = 24000,Latency = 0.1 },
     };
 
+    public List<UserLoadRange> OracleRanges { get; set; } = new()
+    {
+        // Oracle 19c: ~110-120% ресурсів vs SQL Server. PGA + SGA memory model.
+        // Higher CPU overhead (parse, optimize), needs more RAM for optimal performance.
+        new() { MinUsers = 1,   MaxUsers = 25,   Cpu = 2,  RamMin = 4,  RamRec = 8,   Iops = 250,  Latency = 8 },
+        new() { MinUsers = 26,  MaxUsers = 50,   Cpu = 4,  RamMin = 8,  RamRec = 16,  Iops = 350,  Latency = 5 },
+        new() { MinUsers = 51,  MaxUsers = 100,  Cpu = 8,  RamMin = 16, RamRec = 32,  Iops = 600,  Latency = 3 },
+        new() { MinUsers = 101, MaxUsers = 200,  Cpu = 12, RamMin = 32, RamRec = 64,  Iops = 1000, Latency = 2 },
+        new() { MinUsers = 201, MaxUsers = 500,  Cpu = 16, RamMin = 64, RamRec = 128, Iops = 1500, Latency = 1.5 },
+        new() { MinUsers = 501, MaxUsers = 1000, Cpu = 20, RamMin = 128,RamRec = 256, Iops = 3000, Latency = 1 },
+        new() { MinUsers = 1001,MaxUsers = 2000, Cpu = 24, RamMin = 256,RamRec = 448, Iops = 6000, Latency = 0.5 },
+        new() { MinUsers = 2001,MaxUsers = 3000, Cpu = 28, RamMin = 384,RamRec = 640, Iops = 12000,Latency = 0.3 },
+        new() { MinUsers = 3001,MaxUsers = 5000, Cpu = 32, RamMin = 512,RamRec = 896, Iops = 20000,Latency = 0.2 },
+    };
+
     public List<ProjectModule> Modules { get; set; } = new();
 
     public List<ProjectModule> StandardModules { get; set; } = new()
