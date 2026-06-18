@@ -17,10 +17,6 @@
 - **Історія розрахунків** — останні 20 розрахунків зберігаються локально.
 - **Локалізація** — українська та англійська мови.
 
-> У кодовій базі також реалізовано генератори IaC (Terraform, ARM, Bicep, Pulumi, Ansible,
-> Helm, маніфести Kubernetes, GCP/AWS Terraform) — вони покриті тестами, але поки що не виведені
-> в інтерфейс користувача.
-
 ## Технології
 
 - C# / WPF, .NET 10, патерн MVVM
@@ -48,7 +44,7 @@ dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release
 | Каталог | Призначення |
 |---------|-------------|
 | `AIResourceCalculator/Models` | Моделі даних (вузли, діапазони навантаження, модулі). |
-| `AIResourceCalculator/Services` | Бізнес-логіка: рушій сайзингу, експорт, оцінка вартості, валідація. |
+| `AIResourceCalculator/Services` | Бізнес-логіка: рушій сайзингу, експорт TXT/HTML, валідація, вимоги до дисків. |
 | `AIResourceCalculator/ViewModels` | ViewModel'и MVVM. |
 | `AIResourceCalculator/Views` | XAML-вкладки інтерфейсу. |
 | `AIResourceCalculator/Data` | Матриця сайзингу за замовчуванням та імпорт Excel. |

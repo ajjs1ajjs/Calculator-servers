@@ -80,7 +80,6 @@ public class ResultsPresenterTests
         Assert.Contains("Test", result);
         Assert.Contains("vCPU", result);
         Assert.Contains("RAM", result);
-        Assert.Contains("Azure", result);
     }
 
     [Fact]
@@ -90,31 +89,6 @@ public class ResultsPresenterTests
         Assert.Contains("<html", result);
         Assert.Contains("</html>", result);
         Assert.Contains("vCPU", result);
-    }
-
-    [Fact]
-    public void ExportMermaid_ContainsGraphDirection()
-    {
-        var result = _presenter.ExportMermaid(_req, _config);
-        Assert.Contains("mermaid", result);
-        Assert.Contains("graph", result);
-    }
-
-    [Fact]
-    public void ExportSvg_ReturnsValidSvg()
-    {
-        var result = ResultsPresenter.BuildSvgDiagram(_req, _config);
-        Assert.Contains("<svg", result);
-        Assert.Contains("</svg>", result);
-        Assert.Contains("Test", result);
-    }
-
-    [Fact]
-    public void ExportSvgWithoutConfig_UsesDefaultProjectName()
-    {
-        var result = DiagramBuilder.BuildSvg(_req);
-        Assert.Contains("<svg", result);
-        Assert.Contains("Project", result);
     }
 
     [Fact]
@@ -141,19 +115,5 @@ public class ResultsPresenterTests
         var results = _presenter.ValidateProject(_config, calculated, actual);
         Assert.Contains(results, r => r.ResourceName.Contains("vCPU"));
         Assert.Contains(results, r => r.ResourceName.Contains("RAM"));
-    }
-
-    [Fact]
-    public void ComputeScaling_MultipleSteps_ReturnsProjections()
-    {
-        var matrix = new Data.SizingMatrix();
-        var engine = new SizingEngine(matrix);
-        var config = new ProjectConfig { UserCount = 100, DeploymentType = DeploymentType.Kubernetes };
-        var modules = engine.Modules.ToList();
-
-        var points = ResultsPresenter.ComputeScaling(config, new List<ServiceComponent>(), engine, modules);
-
-        Assert.NotEmpty(points);
-        Assert.All(points, p => Assert.True(p.Cpu > 0));
     }
 }

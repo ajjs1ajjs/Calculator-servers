@@ -131,12 +131,7 @@ public class LocalizationService : ILocalizationService
         ["error.calculation_failed"] = "Не вдалося виконати розрахунок: {0}",
         ["error.invalid_input"] = "Некоректні вхідні дані: {0}",
         ["error.unknown"] = "Сталася непередбачена помилка: {0}",
-        ["diagram.title"] = "Діаграма інфраструктури",
-        ["diagram.show"] = "Схема мережі",
-        ["diagram.copyMermaid"] = "Копіювати Mermaid",
         ["dialog.matrixSaved"] = "Матрицю збережено",
-        ["status.diagramBuilt"] = "Схему побудовано",
-        ["status.applied"] = "Застосовано: {0} користувачів, {1} модулів",
     };
 
     private static readonly Dictionary<string, string> StringsEn = new()
@@ -261,12 +256,7 @@ public class LocalizationService : ILocalizationService
         ["error.calculation_failed"] = "Calculation failed: {0}",
         ["error.invalid_input"] = "Invalid input: {0}",
         ["error.unknown"] = "An unexpected error occurred: {0}",
-        ["diagram.title"] = "Infrastructure Diagram",
-        ["diagram.show"] = "Network Diagram",
-        ["diagram.copyMermaid"] = "Copy Mermaid",
         ["dialog.matrixSaved"] = "Matrix saved",
-        ["status.diagramBuilt"] = "Diagram built",
-        ["status.applied"] = "Applied: {0} users, {1} modules",
     };
 
     private static readonly LocalizationService _instance = new();

@@ -25,8 +25,7 @@ public class ConfigExportServiceTests
             MasterNodeCount = 1
         };
         _req.Components.Add(new ServiceComponent { Name = "Web", Cpu = 4, RamGb = 16, Replicas = 2 });
-        _req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 4, RamGb = 16, NodeCount = 1, StorageGb = 300 });
-        _req.Infrastructure.Add(new InfrastructureNode { Name = "Master Node", Cpu = 4, RamGb = 8, NodeCount = 1, StorageGb = 100 });
+        _req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 4, RamGb = 16, NodeCount = 1, StorageGb = 300, StorageGb2 = 150 });
         _req.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3, StorageGb = 200 });
 
         _config = new ProjectConfig
@@ -39,236 +38,49 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportTxt_ContainsAzureProvider()
+    public void ExportTxt_ContainsProjectAndTotals()
     {
         var result = _svc.ExportTxt(_req, _config);
-        Assert.Contains("Azure", result);
+        Assert.Contains("TestProject", result);
+        Assert.Contains("vCPU", result);
+        Assert.Contains("RAM", result);
+        Assert.Contains("IOPS", result);
     }
 
     [Fact]
-    public void ExportHtml_ContainsAzureProvider()
+    public void ExportTxt_IsCloudAgnostic()
+    {
+        var result = _svc.ExportTxt(_req, _config);
+        Assert.DoesNotContain("Azure", result);
+        Assert.DoesNotContain("Standard_", result);
+    }
+
+    [Fact]
+    public void ExportTxt_ShowsPerNodeDiskTotal()
+    {
+        // SQL-вузол: 300 + 150 = 450 GB на вузол.
+        var result = _svc.ExportTxt(_req, _config);
+        Assert.Contains("450", result);
+    }
+
+    [Fact]
+    public void ExportHtml_ContainsHtmlStructure()
     {
         var result = _svc.ExportHtml(_req, _config);
-        Assert.Contains("Azure", result);
+        Assert.Contains("<html", result);
+        Assert.Contains("</html>", result);
+        Assert.Contains("vCPU", result);
     }
 
     [Fact]
-    public void ExportTerraform_ContainsAzurermProvider()
+    public void ExportHtml_IsCloudAgnostic()
     {
-        var result = _svc.ExportTerraform(_req, _config);
-        Assert.Contains("azurerm", result);
-        Assert.Contains("resource_group", result);
+        var result = _svc.ExportHtml(_req, _config);
+        Assert.DoesNotContain("Azure", result);
+        Assert.DoesNotContain("Standard_", result);
     }
 
-    [Fact]
-    public void ExportTerraform_ContainsAksCluster()
-    {
-        var result = _svc.ExportTerraform(_req, _config);
-        Assert.Contains("kubernetes_cluster", result);
-    }
-
-    [Fact]
-    public void ExportArmTemplate_ContainsAzureJson()
-    {
-        var result = _svc.ExportArmTemplate(_req, _config);
-        Assert.Contains("Microsoft.Compute/virtualMachines", result);
-        Assert.Contains("deploymentTemplate", result);
-    }
-
-    [Fact]
-    public void ExportBicep_ContainsAzureResources()
-    {
-        var result = _svc.ExportBicep(_req, _config);
-        Assert.Contains("Microsoft.Compute/virtualMachines", result);
-        Assert.Contains("param projectName", result);
-    }
-
-    [Fact]
-    public void ExportPulumi_ContainsAzureNamespaces()
-    {
-        var result = _svc.ExportPulumi(_req, _config);
-        Assert.Contains("AzureNative", result);
-        Assert.Contains("ResourceGroup", result);
-    }
-
-    [Fact]
-    public void ExportMermaid_ContainsAzureLabels()
-    {
-        var result = _svc.ExportMermaid(_req, _config);
-        Assert.Contains("Load Balancer", result);
-    }
-
-    [Fact]
-    public void ExportSvg_ContainsCloudTitle()
-    {
-        var result = _svc.ExportSvg(_req, _config);
-        Assert.Contains("Cloud", result);
-    }
-
-    [Fact]
-    public void ExportHld_ContainsAzureProvider()
-    {
-        var result = _svc.ExportHld(_req, _config);
-        Assert.Contains("Azure", result);
-    }
-
-    [Fact]
-    public void ExportAnsible_ContainsAzure()
-    {
-        var result = _svc.ExportAnsible(_req, _config);
-        Assert.Contains("Azure", result);
-    }
-
-    [Fact]
-    public void GetAzureVmSize_CorrectForSmall()
-    {
-        var result = _svc.ExportTxt(_req, _config);
-        Assert.Contains("Standard", result);
-    }
-
-    [Fact]
-    public void ExportBicep_WindowsDeployment_NoAks()
-    {
-        var winReq = new ResourceRequirement { DeploymentType = DeploymentType.Windows, TotalCpu = 16, TotalRamGb = 64 };
-        winReq.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 4, RamGb = 16, NodeCount = 1 });
-        var winConfig = new ProjectConfig { ProjectName = "WinTest", UserCount = 50, DeploymentType = DeploymentType.Windows };
-        var result = _svc.ExportBicep(winReq, winConfig);
-        Assert.DoesNotContain("ContainerService", result);
-    }
-
-    [Fact]
-    public void ExportArmTemplate_Hybrid_ContainsVmResources()
-    {
-        var hReq = new ResourceRequirement { DeploymentType = DeploymentType.Hybrid, TotalCpu = 40, TotalRamGb = 160 };
-        hReq.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3 });
-        var hConfig = new ProjectConfig { ProjectName = "Hybrid", UserCount = 200, DeploymentType = DeploymentType.Hybrid };
-        var result = _svc.ExportArmTemplate(hReq, hConfig);
-        Assert.Contains("Microsoft.Compute", result);
-    }
-
-    [Fact]
-    public void ExportK8sDeployment_ContainsApiVersion()
-    {
-        var result = _svc.ExportK8sDeployment(_req, _config);
-        Assert.Contains("apiVersion: apps/v1", result);
-        Assert.Contains("kind: Deployment", result);
-    }
-
-    [Fact]
-    public void ExportK8sDeployment_ContainsComponentNames()
-    {
-        var result = _svc.ExportK8sDeployment(_req, _config);
-        Assert.Contains("app: web", result.ToLower());
-        Assert.Contains("Deployment", result);
-    }
-
-    [Fact]
-    public void ExportHelmChart_ContainsChartMetadata()
-    {
-        var result = _svc.ExportHelmChart(_req, _config);
-        Assert.Contains("apiVersion: v2", result);
-        Assert.Contains("TestProject", result);
-    }
-
-    [Fact]
-    public void ExportHelmChart_ContainsComponentValues()
-    {
-        var result = _svc.ExportHelmChart(_req, _config);
-        Assert.Contains("replicaCount", result);
-        Assert.Contains("resources", result);
-    }
-
-    [Fact]
-    public void ExportGcpTerraform_ContainsGoogleProvider()
-    {
-        var result = _svc.ExportGcpTerraform(_req, _config);
-        Assert.Contains("provider \"google\"", result);
-        Assert.Contains("google_compute_instance", result);
-    }
-
-    [Fact]
-    public void ExportAwsTerraform_ContainsAwsProvider()
-    {
-        var result = _svc.ExportAwsTerraform(_req, _config);
-        Assert.Contains("provider \"aws\"", result);
-        Assert.Contains("aws_instance", result);
-    }
-
-    [Fact]
-    public void ExportGcpTerraform_UsesGcpMachineTypes()
-    {
-        var result = _svc.ExportGcpTerraform(_req, _config);
-        Assert.Contains("machine_type", result);
-    }
-
-    [Fact]
-    public void ExportAwsTerraform_UsesAwsInstanceTypes()
-    {
-        var result = _svc.ExportAwsTerraform(_req, _config);
-        Assert.Contains("instance_type", result);
-        Assert.Contains("t3.medium", result);
-    }
-
-    [Fact]
-    public void AwsRegion_DefaultIsEuWest1()
-    {
-        Assert.Equal("eu-west-1", _svc.AwsRegion);
-    }
-
-    [Fact]
-    public void GcpRegion_DefaultIsEuropeWest1()
-    {
-        Assert.Equal("europe-west1", _svc.GcpRegion);
-    }
-
-    [Fact]
-    public void SetAwsRegion_ChangesOutput()
-    {
-        _svc.AwsRegion = "us-east-1";
-        var result = _svc.ExportAwsTerraform(_req, _config);
-        Assert.Contains("us-east-1", result);
-    }
-
-    // --- Regression: BUG-2 GCP machine_type must be an interpolated value, not the literal "machine_type" ---
-    [Fact]
-    public void ExportGcpTerraform_MachineTypeHasConcreteValue()
-    {
-        var result = _svc.ExportGcpTerraform(_req, _config);
-        Assert.DoesNotContain("machine_type = machine_type", result);
-        Assert.Contains("machine_type = \"", result);
-        Assert.Contains("e2-", result); // GetGcpMachineType returns an e2-* family type
-    }
-
-    // --- Regression: BUG-1 K8s env block must be well-formed and conditional ---
-    [Fact]
-    public void ExportK8sDeployment_LocalSqlComponent_EmitsEnvBlock()
-    {
-        var req = MakeK8sReq(new ServiceComponent { Name = "Api", Cpu = 2, RamGb = 4, Replicas = 1, HasLocalSql = true });
-        var result = _svc.ExportK8sDeployment(req, _config);
-        Assert.Contains("env:", result);
-        Assert.Contains("CONNECTION_STRING", result);
-    }
-
-    [Fact]
-    public void ExportK8sDeployment_RedisComponent_EmitsRedisEnv()
-    {
-        var req = MakeK8sReq(new ServiceComponent { Name = "Cache", Cpu = 2, RamGb = 4, Replicas = 1, HasRedis = true });
-        var result = _svc.ExportK8sDeployment(req, _config);
-        Assert.Contains("env:", result);
-        Assert.Contains("REDIS_CONNECTION", result);
-    }
-
-    [Fact]
-    public void ExportK8sDeployment_PlainComponent_HasNoOrphanEnv()
-    {
-        // Component without LocalSql/Redis must NOT emit env entries (the braceless-if bug emitted them unconditionally).
-        var req = MakeK8sReq(new ServiceComponent { Name = "Stateless", Cpu = 2, RamGb = 4, Replicas = 1 });
-        var result = _svc.ExportK8sDeployment(req, _config);
-        Assert.DoesNotContain("CONNECTION_STRING", result);
-        Assert.DoesNotContain("REDIS_CONNECTION", result);
-    }
-
-    // --- Regression: екранування XSS у HTML-звіті (назви з імпортованого Excel) ---
+    // Регресія: екранування XSS у HTML-звіті (назви з імпортованого Excel)
     [Fact]
     public void ExportHtml_EscapesMaliciousNodeName()
     {
@@ -279,51 +91,11 @@ public class ConfigExportServiceTests
         Assert.Contains("&lt;script&gt;", result);
     }
 
-    // --- Regression: згенерований Terraform має визначати NIC та subnet, а не посилатися на неіснуючий ресурс ---
     [Fact]
-    public void ExportTerraform_DefinesNetworkInterfaceAndSubnet()
+    public void SanitizeHtml_EscapesAngleBracketsAndQuotes()
     {
-        var result = _svc.ExportTerraform(_req, _config);
-        Assert.Contains("azurerm_subnet", result);
-        Assert.Contains("azurerm_network_interface", result);
-        Assert.DoesNotContain("nic_${count.index}", result);
-    }
-
-    // --- Regression: некоректні символи у назві вузла не потрапляють в ідентифікатор ресурсу ---
-    [Fact]
-    public void ExportTerraform_SanitizesSlashInNodeName()
-    {
-        var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
-        req.Infrastructure.Add(new InfrastructureNode { Name = "GPU Node (T4/A10)", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200 });
-        var result = _svc.ExportTerraform(req, _config);
-        Assert.DoesNotContain("\"gpunodet4/a10\"", result);
-        Assert.Contains("\"gpu-node-t4-a10\"", result);
-    }
-
-    // --- Regression: K8s-маніфест бере креденшали з Secret, а не з відкритого env value ---
-    [Fact]
-    public void ExportK8sDeployment_LocalSql_UsesSecretReference()
-    {
-        var req = MakeK8sReq(new ServiceComponent { Name = "Api", Cpu = 2, RamGb = 4, Replicas = 1, HasLocalSql = true });
-        var result = _svc.ExportK8sDeployment(req, _config);
-        Assert.Contains("kind: Secret", result);
-        Assert.Contains("secretKeyRef", result);
-    }
-
-    private static ResourceRequirement MakeK8sReq(ServiceComponent component)
-    {
-        var req = new ResourceRequirement
-        {
-            UserCount = 100,
-            DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic,
-            TotalCpu = 8,
-            TotalRamGb = 32,
-            WorkerNodeCount = 3,
-            MasterNodeCount = 1
-        };
-        req.Components.Add(component);
-        req.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3, StorageGb = 200 });
-        return req;
+        Assert.Equal("&lt;b&gt;", ConfigExportService.SanitizeHtml("<b>"));
+        Assert.Equal("&quot;x&quot;", ConfigExportService.SanitizeHtml("\"x\""));
+        Assert.Equal("", ConfigExportService.SanitizeHtml(""));
     }
 }
