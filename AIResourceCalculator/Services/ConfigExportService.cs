@@ -21,6 +21,8 @@ public class ConfigExportService
         sb.AppendLine($"  RAM:      {req.TotalRamGb:F1} GB");
         sb.AppendLine($"  Диски:    {req.TotalStorageGb} GB");
         sb.AppendLine($"  IOPS:     {req.TotalIops}");
+        if (req.PodCpu > 0)
+            sb.AppendLine($"  Запит подів K8s: {req.PodCpu:F1} vCPU / {req.PodRamGb:F1} GB (фізичні вузли — нижче)");
         sb.AppendLine("----------------------------------------");
         sb.AppendLine("  Інфраструктура:");
         foreach (var i in req.Infrastructure)
@@ -47,6 +49,8 @@ public class ConfigExportService
         sb.AppendLine($"<div class='kpi-box' style='background:#fe640b'><h3>Диски</h3><p>{req.TotalStorageGb} GB</p></div>");
         sb.AppendLine($"<div class='kpi-box' style='background:#8839ef'><h3>IOPS</h3><p>{req.TotalIops}</p></div>");
         sb.AppendLine("</div>");
+        if (req.PodCpu > 0)
+            sb.AppendLine($"<p><i>K8s: поди запитують {req.PodCpu:F1} vCPU / {req.PodRamGb:F1} GB RAM. Фізичні вузли (нижче) провіжиняться з округленням + master/SQL.</i></p>");
         sb.AppendLine("<h2>Інфраструктура</h2><table><tr><th>Вузол</th><th>vCPU</th><th>RAM</th><th>К-сть</th><th>Диски/вузол</th></tr>");
         foreach (var i in req.Infrastructure)
             sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{i.DiskPerNodeGb} GB</td></tr>");

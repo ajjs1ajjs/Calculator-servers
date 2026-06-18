@@ -58,6 +58,9 @@
                     </Border>
                 </Grid>
             </Border>
+            <TextBlock Text="{Binding PodRequests}" FontSize="11" FontStyle="Italic"
+                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="2,0,0,12"
+                       Visibility="{Binding HasPodRequests, Converter={StaticResource VisibilityConverter}}"/>
             <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
             <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12">
                 <DataGrid.Columns>

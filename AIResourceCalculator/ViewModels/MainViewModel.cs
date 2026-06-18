@@ -160,6 +160,10 @@ public class MainViewModel : INotifyPropertyChanged
     public string DiskRecommendations { get => _diskRecommendations; set { _diskRecommendations = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasDiskRecommendations)); } }
     public bool HasDiskRecommendations => !string.IsNullOrEmpty(_diskRecommendations);
 
+    private string _podRequests = "";
+    public string PodRequests { get => _podRequests; set { _podRequests = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasPodRequests)); } }
+    public bool HasPodRequests => !string.IsNullOrEmpty(_podRequests);
+
     public string TotalCpu { get => _totalCpu; set { _totalCpu = value; OnPropertyChanged(); } }
     public string TotalRam { get => _totalRam; set { _totalRam = value; OnPropertyChanged(); } }
     public string TotalStorage { get => _totalStorage; set { _totalStorage = value; OnPropertyChanged(); } }
@@ -302,6 +306,9 @@ public class MainViewModel : INotifyPropertyChanged
         TotalNodes = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
         ResultSummary = BuildSummary(req, config);
         DiskRecommendations = BuildDiskRecommendations(req, config);
+        PodRequests = req.PodCpu > 0
+            ? string.Format(_loc["results.podRequests"], req.PodCpu.ToString("F1"), req.PodRamGb.ToString("F1"))
+            : "";
         ResultInfrastructure = new ObservableCollection<InfrastructureNode>(req.Infrastructure);
         OnPropertyChanged(nameof(ResultInfrastructure));
 

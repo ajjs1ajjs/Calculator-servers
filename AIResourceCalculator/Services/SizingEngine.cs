@@ -102,6 +102,8 @@ public class SizingEngine : ISizingEngine
         // як ФІЗИЧНІ ресурси всіх вузлів (щоб значення було зіставне з Windows-режимом).
         req.WorkerNodeCount = workerCount;
         req.MasterNodeCount = masterNode.NodeCount > 0 ? masterNode.NodeCount : 1;
+        req.PodCpu = totalCpu;
+        req.PodRamGb = totalRam;
 
         var dbName = GetDatabaseNodeName(config.DatabaseType);
         var sqlNode = _matrix.DefaultK8sSql ?? _defaultSql;
@@ -254,6 +256,8 @@ public class SizingEngine : ISizingEngine
 
         req.TotalIops = k8sReq.TotalIops + winReq.TotalIops;
         req.TotalLatency = Math.Min(k8sReq.TotalLatency, winReq.TotalLatency);
+        req.PodCpu = k8sReq.PodCpu;
+        req.PodRamGb = k8sReq.PodRamGb;
         req.WorkerNodeCount = k8sReq.WorkerNodeCount + winReq.WorkerNodeCount;
         req.MasterNodeCount = k8sReq.MasterNodeCount + winReq.MasterNodeCount;
 

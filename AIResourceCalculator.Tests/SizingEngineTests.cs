@@ -331,6 +331,31 @@ public class SizingEngineTests
         Assert.Equal(result.Infrastructure.Sum(n => n.RamGb * n.NodeCount), result.TotalRamGb);
     }
 
+    // --- Regression: запит подів K8s заповнюється і не перевищує фізичний підсумок; Windows = 0 ---
+    [Fact]
+    public void Calculate_K8s_PodRequests_ArePopulatedAndBelowPhysical()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+        Assert.True(result.PodCpu > 0);
+        Assert.True(result.PodRamGb > 0);
+        Assert.True(result.PodCpu <= result.TotalCpu);
+        Assert.True(result.PodRamGb <= result.TotalRamGb);
+    }
+
+    [Fact]
+    public void Calculate_Windows_HasNoPodRequests()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        Assert.Equal(0, result.PodCpu);
+        Assert.Equal(0, result.PodRamGb);
+    }
+
     [Fact]
     public void Calculate_TotalStorage_EqualsSumOfNodeDisks()
     {

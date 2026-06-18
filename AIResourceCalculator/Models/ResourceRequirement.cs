@@ -6,9 +6,15 @@ public class ResourceRequirement
     public DeploymentType DeploymentType { get; set; }
     public LoadProfile LoadProfile { get; set; }
 
+    // Підсумкові ФІЗИЧНІ ресурси всіх вузлів (скільки заліза провіжинити).
     public double TotalCpu { get; set; }
     public double TotalRamGb { get; set; }
     public int TotalStorageGb { get; set; }
+
+    // Сукупний ЗАПИТ подів K8s (requests). Для Windows = 0 (подів немає).
+    // Менший за TotalCpu/TotalRamGb — вузли провіжиняться з округленням угору + master/SQL.
+    public double PodCpu { get; set; }
+    public double PodRamGb { get; set; }
     public int TotalIops { get; set; }
     public double TotalLatency { get; set; }
     public int WorkerNodeCount { get; set; }
