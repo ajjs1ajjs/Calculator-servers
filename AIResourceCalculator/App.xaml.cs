@@ -18,12 +18,11 @@ public partial class App : Application
         var sc = new ServiceCollection();
 
         sc.AddSingleton<ILocalizationService>(_ => LocalizationService.Instance);
-        sc.AddSingleton<IThemeService, ThemeService>();
         sc.AddTransient<IDataService, DataService>();
         sc.AddTransient<ICalculationHistoryService, CalculationHistoryService>();
         sc.AddTransient<IValidationEngine, ValidationEngine>();
-        sc.AddTransient<IAiAdvisorService, AiAdvisorService>();
-        sc.AddTransient<MatrixManager>();
+        sc.AddSingleton<AIResourceCalculator.Data.SizingMatrix>();
+        sc.AddSingleton<MatrixManager>();
         sc.AddTransient<ResultsPresenter>();
         sc.AddSingleton<ISizingEngine>(sp =>
         {
@@ -33,9 +32,6 @@ public partial class App : Application
         sc.AddTransient<MainViewModel>();
 
         Services = sc.BuildServiceProvider();
-
-        var themeService = Services.GetRequiredService<IThemeService>();
-        themeService.Initialize();
 
         var mainWindow = new MainWindow();
         mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();

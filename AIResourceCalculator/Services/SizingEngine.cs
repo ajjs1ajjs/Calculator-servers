@@ -69,7 +69,7 @@ public class SizingEngine : ISizingEngine
             totalRam += modRam;
 
             var isPerf = config.LoadProfile == LoadProfile.Performance;
-            foreach (var comp in module.Components)
+            foreach (var comp in module.Components ?? new())
             {
                 int rep = CalcReplicas(comp, config.UserCount);
                 if (rep == 0) rep = 1;
@@ -92,8 +92,8 @@ public class SizingEngine : ISizingEngine
             }
         }
 
-        var workerCpuCapacity = workerNode.Cpu > 0 ? workerNode.Cpu : 8;
-        var workerRamCapacity = workerNode.RamGb > 0 ? workerNode.RamGb : 32;
+        var workerCpuCapacity = workerNode.Cpu > 0 ? workerNode.Cpu : DefaultWorkerCpu;
+        var workerRamCapacity = workerNode.RamGb > 0 ? workerNode.RamGb : DefaultWorkerRamGb;
         var workerCount = Math.Max(1,
             (int)Math.Ceiling(Math.Max(totalCpu / workerCpuCapacity, totalRam / workerRamCapacity)));
 
@@ -145,15 +145,15 @@ public class SizingEngine : ISizingEngine
             c.Notes.Contains("GPU", StringComparison.OrdinalIgnoreCase));
         if (hasGpuComponent)
         {
-            var gpuCount = Math.Max(1, (int)Math.Ceiling(config.UserCount / 100.0));
+            var gpuCount = Math.Max(1, (int)Math.Ceiling((double)config.UserCount / UsersPerGpuNode));
             req.Infrastructure.Add(new InfrastructureNode
             {
-                Name = "GPU Node (T4/A10)", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32,
-                NodeCount = gpuCount, StorageGb = 200, StorageType = "SSD"
+                Name = "GPU Node (T4/A10)", Os = "Ubuntu 24.04", Cpu = GpuNodeCpu, RamGb = GpuNodeRamGb,
+                NodeCount = gpuCount, StorageGb = GpuNodeStorageGb, StorageType = "SSD"
             });
-            req.TotalCpu += 8 * gpuCount;
-            req.TotalRamGb += 32 * gpuCount;
-            req.TotalStorageGb += 200 * gpuCount;
+            req.TotalCpu += GpuNodeCpu * gpuCount;
+            req.TotalRamGb += GpuNodeRamGb * gpuCount;
+            req.TotalStorageGb += GpuNodeStorageGb * gpuCount;
         }
     }
 
@@ -334,6 +334,16 @@ public class SizingEngine : ISizingEngine
         DatabaseType.Oracle => "Oracle 19c",
         _ => "SQL Server"
     };
+
+    // Fallback worker capacity when matrix node specs are missing
+    private const double DefaultWorkerCpu = 8;
+    private const double DefaultWorkerRamGb = 32;
+
+    // GPU node defaults for video transcoding (LMS-Videoutilities)
+    private const int UsersPerGpuNode = 100;
+    private const int GpuNodeCpu = 8;
+    private const int GpuNodeRamGb = 32;
+    private const int GpuNodeStorageGb = 200;
 
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };

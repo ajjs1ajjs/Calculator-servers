@@ -459,14 +459,20 @@ public class ConfigExportService
             sb.AppendLine($"            cpu: \"{cpu}\"");
             sb.AppendLine($"            memory: \"{ram}\"");
 
-            if (component.HasLocalSql)
+            if (component.HasLocalSql || component.HasRedis)
+            {
                 sb.AppendLine($"        env:");
-                sb.AppendLine($"        - name: CONNECTION_STRING");
-                sb.AppendLine($"          value: \"Server=sql-server;Database={name};Trusted_Connection=True;\"");
-
-            if (component.HasRedis)
-                sb.AppendLine($"        - name: REDIS_CONNECTION");
-                sb.AppendLine($"          value: \"redis://redis-service:6379\"");
+                if (component.HasLocalSql)
+                {
+                    sb.AppendLine($"        - name: CONNECTION_STRING");
+                    sb.AppendLine($"          value: \"Server=sql-server;Database={name};Trusted_Connection=True;\"");
+                }
+                if (component.HasRedis)
+                {
+                    sb.AppendLine($"        - name: REDIS_CONNECTION");
+                    sb.AppendLine($"          value: \"redis://redis-service:6379\"");
+                }
+            }
 
             sb.AppendLine("---");
         }
@@ -656,7 +662,7 @@ public class ConfigExportService
             var machineType = GetGcpMachineType(infra.Cpu, infra.RamGb);
             sb.AppendLine($"resource \"google_compute_instance\" \"{name}\" {{");
             sb.AppendLine($"  name         = \"vm-{name}\"");
-            sb.AppendLine("  machine_type = machine_type");
+            sb.AppendLine($"  machine_type = \"{machineType}\"");
             sb.AppendLine("  zone         = \"${var.region}-a\"");
             sb.AppendLine();
             sb.AppendLine("  boot_disk {");

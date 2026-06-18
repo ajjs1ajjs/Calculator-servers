@@ -15,7 +15,6 @@ public partial class CalculatorTabControl : UserControl
         {
             if (DataContext is not MainViewModel vm) return;
             ModulesPanel.ItemsSource = vm.Modules;
-            QuickRecList.ItemsSource = vm.AiRecommendations;
 
             CommandManager.AddPreviewExecutedHandler(TxtUserCount, OnPaste);
             PreviewTextInput += (_, e) =>
@@ -26,8 +25,6 @@ public partial class CalculatorTabControl : UserControl
 
             vm.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(MainViewModel.AiRecommendations))
-                    QuickRecList.ItemsSource = vm.AiRecommendations;
                 if (e.PropertyName == nameof(MainViewModel.Modules))
                     ModulesPanel.ItemsSource = vm.Modules;
             };

@@ -43,7 +43,7 @@ public class ResultsPresenterTests
         Assert.NotEmpty(results);
         Assert.Contains(results, r => r.ResourceName == "vCPU");
         Assert.Contains(results, r => r.ResourceName == "RAM");
-        Assert.Contains(results, r => r.ResourceName == "Storage");
+        Assert.Contains(results, r => r.ResourceName is "Storage" or "Сховище");
         Assert.Contains(results, r => r.ResourceName == "IOPS");
     }
 

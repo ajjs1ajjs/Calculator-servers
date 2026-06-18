@@ -67,7 +67,7 @@ public class ValidationEngineTests
         var allocated = new ResourceRequirement { TotalStorageGb = 500 };
 
         var results = _validator.Validate(required, allocated);
-        var storageResult = results.First(r => r.ResourceName == "Storage");
+        var storageResult = results.First(r => r.ResourceName is "Storage" or "Сховище");
 
         Assert.Equal("OVERPROVISIONED", storageResult.Severity);
         Assert.True(storageResult.IsCompliant);

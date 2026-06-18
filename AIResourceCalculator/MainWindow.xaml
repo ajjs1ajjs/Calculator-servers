@@ -32,19 +32,9 @@
                     <TextBlock Text="{loc:Loc app.title}" Foreground="{DynamicResource TextWhite}" FontSize="22" FontWeight="Bold"/>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{loc:Loc app.subtitle}" Foreground="{DynamicResource TextOnDark}" FontSize="13"/>
-                        <TextBlock Text="{Binding AiBadgeText}" Margin="10,0,0,0" FontSize="11" Foreground="{DynamicResource WarningBg}" FontWeight="Bold"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Background="Transparent" Foreground="{DynamicResource TextWhite}" Padding="10,5" FontSize="15"
-                            Command="{Binding ToggleThemeCommand}" ToolTip="Toggle theme">
-                        <TextBlock Text="{Binding ThemeIcon}"/>
-                    </Button>
-                    <Button Background="{DynamicResource DangerBg}" Foreground="{DynamicResource TextWhite}"
-                            Padding="10,5" FontSize="12" FontWeight="Bold"
-                            Command="{Binding AiSettingsCommand}" ToolTip="{loc:Loc tooltip.aiSettings}">
-                        <TextBlock Text="{loc:Loc ai.settingsBtn}"/>
-                    </Button>
                     <Button Background="Transparent" Foreground="{DynamicResource TextWhite}" Padding="10,5" FontSize="14"
                             Command="{Binding LangSwitchCommand}" ToolTip="{loc:Loc tooltip.langSwitch}">
                         <StackPanel Orientation="Horizontal">
@@ -66,9 +56,6 @@
             </TabItem>
             <TabItem Header="{Binding TabResultsHeader}">
                 <views:ResultsTabControl/>
-            </TabItem>
-            <TabItem Header="{Binding TabAssistantHeader}">
-                <views:AssistantTabControl/>
             </TabItem>
         </TabControl>
 

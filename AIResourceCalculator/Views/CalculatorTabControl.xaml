@@ -9,11 +9,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="15">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                <StackPanel Grid.Column="0">
                     <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
                     <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                         <StackPanel>
@@ -52,27 +48,6 @@
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" Margin="4,2" FontSize="13" FontWeight="SemiBold"
                                                   ToolTip="{Binding Description}"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                    <TextBlock Text="{loc:Loc results.aiTitle}" Style="{StaticResource SectionHeader}"/>
-                    <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="{Binding AiNoDataText}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontStyle="Italic" TextWrapping="Wrap"/>
-                            <ItemsControl x:Name="QuickRecList" Visibility="{Binding IsQuickRecVisible, Converter={StaticResource VisibilityConverter}}" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{DynamicResource CardBg}" Padding="10" CornerRadius="6" Margin="0,0,0,4" BorderThickness="1"
-                                                BorderBrush="{Binding Severity, Converter={StaticResource SeverityToColor}}">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
-                                                <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                        </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

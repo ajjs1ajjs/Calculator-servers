@@ -1,10 +1,23 @@
 using AIResourceCalculator.Interfaces;
+using AIResourceCalculator.Localization;
 using AIResourceCalculator.Models;
 
 namespace AIResourceCalculator.Services;
 
 public class ValidationEngine : IValidationEngine
 {
+    // Severity thresholds expressed as ratio of allocated / required.
+    private const double CriticalThreshold = 0.8;       // allocated below this fraction → CRITICAL
+    private const double OverprovisionThreshold = 1.5;   // allocated above this multiple → OVERPROVISIONED
+
+    private readonly ILocalizationService _loc;
+
+    public ValidationEngine() : this(LocalizationService.Instance) { }
+
+    public ValidationEngine(ILocalizationService loc) => _loc = loc;
+
+    private string LF(string key, params object[] args) => string.Format(_loc[key], args);
+
     public List<ValidationResult> CompareProfiles(ResourceRequirement profile1, ResourceRequirement profile2)
         => Validate(profile1, profile2);
 
@@ -14,7 +27,7 @@ public class ValidationEngine : IValidationEngine
 
         results.Add(new ValidationResult
         {
-            ResourceName = "vCPU",
+            ResourceName = _loc["val.res.vcpu"],
             Required = required.TotalCpu,
             Allocated = allocated.TotalCpu,
             Unit = "cores",
@@ -24,7 +37,7 @@ public class ValidationEngine : IValidationEngine
 
         results.Add(new ValidationResult
         {
-            ResourceName = "RAM",
+            ResourceName = _loc["val.res.ram"],
             Required = required.TotalRamGb,
             Allocated = allocated.TotalRamGb,
             Unit = "GB",
@@ -34,7 +47,7 @@ public class ValidationEngine : IValidationEngine
 
         results.Add(new ValidationResult
         {
-            ResourceName = "Storage",
+            ResourceName = _loc["val.res.storage"],
             Required = required.TotalStorageGb,
             Allocated = allocated.TotalStorageGb,
             Unit = "GB",
@@ -44,7 +57,7 @@ public class ValidationEngine : IValidationEngine
 
         results.Add(new ValidationResult
         {
-            ResourceName = "IOPS",
+            ResourceName = _loc["val.res.iops"],
             Required = required.TotalIops,
             Allocated = allocated.TotalIops,
             Unit = "IOPS",
@@ -54,7 +67,7 @@ public class ValidationEngine : IValidationEngine
 
         results.Add(new ValidationResult
         {
-            ResourceName = "Worker Nodes",
+            ResourceName = _loc["val.res.workerNodes"],
             Required = required.WorkerNodeCount,
             Allocated = allocated.WorkerNodeCount,
             Unit = "nodes",
@@ -64,7 +77,7 @@ public class ValidationEngine : IValidationEngine
 
         results.Add(new ValidationResult
         {
-            ResourceName = "Master Nodes",
+            ResourceName = _loc["val.res.masterNodes"],
             Required = required.MasterNodeCount,
             Allocated = allocated.MasterNodeCount,
             Unit = "nodes",
@@ -126,43 +139,43 @@ public class ValidationEngine : IValidationEngine
 
     private string GetSeverity(double required, double allocated)
     {
-        if (allocated < required * 0.8) return "CRITICAL";
+        if (allocated < required * CriticalThreshold) return "CRITICAL";
         if (allocated < required) return "WARNING";
-        if (allocated > required * 1.5) return "OVERPROVISIONED";
+        if (allocated > required * OverprovisionThreshold) return "OVERPROVISIONED";
         return "OK";
     }
 
     private string GetCpuRecommendation(double req, double alloc)
     {
-        if (alloc < req) return $"Increase vCPU from {alloc} to at least {req} cores";
-        if (alloc > req * 1.5) return $"Reduce vCPU from {alloc} to ~{req} cores to save costs";
-        return "CPU resources are adequate";
+        if (alloc < req) return LF("val.cpu.increase", alloc, req);
+        if (alloc > req * OverprovisionThreshold) return LF("val.cpu.reduce", alloc, req);
+        return _loc["val.cpu.ok"];
     }
 
     private string GetRamRecommendation(double req, double alloc)
     {
-        if (alloc < req) return $"Increase RAM from {alloc} to at least {req} GB";
-        if (alloc > req * 1.5) return $"Reduce RAM from {alloc} to ~{req} GB to save costs";
-        return "RAM resources are adequate";
+        if (alloc < req) return LF("val.ram.increase", alloc, req);
+        if (alloc > req * OverprovisionThreshold) return LF("val.ram.reduce", alloc, req);
+        return _loc["val.ram.ok"];
     }
 
     private string GetStorageRecommendation(double req, double alloc)
     {
-        if (alloc < req) return $"Increase storage from {alloc} to at least {req} GB";
-        if (alloc > req * 2) return $"Reduce storage from {alloc} to ~{req} GB";
-        return "Storage resources are adequate";
+        if (alloc < req) return LF("val.storage.increase", alloc, req);
+        if (alloc > req * 2) return LF("val.storage.reduce", alloc, req);
+        return _loc["val.storage.ok"];
     }
 
     private string GetNodeRecommendation(double req, double alloc)
     {
-        if (alloc < req) return $"Increase nodes from {alloc} to at least {req} for HA";
-        if (alloc > req * 2) return $"Consider reducing nodes from {alloc} to ~{req}";
-        return "Node count is adequate";
+        if (alloc < req) return LF("val.nodes.increase", alloc, req);
+        if (alloc > req * 2) return LF("val.nodes.reduce", alloc, req);
+        return _loc["val.nodes.ok"];
     }
 
     private string GetRecommendation(double req, double alloc)
     {
-        if (alloc < req) return $"Increase from {alloc} to at least {req}";
-        return "Resources are adequate";
+        if (alloc < req) return LF("val.generic.increase", alloc, req);
+        return _loc["val.generic.ok"];
     }
 }

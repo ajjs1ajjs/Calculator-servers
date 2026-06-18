@@ -13,6 +13,11 @@ public class ExcelImporter
         using var package = new ExcelPackage(new FileInfo(filePath));
         var matrix = new SizingMatrix();
 
+        // Import REPLACES the Excel-owned tables. A fresh SizingMatrix ships with hardcoded
+        // defaults; each Parse* method clears the tables it owns before filling them, so that
+        // (a) imported rows are not appended on top of defaults (→ duplicates), and
+        // (b) tables whose source sheet is absent from the workbook keep their defaults.
+
         foreach (var ws in package.Workbook.Worksheets)
         {
             var name = ws.Name.Trim();
@@ -30,37 +35,24 @@ public class ExcelImporter
 
     private void ParseMssqlSheet(ExcelWorksheet ws, SizingMatrix matrix)
     {
-        var dataStart = FindHeaderRow(ws, 1, 1, new[] { "Min", "Users", "користувач" });
-        if (dataStart == 0) dataStart = 2;
+        // Header-agnostic: scan all rows. A row is a data row when col1/col2 are a valid
+        // (Min, Max) integer pair. The "Документообіг" label row switches to the perf table.
+        // This is robust to header text and avoids the off-by-one that dropped the first range.
+        matrix.MsSqlRanges.Clear();
+        matrix.MsSqlPerformanceRanges.Clear();
 
-        for (int row = dataStart + 1; ; row++)
+        var maxRow = ws.Dimension?.End.Row ?? 0;
+        bool perf = false;
+        for (int row = 1; row <= maxRow; row++)
         {
-            if (row > ws.Dimension.End.Row) break;
-            var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) break;
-            matrix.MsSqlRanges.Add(new UserLoadRange
-            {
-                MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
-                Cpu = GetDouble(ws, row, 3),
-                RamMin = GetDouble(ws, row, 4),
-                RamRec = GetDouble(ws, row, 5),
-                Iops = GetInt(ws, row, 6),
-                Latency = GetDouble(ws, row, 7)
-            });
-        }
+            var label = GetString(ws, row, 1);
+            if (label.Contains("Документообіг") || label.Contains("Продуктивн")) { perf = true; continue; }
 
-        var perfHeader = FindHeaderRow(ws, dataStart + 15, 1, new[] { "Min", "Users", "користувач" });
-        if (perfHeader == 0) perfHeader = dataStart + 16;
-        else perfHeader++;
+            if (!IsRangeRow(ws, row, out var min, out var max)) continue;
 
-        for (int row = perfHeader; ; row++)
-        {
-            if (row > ws.Dimension.End.Row) break;
-            var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) break;
-            matrix.MsSqlPerformanceRanges.Add(new UserLoadRange
+            (perf ? matrix.MsSqlPerformanceRanges : matrix.MsSqlRanges).Add(new UserLoadRange
             {
-                MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
+                MinUsers = min, MaxUsers = max,
                 Cpu = GetDouble(ws, row, 3),
                 RamMin = GetDouble(ws, row, 4),
                 RamRec = GetDouble(ws, row, 5),
@@ -70,10 +62,22 @@ public class ExcelImporter
         }
     }
 
+    // A data row has positive integer Min (col1) and Max (col2) with Max >= Min.
+    private static bool IsRangeRow(ExcelWorksheet ws, int row, out int min, out int max)
+    {
+        min = GetInt(ws, row, 1);
+        max = GetInt(ws, row, 2);
+        return min > 0 && max > 0 && max >= min;
+    }
+
     private void ParseK8sSheet(ExcelWorksheet ws, SizingMatrix matrix)
     {
         bool isPerf = ws.Name.Contains("Документообіг") || ws.Name.Contains("Продуктивн");
         var maxRow = ws.Dimension?.End.Row ?? 100;
+
+        // Replace (not append to) the module table this sheet owns.
+        (isPerf ? matrix.DocumentFlowModules : matrix.StandardModules).Clear();
+        if (!isPerf) matrix.Modules.Clear();
 
         // Find infrastructure nodes: look for SQL/Master/Worker in column 2
         int infraEnd = 0;
@@ -329,39 +333,37 @@ public class ExcelImporter
             }
         }
 
-        // AppServer ranges
-        var appHeader = FindHeaderRow(ws, 3, 1, new[] { "Min", "Users", "Кількість", "К-сть" });
-        if (appHeader == 0) appHeader = isPerf ? 53 : 26;
-        var appList = isPerf ? matrix.AppServerPerformanceRanges : matrix.AppServerRanges;
-        for (int row = appHeader + 1; row <= maxRow; row++)
+        // App/Web server ranges — driven by section-label rows. Each block starts with an
+        // "AppServers"/"WebServers" label in col1 and "Стандарт"/"Документообіг" in col2.
+        // Numeric (Min, Max) rows that follow are added to the current block's list.
+        matrix.AppServerRanges.Clear();
+        matrix.AppServerPerformanceRanges.Clear();
+        matrix.WebServerRanges.Clear();
+        matrix.WebServerPerformanceRanges.Clear();
+        List<UserLoadRange>? current = null;
+        for (int row = 1; row <= maxRow; row++)
         {
-            var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) break;
-            if (row > appHeader + 15) break;
-            appList.Add(new UserLoadRange
+            var a = GetString(ws, row, 1);
+            if (a.Contains("AppServers") || a.Contains("WebServers"))
             {
-                MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
-                InstanceCount = GetInt(ws, row, 3),
-                Ghz = GetDouble(ws, row, 4),
-                Cpu = GetDouble(ws, row, 5),
-                Iops = GetInt(ws, row, 6),
-                RamMin = GetDouble(ws, row, 7),
-                RamRec = GetDouble(ws, row, 8)
-            });
-        }
+                bool isApp = a.Contains("AppServers");
+                var b = GetString(ws, row, 2);
+                bool blockPerf = b.Contains("Документообіг") || b.Contains("Продуктивн");
+                current = (isApp, blockPerf) switch
+                {
+                    (true, false) => matrix.AppServerRanges,
+                    (true, true) => matrix.AppServerPerformanceRanges,
+                    (false, false) => matrix.WebServerRanges,
+                    _ => matrix.WebServerPerformanceRanges
+                };
+                continue;
+            }
 
-        // WebServer ranges
-        var webHeader = FindHeaderRow(ws, appHeader + 14, 1, new[] { "Min", "Users", "Кількість", "К-сть" });
-        if (webHeader == 0) webHeader = isPerf ? 68 : 41;
-        var webList = isPerf ? matrix.WebServerPerformanceRanges : matrix.WebServerRanges;
-        for (int row = webHeader + 1; row <= maxRow; row++)
-        {
-            var minUser = GetInt(ws, row, 1);
-            if (minUser == 0) break;
-            if (row > webHeader + 12) break;
-            webList.Add(new UserLoadRange
+            if (current == null || !IsRangeRow(ws, row, out var min, out var max)) continue;
+
+            current.Add(new UserLoadRange
             {
-                MinUsers = minUser, MaxUsers = GetInt(ws, row, 2),
+                MinUsers = min, MaxUsers = max,
                 InstanceCount = GetInt(ws, row, 3),
                 Ghz = GetDouble(ws, row, 4),
                 Cpu = GetDouble(ws, row, 5),
@@ -383,6 +385,11 @@ public class ExcelImporter
             return d;
         if (double.TryParse(text.Replace(".", ","), out var d2))
             return d2;
+        // Some cells annotate the size with a trailing marker, e.g. "150*" (scales with data).
+        // Extract the leading numeric part so disk sizes are still imported.
+        var match = System.Text.RegularExpressions.Regex.Match(text, @"-?\d+(?:[.,]\d+)?");
+        if (match.Success && double.TryParse(match.Value.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var d3))
+            return d3;
         return 0;
     }
 

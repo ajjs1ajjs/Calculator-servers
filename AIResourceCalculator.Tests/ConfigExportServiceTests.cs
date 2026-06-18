@@ -228,4 +228,60 @@ public class ConfigExportServiceTests
         var result = _svc.ExportAwsTerraform(_req, _config);
         Assert.Contains("us-east-1", result);
     }
+
+    // --- Regression: BUG-2 GCP machine_type must be an interpolated value, not the literal "machine_type" ---
+    [Fact]
+    public void ExportGcpTerraform_MachineTypeHasConcreteValue()
+    {
+        var result = _svc.ExportGcpTerraform(_req, _config);
+        Assert.DoesNotContain("machine_type = machine_type", result);
+        Assert.Contains("machine_type = \"", result);
+        Assert.Contains("e2-", result); // GetGcpMachineType returns an e2-* family type
+    }
+
+    // --- Regression: BUG-1 K8s env block must be well-formed and conditional ---
+    [Fact]
+    public void ExportK8sDeployment_LocalSqlComponent_EmitsEnvBlock()
+    {
+        var req = MakeK8sReq(new ServiceComponent { Name = "Api", Cpu = 2, RamGb = 4, Replicas = 1, HasLocalSql = true });
+        var result = _svc.ExportK8sDeployment(req, _config);
+        Assert.Contains("env:", result);
+        Assert.Contains("CONNECTION_STRING", result);
+    }
+
+    [Fact]
+    public void ExportK8sDeployment_RedisComponent_EmitsRedisEnv()
+    {
+        var req = MakeK8sReq(new ServiceComponent { Name = "Cache", Cpu = 2, RamGb = 4, Replicas = 1, HasRedis = true });
+        var result = _svc.ExportK8sDeployment(req, _config);
+        Assert.Contains("env:", result);
+        Assert.Contains("REDIS_CONNECTION", result);
+    }
+
+    [Fact]
+    public void ExportK8sDeployment_PlainComponent_HasNoOrphanEnv()
+    {
+        // Component without LocalSql/Redis must NOT emit env entries (the braceless-if bug emitted them unconditionally).
+        var req = MakeK8sReq(new ServiceComponent { Name = "Stateless", Cpu = 2, RamGb = 4, Replicas = 1 });
+        var result = _svc.ExportK8sDeployment(req, _config);
+        Assert.DoesNotContain("CONNECTION_STRING", result);
+        Assert.DoesNotContain("REDIS_CONNECTION", result);
+    }
+
+    private static ResourceRequirement MakeK8sReq(ServiceComponent component)
+    {
+        var req = new ResourceRequirement
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Kubernetes,
+            LoadProfile = LoadProfile.Basic,
+            TotalCpu = 8,
+            TotalRamGb = 32,
+            WorkerNodeCount = 3,
+            MasterNodeCount = 1
+        };
+        req.Components.Add(component);
+        req.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3, StorageGb = 200 });
+        return req;
+    }
 }

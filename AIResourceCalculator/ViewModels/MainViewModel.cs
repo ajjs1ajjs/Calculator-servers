@@ -14,74 +14,45 @@ namespace AIResourceCalculator.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     private readonly ISizingEngine _engine;
-    private readonly IAiAdvisorService _advisor;
-    private readonly IValidationEngine _validator;
     private readonly ICalculationHistoryService _historyService;
-    private readonly IThemeService _themeService;
     private readonly ILocalizationService _loc;
     private readonly ResultsPresenter _results;
-    private AiSettings _aiSettings;
     private ResourceRequirement? _lastResult;
     private ResourceRequirement? _lastResultPerf;
 
     public MatrixViewModel MatrixVM { get; }
-    public AiAssistantViewModel AssistantVM { get; }
 
     private string _userCount = "100";
     private int _deploymentIndex;
     private int _productIndex;
     private int _databaseIndex;
     private string _statusText = "";
-    private string _aiBadgeText = "";
-    private string _aiBadgeResultText = "";
-    private string _aiRecCountText = "";
     private string _langFlag = "\U0001F1FA\U0001F1E6";
     private string _langName = "Українська";
-    private string _aiNoDataText = "";
-    private bool _isAiNoDataVisible = true;
-    private bool _isAiRecListVisible;
-    private bool _isDiagramVisible;
-    private bool _isQuickRecVisible;
-    private string _quickRecText = "";
-    private bool _isDarkTheme;
 
     public MainViewModel(
         ILocalizationService localization,
         IDataService dataService,
         ICalculationHistoryService historyService,
-        IThemeService themeService,
-        IAiAdvisorService advisor,
-        IValidationEngine validator,
         MatrixManager matrixManager,
         ResultsPresenter results,
         ISizingEngine engine)
     {
         _loc = localization;
         _historyService = historyService;
-        _themeService = themeService;
-        _advisor = advisor;
-        _validator = validator;
         _results = results;
         _engine = engine;
 
         MatrixVM = new MatrixViewModel(_loc, matrixManager);
-        AssistantVM = new AiAssistantViewModel();
 
         _engine.SetProductType(ProductType.Standard);
-        _aiSettings = AiSettings.Load();
-        _advisor.UpdateSettings(_aiSettings);
-
-        _isDarkTheme = _themeService.IsDark;
 
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         _statusText = _loc["status.ready"];
-        _aiNoDataText = _loc["ai.noData"];
 
         MatrixVM.LoadMatrixGrids();
-        UpdateAiBadge();
 
         _loc.PropertyChanged += (_, _) => OnLanguageChanged();
-        AssistantVM.ConfigParsed += OnAssistantConfigParsed;
         MatrixVM.MatrixChanged += OnMatrixChanged;
 
         InitializeCommands();
@@ -95,11 +66,9 @@ public class MainViewModel : INotifyPropertyChanged
         LangFlag = loc.Flag;
         LangName = loc.LangName;
         StatusText = loc["status.ready"];
-        UpdateAiBadge();
         OnPropertyChanged(nameof(TabMatrixHeader));
         OnPropertyChanged(nameof(TabSetupHeader));
         OnPropertyChanged(nameof(TabResultsHeader));
-        OnPropertyChanged(nameof(TabAssistantHeader));
     }
 
     #region Properties
@@ -144,24 +113,6 @@ public class MainViewModel : INotifyPropertyChanged
         set { _statusText = value; OnPropertyChanged(); }
     }
 
-    public string AiBadgeText
-    {
-        get => _aiBadgeText;
-        set { _aiBadgeText = value; OnPropertyChanged(); }
-    }
-
-    public string AiBadgeResultText
-    {
-        get => _aiBadgeResultText;
-        set { _aiBadgeResultText = value; OnPropertyChanged(); }
-    }
-
-    public string AiRecCountText
-    {
-        get => _aiRecCountText;
-        set { _aiRecCountText = value; OnPropertyChanged(); }
-    }
-
     public string LangFlag
     {
         get => _langFlag;
@@ -174,55 +125,11 @@ public class MainViewModel : INotifyPropertyChanged
         set { _langName = value; OnPropertyChanged(); }
     }
 
-    public string AiNoDataText
-    {
-        get => _aiNoDataText;
-        set { _aiNoDataText = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsAiNoDataVisible)); }
-    }
-
-    public bool IsAiNoDataVisible
-    {
-        get => _isAiNoDataVisible;
-        set { _isAiNoDataVisible = value; OnPropertyChanged(); }
-    }
-
-    public bool IsAiRecListVisible
-    {
-        get => _isAiRecListVisible;
-        set { _isAiRecListVisible = value; OnPropertyChanged(); }
-    }
-
-    public bool IsDiagramVisible
-    {
-        get => _isDiagramVisible;
-        set { _isDiagramVisible = value; OnPropertyChanged(); }
-    }
-
-    public bool IsDarkTheme
-    {
-        get => _isDarkTheme;
-        set { _isDarkTheme = value; OnPropertyChanged(); OnPropertyChanged(nameof(ThemeIcon)); }
-    }
-
-    public string ThemeIcon => _isDarkTheme ? "\u2600" : "\uD83C\uDF19";
-
     private int _selectedTabIndex;
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
         set { _selectedTabIndex = value; OnPropertyChanged(); }
-    }
-
-    public bool IsQuickRecVisible
-    {
-        get => _isQuickRecVisible;
-        set { _isQuickRecVisible = value; OnPropertyChanged(); }
-    }
-
-    public string QuickRecText
-    {
-        get => _quickRecText;
-        set { _quickRecText = value; OnPropertyChanged(); }
     }
 
     #endregion
@@ -245,6 +152,14 @@ public class MainViewModel : INotifyPropertyChanged
     private string _totalIops = "0";
     private string _totalNodes = "0";
 
+    private string _resultSummary = "";
+    public string ResultSummary { get => _resultSummary; set { _resultSummary = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasResultSummary)); } }
+    public bool HasResultSummary => !string.IsNullOrEmpty(_resultSummary);
+
+    private string _diskRecommendations = "";
+    public string DiskRecommendations { get => _diskRecommendations; set { _diskRecommendations = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasDiskRecommendations)); } }
+    public bool HasDiskRecommendations => !string.IsNullOrEmpty(_diskRecommendations);
+
     public string TotalCpu { get => _totalCpu; set { _totalCpu = value; OnPropertyChanged(); } }
     public string TotalRam { get => _totalRam; set { _totalRam = value; OnPropertyChanged(); } }
     public string TotalStorage { get => _totalStorage; set { _totalStorage = value; OnPropertyChanged(); } }
@@ -252,21 +167,10 @@ public class MainViewModel : INotifyPropertyChanged
     public string TotalNodes { get => _totalNodes; set { _totalNodes = value; OnPropertyChanged(); } }
 
     public ObservableCollection<InfrastructureNode> ResultInfrastructure { get; private set; } = new();
-    public ObservableCollection<InfrastructureNode> AiInfrastructure { get; private set; } = new();
-    public ObservableCollection<AiRecommendation> AiRecommendations { get; private set; } = new();
     public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
-    public ObservableCollection<ValidationResult> ValidationResults { get; private set; } = new();
 
     public ObservableCollection<CalculationHistoryItem> HistoryItems { get; private set; } = new();
     public bool HasHistory => HistoryItems.Count > 0;
-
-    public ObservableCollection<ServiceComponent> ScalingData { get; private set; } = new();
-    private bool _isScalingVisible;
-    public bool IsScalingVisible
-    {
-        get => _isScalingVisible;
-        set { _isScalingVisible = value; OnPropertyChanged(); }
-    }
 
     private int _selectedHistoryIndex = -1;
     public int SelectedHistoryIndex
@@ -284,7 +188,6 @@ public class MainViewModel : INotifyPropertyChanged
     public string TabMatrixHeader => _loc["tab.matrixTitle"];
     public string TabSetupHeader => _loc["tab.setupTitle"];
     public string TabResultsHeader => _loc["tab.resultsTitle"];
-    public string TabAssistantHeader => _loc["tab.assistantTitle"];
 
     #endregion
 
@@ -293,30 +196,16 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand CalculateCommand { get; private set; } = null!;
     public ICommand ExportTxtCommand { get; private set; } = null!;
     public ICommand ExportHtmlCommand { get; private set; } = null!;
-    public ICommand ShowDiagramCommand { get; private set; } = null!;
-    public ICommand ExportSvgCommand { get; private set; } = null!;
-    public ICommand ExportMermaidCommand { get; private set; } = null!;
     public ICommand LangSwitchCommand { get; private set; } = null!;
-    public ICommand ToggleThemeCommand { get; private set; } = null!;
-    public ICommand AnalyzeAiCommand { get; private set; } = null!;
-    public ICommand AiSettingsCommand { get; private set; } = null!;
     public ICommand RecallHistoryCommand { get; private set; } = null!;
-    public ICommand ShowScalingCommand { get; private set; } = null!;
 
     private void InitializeCommands()
     {
         CalculateCommand = new RelayCommand(_ => Calculate());
         ExportTxtCommand = new RelayCommand(_ => ExportTxt());
         ExportHtmlCommand = new RelayCommand(_ => ExportHtml());
-        ShowDiagramCommand = new RelayCommand(_ => ShowDiagram());
-        ExportSvgCommand = new RelayCommand(_ => ExportSvg());
-        ExportMermaidCommand = new RelayCommand(_ => ExportMermaid());
-        AiSettingsCommand = new RelayCommand(_ => OpenAiSettings());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
-        ToggleThemeCommand = new RelayCommand(_ => ToggleTheme());
-        AnalyzeAiCommand = new RelayCommand(async _ => await AnalyzeWithAiAsync());
         RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
-        ShowScalingCommand = new RelayCommand(_ => ShowScaling());
 
         LoadHistory();
     }
@@ -363,8 +252,20 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowError(ex, "error.calculation_failed");
         }
+    }
+
+    private void ShowError(Exception ex, string defaultKey)
+    {
+        var key = ex switch
+        {
+            FormatException or OverflowException or ArgumentException => "error.invalid_input",
+            InvalidOperationException => defaultKey,
+            _ => string.IsNullOrEmpty(defaultKey) ? "error.unknown" : defaultKey
+        };
+        var message = string.Format(_loc[key], ex.Message);
+        MessageBox.Show(message, _loc["error.title"], MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     private (ResourceRequirement req, ResourceRequirement? perfReq) CalculateInternal(ProjectConfig config)
@@ -397,66 +298,46 @@ public class MainViewModel : INotifyPropertyChanged
         TotalStorage = $"{req.TotalStorageGb} GB";
         TotalIops = $"{req.TotalIops}";
         TotalNodes = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
+        ResultSummary = BuildSummary(req, GetConfig());
+        DiskRecommendations = BuildDiskRecommendations(req, GetConfig());
         ResultInfrastructure = new ObservableCollection<InfrastructureNode>(req.Infrastructure);
         OnPropertyChanged(nameof(ResultInfrastructure));
 
         ResultComponents = new ObservableCollection<ServiceComponent>(req.Components);
         OnPropertyChanged(nameof(ResultComponents));
-
-        if (_lastResult != null && _lastResultPerf != null)
-        {
-            ValidationResults = new ObservableCollection<ValidationResult>(_results.CompareProfiles(_lastResult, _lastResultPerf));
-            OnPropertyChanged(nameof(ValidationResults));
-        }
-
-        AiNoDataText = _loc["ai.noData"];
-        IsAiNoDataVisible = true;
-        IsAiRecListVisible = false;
-        IsQuickRecVisible = false;
-        AiRecommendations = new ObservableCollection<AiRecommendation>();
-        OnPropertyChanged(nameof(AiRecommendations));
-        AiBadgeResultText = "";
-        AiRecCountText = "";
     }
 
-    public async Task AnalyzeWithAiAsync()
+    // Plain-language summary of what to provision, so the numbers read as understandable needs.
+    private string BuildSummary(ResourceRequirement req, ProjectConfig config)
     {
-        if (_lastResult == null) return;
-
-        AiNoDataText = _loc["results.aiAnalyzing"];
-        IsAiNoDataVisible = true;
-        IsAiRecListVisible = false;
-        IsQuickRecVisible = false;
-
-        var dual = await _advisor.AnalyzeAsync(_lastResult, GetConfig(), _lastResultPerf);
-        var balance = dual.Balance;
-
-        if (balance.Recommendations.Count > 0)
+        var deploy = config.DeploymentType switch
         {
-            IsAiNoDataVisible = false;
-            IsAiRecListVisible = true;
-            IsQuickRecVisible = true;
-
-            AiRecommendations = new ObservableCollection<AiRecommendation>(balance.Recommendations);
-            AiInfrastructure = new ObservableCollection<InfrastructureNode>(balance.Infrastructure);
-            OnPropertyChanged(nameof(AiRecommendations));
-            OnPropertyChanged(nameof(AiInfrastructure));
-
-            var totalSavings = balance.Recommendations.Sum(r => r.PotentialSavings);
-            var savingsText = totalSavings > 0
-                ? " | " + string.Format(_loc["results.savings"], (int)totalSavings)
-                : "";
-            AiBadgeResultText = $"{balance.Recommendations.Count} rec{savingsText}";
-            AiRecCountText = _loc.CurrentLang == "uk"
-                ? $"\U0001F4CB {balance.Recommendations.Count} рекомендацій"
-                : $"\U0001F4CB {balance.Recommendations.Count} recommendations";
-        }
-        else
+            DeploymentType.Kubernetes => _loc["deploy.k8sName"],
+            DeploymentType.Windows => _loc["deploy.windowsName"],
+            _ => _loc["deploy.hybridName"]
+        };
+        var product = config.ProductType == ProductType.Standard ? _loc["product.standard"] : _loc["product.documentflow"];
+        var db = config.DatabaseType switch
         {
-            AiNoDataText = _loc["ai.noData"];
-            IsAiNoDataVisible = true;
+            DatabaseType.PostgreSQL => "PostgreSQL",
+            DatabaseType.Oracle => "Oracle 19c",
+            _ => "MS SQL Server"
+        };
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(string.Format(_loc["results.summaryHeader"], config.UserCount, deploy, product, db));
+        foreach (var n in req.Infrastructure.Where(n => n.NodeCount > 0))
+        {
+            sb.AppendLine(string.Format(_loc["results.summaryNode"],
+                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.StorageGb * n.NodeCount));
         }
+        sb.Append(string.Format(_loc["results.summaryTotals"],
+            req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"), req.TotalStorageGb, req.TotalIops));
+        return sb.ToString();
     }
+
+    private string BuildDiskRecommendations(ResourceRequirement req, ProjectConfig config)
+        => DiskAdvisor.Build(req, config, _loc);
 
     private void LoadHistory()
     {
@@ -494,20 +375,6 @@ public class MainViewModel : INotifyPropertyChanged
         Calculate();
     }
 
-    private void ShowScaling()
-    {
-        var config = GetConfig();
-        var points = ResultsPresenter.ComputeScaling(config, new List<ServiceComponent>(), _engine, Modules.ToList());
-        var step = config.UserCount <= 100 ? 25 : config.UserCount <= 500 ? 50 : 100;
-        var steps = Enumerable.Range(1, 30).Select(i => i * step).TakeWhile(s => s <= config.UserCount * 2).ToList();
-
-        ScalingData = new ObservableCollection<ServiceComponent>(points);
-        OnPropertyChanged(nameof(ScalingData));
-        IsScalingVisible = true;
-        SelectedTabIndex = 2;
-        StatusText = $"Scaling: {steps.First()}–{steps.Last()} users ({steps.Count} points)";
-    }
-
     private void OnMatrixChanged()
     {
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
@@ -516,34 +383,6 @@ public class MainViewModel : INotifyPropertyChanged
         _engine.SetModules(Modules.ToList());
         OnPropertyChanged(nameof(Modules));
         OnDeploymentTypeChanged();
-    }
-
-    private void OnAssistantConfigParsed(ProjectConfig config, List<string>? modules)
-    {
-        UserCount = config.UserCount.ToString();
-        DeploymentIndex = config.DeploymentType switch
-        {
-            DeploymentType.Kubernetes => 0,
-            DeploymentType.Windows => 1,
-            _ => 2
-        };
-        ProductIndex = config.ProductType == ProductType.DocumentFlow ? 1 : 0;
-
-        if (modules != null)
-        {
-            foreach (var mod in Modules)
-            {
-                mod.IsEnabled = modules.Contains(mod.Name);
-            }
-            Modules = new ObservableCollection<ProjectModule>(Modules);
-            OnPropertyChanged(nameof(Modules));
-        }
-
-        SelectedTabIndex = 1;
-        Calculate();
-
-        StatusText = string.Format(_loc["status.applied"],
-            config.UserCount, modules?.Count ?? 0);
     }
 
     private void OnProductTypeChanged()
@@ -603,45 +442,6 @@ public class MainViewModel : INotifyPropertyChanged
         ExportConfig(_results.ExportHtml(_lastResult, GetConfig()), "html");
     }
 
-    private void ShowDiagram()
-    {
-        if (_lastResult == null) return;
-        IsDiagramVisible = true;
-        StatusText = _loc["status.diagramBuilt"];
-    }
-
-    private void ExportSvg()
-    {
-        if (_lastResult == null) return;
-        var svg = ResultsPresenter.BuildSvgDiagram(_lastResult, GetConfig());
-        var saveDialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "SVG files (*.svg)|*.svg",
-            FileName = "infrastructure.svg"
-        };
-        if (saveDialog.ShowDialog() == true)
-        {
-            System.IO.File.WriteAllText(saveDialog.FileName, svg);
-            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
-        }
-    }
-
-    private void ExportMermaid()
-    {
-        if (_lastResult == null) return;
-        var mermaid = _results.ExportMermaid(_lastResult, GetConfig());
-        var saveDialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "Mermaid files (*.mmd)|*.mmd|Text files (*.txt)|*.txt",
-            FileName = "infrastructure.mmd"
-        };
-        if (saveDialog.ShowDialog() == true)
-        {
-            System.IO.File.WriteAllText(saveDialog.FileName, mermaid);
-            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
-        }
-    }
-
     private void ExportConfig(string content, string extension)
     {
         var saveDialog = new Microsoft.Win32.SaveFileDialog
@@ -661,40 +461,10 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void OpenAiSettings()
-    {
-        var dialog = new AiSettingsDialog(_aiSettings);
-        if (dialog.ShowDialog() == true)
-        {
-            _aiSettings = dialog.Settings;
-            _aiSettings.Save();
-            _advisor.UpdateSettings(_aiSettings);
-            UpdateAiBadge();
-        }
-    }
-
     private void SwitchLanguage()
     {
         var loc = _loc;
         loc.LoadLanguage(loc.CurrentLang == "uk" ? "en" : "uk");
-    }
-
-    private void ToggleTheme()
-    {
-        _themeService.Toggle();
-        IsDarkTheme = _themeService.IsDark;
-    }
-
-    private void UpdateAiBadge()
-    {
-        if (_aiSettings.EnableRealAi)
-        {
-            AiBadgeText = $"\u2705 {_aiSettings.ProviderDisplay()}";
-        }
-        else
-        {
-            AiBadgeText = _loc["ai.badgeDisabled"];
-        }
     }
 
     #endregion

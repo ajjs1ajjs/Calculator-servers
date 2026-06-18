@@ -167,7 +167,8 @@ public class ExcelImporterTests : IDisposable
         ws.Cells[4, 6].Value = 300;
         ws.Cells[4, 7].Value = 5;
 
-        // Performance section
+        // Performance (DocumentFlow) section — marked by the "Документообіг" label in col 1.
+        ws.Cells[5, 1].Value = "Документообіг";
         ws.Cells[6, 1].Value = "Min";
         ws.Cells[6, 2].Value = "Max";
         ws.Cells[6, 3].Value = "CPU";
@@ -252,23 +253,26 @@ public class ExcelImporterTests : IDisposable
         using var pkg = new ExcelPackage();
         var ws = pkg.Workbook.Worksheets.Add("Windows");
 
-        ws.Cells[1, 1].Value = "Min";
-        ws.Cells[1, 2].Value = "Max";
-        ws.Cells[1, 3].Value = "Quantity";
-        ws.Cells[1, 4].Value = "GHz";
-        ws.Cells[1, 5].Value = "CPU";
-        ws.Cells[1, 6].Value = "IOPS";
-        ws.Cells[1, 7].Value = "RAM Min";
-        ws.Cells[1, 8].Value = "RAM Rec";
+        // AppServers block — marked by the "AppServers" label in col 1 (matches real workbook layout).
+        ws.Cells[1, 1].Value = "AppServers";
+        ws.Cells[1, 2].Value = "Стандарт";
+        ws.Cells[2, 1].Value = "Min";
+        ws.Cells[2, 2].Value = "Max";
+        ws.Cells[2, 3].Value = "Quantity";
+        ws.Cells[2, 4].Value = "GHz";
+        ws.Cells[2, 5].Value = "CPU";
+        ws.Cells[2, 6].Value = "IOPS";
+        ws.Cells[2, 7].Value = "RAM Min";
+        ws.Cells[2, 8].Value = "RAM Rec";
 
-        ws.Cells[2, 1].Value = 1;
-        ws.Cells[2, 2].Value = 10;
-        ws.Cells[2, 3].Value = 1;
-        ws.Cells[2, 4].Value = 2.0;
-        ws.Cells[2, 5].Value = 4;
-        ws.Cells[2, 6].Value = 250;
-        ws.Cells[2, 7].Value = 6;
-        ws.Cells[2, 8].Value = 8;
+        ws.Cells[3, 1].Value = 1;
+        ws.Cells[3, 2].Value = 10;
+        ws.Cells[3, 3].Value = 1;
+        ws.Cells[3, 4].Value = 2.0;
+        ws.Cells[3, 5].Value = 4;
+        ws.Cells[3, 6].Value = 250;
+        ws.Cells[3, 7].Value = 6;
+        ws.Cells[3, 8].Value = 8;
 
         pkg.SaveAs(new FileInfo(filePath));
         return filePath;
