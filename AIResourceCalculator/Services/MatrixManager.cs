@@ -38,25 +38,30 @@ public class MatrixManager
         CopyMatrix(new SizingMatrix(), _matrix);
     }
 
+    // Глибоке копіювання: target отримує власні екземпляри списків і об'єктів,
+    // щоб редагування грідів не мутувало спільний стан движка через аліасинг посилань.
     private static void CopyMatrix(SizingMatrix source, SizingMatrix target)
     {
-        target.MsSqlRanges = source.MsSqlRanges;
-        target.MsSqlPerformanceRanges = source.MsSqlPerformanceRanges;
-        target.AppServerRanges = source.AppServerRanges;
-        target.AppServerPerformanceRanges = source.AppServerPerformanceRanges;
-        target.WebServerRanges = source.WebServerRanges;
-        target.WebServerPerformanceRanges = source.WebServerPerformanceRanges;
-        target.PostgresRanges = source.PostgresRanges;
-        target.OracleRanges = source.OracleRanges;
-        target.StandardModules = source.StandardModules;
-        target.DocumentFlowModules = source.DocumentFlowModules;
-        target.Modules = source.Modules;
-        target.DefaultK8sSql = source.DefaultK8sSql;
-        target.DefaultK8sMaster = source.DefaultK8sMaster;
-        target.DefaultK8sWorker = source.DefaultK8sWorker;
-        target.DefaultWindowsSql = source.DefaultWindowsSql;
-        target.DefaultWindowsApp = source.DefaultWindowsApp;
-        target.DefaultWindowsWeb = source.DefaultWindowsWeb;
+        static List<UserLoadRange> CloneRanges(List<UserLoadRange> src)
+            => src.Select(r => r.Clone()).ToList();
+
+        target.MsSqlRanges = CloneRanges(source.MsSqlRanges);
+        target.MsSqlPerformanceRanges = CloneRanges(source.MsSqlPerformanceRanges);
+        target.AppServerRanges = CloneRanges(source.AppServerRanges);
+        target.AppServerPerformanceRanges = CloneRanges(source.AppServerPerformanceRanges);
+        target.WebServerRanges = CloneRanges(source.WebServerRanges);
+        target.WebServerPerformanceRanges = CloneRanges(source.WebServerPerformanceRanges);
+        target.PostgresRanges = CloneRanges(source.PostgresRanges);
+        target.OracleRanges = CloneRanges(source.OracleRanges);
+        target.StandardModules = source.StandardModules.ToClonedList();
+        target.DocumentFlowModules = source.DocumentFlowModules.ToClonedList();
+        target.Modules = source.Modules.ToClonedList();
+        target.DefaultK8sSql = source.DefaultK8sSql?.Clone();
+        target.DefaultK8sMaster = source.DefaultK8sMaster?.Clone();
+        target.DefaultK8sWorker = source.DefaultK8sWorker?.Clone();
+        target.DefaultWindowsSql = source.DefaultWindowsSql?.Clone();
+        target.DefaultWindowsApp = source.DefaultWindowsApp?.Clone();
+        target.DefaultWindowsWeb = source.DefaultWindowsWeb?.Clone();
     }
 
     public void SyncGridsToMatrix(

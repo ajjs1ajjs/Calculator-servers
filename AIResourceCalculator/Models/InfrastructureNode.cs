@@ -22,5 +22,10 @@ public class InfrastructureNode
     public int PageFileGb { get; set; }
     public string PageFileType { get; set; } = "";
     public string Notes { get; set; } = "";
-    public int TotalStorageGb => (StorageGb + StorageGb2 + StorageGb3 + StorageGb4) * NodeCount;
+    // Сума всіх дисків одного вузла (OS + Logs + Data + Content).
+    public int DiskPerNodeGb => StorageGb + StorageGb2 + StorageGb3 + StorageGb4;
+    // Сумарний обсяг дисків з урахуванням кількості вузлів.
+    public int TotalStorageGb => DiskPerNodeGb * NodeCount;
+
+    public InfrastructureNode Clone() => (InfrastructureNode)MemberwiseClone();
 }

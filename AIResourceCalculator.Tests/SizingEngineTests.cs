@@ -298,6 +298,33 @@ public class SizingEngineTests
         Assert.DoesNotContain(result.Infrastructure, n => n.Name == "SQL Server");
     }
 
+    // --- Regression: сумарний обсяг дисків має враховувати розділені диски (StorageGb2/3/4) ---
+    [Fact]
+    public void InfrastructureNode_TotalStorage_IncludesSplitDisks()
+    {
+        var node = new InfrastructureNode
+        {
+            StorageGb = 100, StorageGb2 = 150, StorageGb3 = 300, StorageGb4 = 200, NodeCount = 2
+        };
+        Assert.Equal(750, node.DiskPerNodeGb);
+        Assert.Equal(1500, node.TotalStorageGb);
+    }
+
+    [Fact]
+    public void Calculate_TotalStorage_EqualsSumOfNodeDisks()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100,
+            DeploymentType = DeploymentType.Windows,
+            LoadProfile = LoadProfile.Basic
+        };
+
+        var result = _engine.Calculate(config);
+        var expected = result.Infrastructure.Sum(n => n.TotalStorageGb);
+        Assert.Equal(expected, result.TotalStorageGb);
+    }
+
     [Fact]
     public void Calculate_Windows_Postgres_ReturnsPostgresNode()
     {

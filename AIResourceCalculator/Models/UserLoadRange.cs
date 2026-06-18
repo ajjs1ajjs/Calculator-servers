@@ -11,4 +11,6 @@ public class UserLoadRange
     public double Latency { get; set; }
     public int InstanceCount { get; set; }
     public double Ghz { get; set; }
+
+    public UserLoadRange Clone() => (UserLoadRange)MemberwiseClone();
 }

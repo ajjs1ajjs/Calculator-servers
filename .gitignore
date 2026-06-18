@@ -12,6 +12,11 @@ build/
 /build/*.svg
 /build/resources.*
 
+# Згенеровані застосунком приклади звітів (не зберігаємо в репозиторії)
+/resources.html
+/resources.txt
+/infrastructure.svg
+
 # Secrets
 .env
 .env.*

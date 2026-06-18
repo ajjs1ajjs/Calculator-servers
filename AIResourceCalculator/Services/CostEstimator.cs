@@ -62,7 +62,7 @@ public class CostEstimator
             if (AzurePricing.TryGetValue(size, out var price))
             {
                 totalMonthly += price.hourly * 730 * infra.NodeCount;
-                totalStorageMonthly += infra.StorageGb * StorageGbPerMonth * infra.NodeCount;
+                totalStorageMonthly += infra.TotalStorageGb * StorageGbPerMonth;
                 nodeCount += infra.NodeCount;
             }
         }
@@ -86,7 +86,7 @@ public class CostEstimator
             if (AwsPricing.TryGetValue(size, out var price))
             {
                 totalMonthly += price.hourly * 730 * infra.NodeCount;
-                totalStorageMonthly += infra.StorageGb * StorageGbPerMonth * infra.NodeCount;
+                totalStorageMonthly += infra.TotalStorageGb * StorageGbPerMonth;
                 nodeCount += infra.NodeCount;
             }
         }
@@ -110,7 +110,7 @@ public class CostEstimator
             if (GcpPricing.TryGetValue(size, out var price))
             {
                 totalMonthly += price.hourly * 730 * infra.NodeCount;
-                totalStorageMonthly += infra.StorageGb * StorageGbPerMonth * infra.NodeCount;
+                totalStorageMonthly += infra.TotalStorageGb * StorageGbPerMonth;
                 nodeCount += infra.NodeCount;
             }
         }

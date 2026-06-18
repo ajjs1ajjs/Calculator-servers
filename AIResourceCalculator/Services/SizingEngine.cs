@@ -136,7 +136,7 @@ public class SizingEngine : ISizingEngine
             PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType
         });
 
-        req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
         req.TotalIops = sqlRange?.Iops ?? 500;
         req.TotalLatency = sqlRange?.Latency ?? 1;
 
@@ -235,7 +235,7 @@ public class SizingEngine : ISizingEngine
             Latency = webNode?.Latency ?? 0
         });
 
-        req.TotalStorageGb = req.Infrastructure.Sum(n => n.StorageGb * n.NodeCount);
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
         req.TotalLatency = sqlRange?.Latency ?? 1;
     }
 
@@ -307,19 +307,7 @@ public class SizingEngine : ISizingEngine
     }
 
     private static int CalcReplicas(ModuleComponent comp, int userCount)
-    {
-        return comp.Formula switch
-        {
-            ReplicaFormula.Fixed => comp.FixedReplicas,
-            ReplicaFormula.Per25Users => (int)Math.Ceiling(userCount / 25.0),
-            ReplicaFormula.Per100Users => (int)Math.Ceiling(userCount / 100.0),
-            ReplicaFormula.Per50Users => (int)Math.Ceiling(userCount / 50.0),
-            ReplicaFormula.Per100Plus1000 => 1 + (int)(userCount / 100.0) + (int)(userCount / 1000.0),
-            ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(userCount / 500.0),
-            ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
-            _ => Math.Max(1, comp.FixedReplicas)
-        };
-    }
+        => ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount);
 
     private static string GetDatabaseNodeName(DatabaseType dbType) => dbType switch
     {

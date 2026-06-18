@@ -37,26 +37,54 @@ public class ConfigExportService
         sb.AppendLine("}");
         sb.AppendLine();
 
+        sb.AppendLine("resource \"azurerm_subnet\" \"subnet\" {");
+        sb.AppendLine("  name                 = \"subnet-main\"");
+        sb.AppendLine("  resource_group_name  = azurerm_resource_group.rg.name");
+        sb.AppendLine("  virtual_network_name = azurerm_virtual_network.vnet.name");
+        sb.AppendLine("  address_prefixes     = [\"10.0.1.0/24\"]");
+        sb.AppendLine("}");
+        sb.AppendLine();
+
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
-            sb.AppendLine($"resource \"azurerm_linux_virtual_machine\" \"{name}\" {{");
-            sb.AppendLine($"  name                = \"vm-{name}\"");
+            var name = SanitizeResourceName(infra.Name);
+            // Мережевий інтерфейс для кожного екземпляра ВМ (раніше ВМ посилалась на неіснуючий ресурс).
+            sb.AppendLine($"resource \"azurerm_network_interface\" \"nic_{name}\" {{");
+            sb.AppendLine($"  count               = {infra.NodeCount}");
+            sb.AppendLine($"  name                = \"nic-{name}-${{count.index}}\"");
             sb.AppendLine("  resource_group_name = azurerm_resource_group.rg.name");
             sb.AppendLine("  location            = azurerm_resource_group.rg.location");
-            sb.AppendLine($"  size                = \"{GetAzureVmSize(infra.Cpu, infra.RamGb)}\"");
-            sb.AppendLine("  admin_username      = \"azureuser\"");
-            sb.AppendLine("  network_interface_ids = [azurerm_network_interface.nic_${count.index}.id]");
+            sb.AppendLine("  ip_configuration {");
+            sb.AppendLine("    name                          = \"internal\"");
+            sb.AppendLine("    subnet_id                     = azurerm_subnet.subnet.id");
+            sb.AppendLine("    private_ip_address_allocation = \"Dynamic\"");
+            sb.AppendLine("  }");
+            sb.AppendLine("}");
+            sb.AppendLine();
+
+            sb.AppendLine($"resource \"azurerm_linux_virtual_machine\" \"{name}\" {{");
+            sb.AppendLine($"  count                 = {infra.NodeCount}");
+            sb.AppendLine($"  name                  = \"vm-{name}-${{count.index}}\"");
+            sb.AppendLine("  resource_group_name   = azurerm_resource_group.rg.name");
+            sb.AppendLine("  location              = azurerm_resource_group.rg.location");
+            sb.AppendLine($"  size                  = \"{GetAzureVmSize(infra.Cpu, infra.RamGb)}\"");
+            sb.AppendLine("  admin_username        = \"azureuser\"");
+            sb.AppendLine($"  network_interface_ids = [azurerm_network_interface.nic_{name}[count.index].id]");
             sb.AppendLine("  admin_ssh_key {");
             sb.AppendLine("    username   = \"azureuser\"");
             sb.AppendLine("    public_key = file(\"~/.ssh/id_rsa.pub\")");
             sb.AppendLine("  }");
-            sb.AppendLine("  # Note: On Windows, replace ~ with your user directory, e.g. \"C:/Users/YourName/.ssh/id_rsa.pub\"");
+            sb.AppendLine("  # Примітка: на Windows замініть ~ на свій каталог, напр. \"C:/Users/YourName/.ssh/id_rsa.pub\"");
             sb.AppendLine("  os_disk {");
             sb.AppendLine("    caching              = \"ReadWrite\"");
             sb.AppendLine("    storage_account_type = \"Premium_LRS\"");
             sb.AppendLine("  }");
-            sb.AppendLine($"  count = {infra.NodeCount}");
+            sb.AppendLine("  source_image_reference {");
+            sb.AppendLine("    publisher = \"Canonical\"");
+            sb.AppendLine("    offer     = \"ubuntu-24_04-lts\"");
+            sb.AppendLine("    sku       = \"server\"");
+            sb.AppendLine("    version   = \"latest\"");
+            sb.AppendLine("  }");
             sb.AppendLine("  tags = {");
             sb.AppendLine($"    Name        = \"{config.ProjectName}-{name}\"");
             sb.AppendLine("    Environment = \"production\"");
@@ -101,7 +129,7 @@ public class ConfigExportService
         int i = 0;
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.Replace(" ", "").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(infra.Name).Replace("-", "");
             var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
 
             sb.AppendLine("    {");
@@ -202,7 +230,7 @@ public class ConfigExportService
         sb.AppendLine("| Node | Count | VM Size | vCPU | RAM (GB) | Storage (GB) |");
         sb.AppendLine("|------|-------|---------|------|----------|--------------|");
         foreach (var infra in req.Infrastructure)
-            sb.AppendLine($"| {infra.Name} | {infra.NodeCount} | {GetAzureVmSize(infra.Cpu, infra.RamGb)} | {infra.Cpu} | {infra.RamGb} | {infra.StorageGb} |");
+            sb.AppendLine($"| {infra.Name} | {infra.NodeCount} | {GetAzureVmSize(infra.Cpu, infra.RamGb)} | {infra.Cpu} | {infra.RamGb} | {infra.DiskPerNodeGb} |");
         return sb.ToString();
     }
 
@@ -222,10 +250,10 @@ public class ConfigExportService
         sb.AppendLine("</div>");
         sb.AppendLine("<h2>Infrastructure</h2><table><tr><th>Node</th><th>VM Size</th><th>vCPU</th><th>RAM</th><th>Count</th><th>Storage</th></tr>");
         foreach (var i in req.Infrastructure)
-            sb.AppendLine($"<tr><td>{i.Name}</td><td>{GetAzureVmSize(i.Cpu, i.RamGb)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{i.StorageGb} GB</td></tr>");
+            sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{GetAzureVmSize(i.Cpu, i.RamGb)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{i.DiskPerNodeGb} GB</td></tr>");
         sb.AppendLine("</table><h2>Components</h2><table><tr><th>Name</th><th>vCPU</th><th>RAM</th><th>Replicas</th></tr>");
         foreach (var c in req.Components.Where(c => c.Cpu > 0))
-            sb.AppendLine($"<tr><td>{c.Name}</td><td>{c.Cpu:F1}</td><td>{c.RamGb:F1}</td><td>{c.Replicas}</td></tr>");
+            sb.AppendLine($"<tr><td>{SanitizeHtml(c.Name)}</td><td>{c.Cpu:F1}</td><td>{c.RamGb:F1}</td><td>{c.Replicas}</td></tr>");
         sb.AppendLine("</table></body></html>");
         return sb.ToString();
     }
@@ -248,7 +276,7 @@ public class ConfigExportService
         sb.AppendLine("----------------------------------------");
         sb.AppendLine("  Infrastructure:");
         foreach (var i in req.Infrastructure)
-            sb.AppendLine($"    {i.Name}: {i.NodeCount}x ({i.Cpu} vCPU, {i.RamGb} GB, {i.StorageGb} GB) — {GetAzureVmSize(i.Cpu, i.RamGb)}");
+            sb.AppendLine($"    {i.Name}: {i.NodeCount}x ({i.Cpu} vCPU, {i.RamGb} GB, {i.DiskPerNodeGb} GB) — {GetAzureVmSize(i.Cpu, i.RamGb)}");
         sb.AppendLine("----------------------------------------");
         sb.AppendLine("  Components:");
         foreach (var c in req.Components.Where(c => c.Cpu > 0))
@@ -266,9 +294,9 @@ public class ConfigExportService
         {
             sb.AppendLine("  LB[Azure Load Balancer]");
             var masters = string.Join(" & ", req.Infrastructure.Where(n => n.Name.Contains("Master"))
-                .Select(n => $"M{n.Name.Replace(" ", "")}[{n.Name}]"));
+                .Select(n => $"M{SanitizeResourceName(n.Name).Replace("-", "")}[{n.Name}]"));
             var workers = string.Join(" & ", req.Infrastructure.Where(n => n.Name.Contains("Worker"))
-                .Select(n => $"W{n.Name.Replace(" ", "")}[{n.Name}]"));
+                .Select(n => $"W{SanitizeResourceName(n.Name).Replace("-", "")}[{n.Name}]"));
             var sql = req.Infrastructure.FirstOrDefault(n => n.Name.Contains("SQL"));
             if (!string.IsNullOrEmpty(masters)) sb.AppendLine($"  LB --> {masters}");
             if (!string.IsNullOrEmpty(masters) && !string.IsNullOrEmpty(workers)) sb.AppendLine($"  {masters} --> {workers}");
@@ -303,7 +331,7 @@ public class ConfigExportService
             var n = nodes[i];
             var color = n.Name.Contains("SQL") ? "#d20f39" : n.Name.Contains("Master") ? "#1e66f5" : n.Name.Contains("Worker") ? "#40a02b" : n.Name.Contains("App") ? "#8839ef" : "#fe640b";
             sb.AppendLine($"<rect x='{cx}' y='{cy}' width='{bw}' height='{bh}' rx='8' fill='{color}' opacity='0.9'/>");
-            sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 22}' text-anchor='middle' font-size='13' font-weight='bold' fill='white'>{n.Name}</text>");
+            sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 22}' text-anchor='middle' font-size='13' font-weight='bold' fill='white'>{SanitizeHtml(n.Name)}</text>");
             sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 42}' text-anchor='middle' font-size='11' fill='white'>{n.Cpu} vCPU | {n.RamGb} GB | {n.NodeCount}x</text>");
             sb.AppendLine($"<text x='{cx + bw / 2}' y='{cy + 58}' text-anchor='middle' font-size='10' fill='white'>{GetAzureVmSize(n.Cpu, n.RamGb)}</text>");
         }
@@ -333,9 +361,9 @@ public class ConfigExportService
 
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(infra.Name);
             var varName = name.Replace("-", "");
-            if (varName.Length > 0 && !char.IsLetter(varName[0]))
+            if (varName.Length == 0 || !char.IsLetter(varName[0]))
                 varName = "_" + varName;
             var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
             sb.AppendLine($"var {varName}Vm = new VirtualMachine(\"vm-{name}\", new VirtualMachineArgs");
@@ -384,7 +412,7 @@ public class ConfigExportService
 
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.Replace(" ", "").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(infra.Name).Replace("-", "");
             var size = GetAzureVmSize(infra.Cpu, infra.RamGb);
             sb.AppendLine($"resource {name}Vm 'Microsoft.Compute/virtualMachines@2024-07-01' = [for i in range(0, {infra.NodeCount}): {{");
             sb.AppendLine($"  name: 'vm-{name.ToLower()}-${{i}}'");
@@ -427,7 +455,7 @@ public class ConfigExportService
 
         foreach (var component in req.Components.Where(c => c.Cpu > 0))
         {
-            var name = component.Name.ToLower().Replace(" ", "-").Replace("_", "-");
+            var name = SanitizeResourceName(component.Name);
             var cpu = component.Cpu.ToString("F1");
             var ram = $"{component.RamGb}Gi";
 
@@ -461,17 +489,37 @@ public class ConfigExportService
 
             if (component.HasLocalSql || component.HasRedis)
             {
+                // Креденшали беремо з Kubernetes Secret, а не зберігаємо у відкритому вигляді в маніфесті.
                 sb.AppendLine($"        env:");
                 if (component.HasLocalSql)
                 {
                     sb.AppendLine($"        - name: CONNECTION_STRING");
-                    sb.AppendLine($"          value: \"Server=sql-server;Database={name};Trusted_Connection=True;\"");
+                    sb.AppendLine($"          valueFrom:");
+                    sb.AppendLine($"            secretKeyRef:");
+                    sb.AppendLine($"              name: {name}-secret");
+                    sb.AppendLine($"              key: connection-string");
                 }
                 if (component.HasRedis)
                 {
                     sb.AppendLine($"        - name: REDIS_CONNECTION");
-                    sb.AppendLine($"          value: \"redis://redis-service:6379\"");
+                    sb.AppendLine($"          valueFrom:");
+                    sb.AppendLine($"            secretKeyRef:");
+                    sb.AppendLine($"              name: {name}-secret");
+                    sb.AppendLine($"              key: redis-connection");
                 }
+
+                // Заготовка Secret — заповніть значення власними креденшалами (stringData base64 не потрібен).
+                sb.AppendLine("---");
+                sb.AppendLine("apiVersion: v1");
+                sb.AppendLine("kind: Secret");
+                sb.AppendLine($"metadata:");
+                sb.AppendLine($"  name: {name}-secret");
+                sb.AppendLine("type: Opaque");
+                sb.AppendLine("stringData:");
+                if (component.HasLocalSql)
+                    sb.AppendLine($"  connection-string: \"Server=sql-server;Database={name};Trusted_Connection=True;\"");
+                if (component.HasRedis)
+                    sb.AppendLine($"  redis-connection: \"redis://redis-service:6379\"");
             }
 
             sb.AppendLine("---");
@@ -533,7 +581,7 @@ public class ConfigExportService
         var components = req.Components.Where(c => c.Cpu > 0).ToList();
         foreach (var component in components)
         {
-            var name = component.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(component.Name);
             sb.AppendLine($"{name}:");
             sb.AppendLine($"  replicaCount: {component.Replicas}");
             sb.AppendLine($"  image:");
@@ -578,7 +626,7 @@ public class ConfigExportService
         // templates/deployment.yaml
         foreach (var component in components)
         {
-            var name = component.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(component.Name);
             sb.AppendLine("---");
             sb.AppendLine($"# templates/deployment-{name}.yaml");
             sb.AppendLine("apiVersion: apps/v1");
@@ -613,7 +661,7 @@ public class ConfigExportService
         // templates/service.yaml
         foreach (var component in components)
         {
-            var name = component.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(component.Name);
             sb.AppendLine("---");
             sb.AppendLine($"# templates/service-{name}.yaml");
             sb.AppendLine("apiVersion: v1");
@@ -658,7 +706,7 @@ public class ConfigExportService
 
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(infra.Name);
             var machineType = GetGcpMachineType(infra.Cpu, infra.RamGb);
             sb.AppendLine($"resource \"google_compute_instance\" \"{name}\" {{");
             sb.AppendLine($"  name         = \"vm-{name}\"");
@@ -701,7 +749,7 @@ public class ConfigExportService
 
         foreach (var infra in req.Infrastructure)
         {
-            var name = infra.Name.ToLower().Replace(" ", "-").Replace("(", "").Replace(")", "");
+            var name = SanitizeResourceName(infra.Name);
             var instanceType = GetAwsInstanceType(infra.Cpu, infra.RamGb);
             sb.AppendLine($"resource \"aws_instance\" \"{name}\" {{");
             sb.AppendLine($"  ami           = \"ami-0c55b159cbfafe1f0\"");
@@ -765,4 +813,18 @@ public class ConfigExportService
 
     public static string SanitizeHtml(string input)
         => string.IsNullOrEmpty(input) ? "" : input.Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+    // Приводить назву вузла до коректного ідентифікатора ресурсу IaC:
+    // лише малі латинські літери, цифри та дефіс. Усуває пробіли, дужки, слеші тощо.
+    public static string SanitizeResourceName(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return "node";
+        var clean = System.Text.RegularExpressions.Regex
+            .Replace(input.ToLowerInvariant(), "[^a-z0-9-]", "-")
+            .Trim('-');
+        while (clean.Contains("--")) clean = clean.Replace("--", "-");
+        if (clean.Length == 0) return "node";
+        if (!char.IsLetter(clean[0])) clean = "n-" + clean;
+        return clean;
+    }
 }

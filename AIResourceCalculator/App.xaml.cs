@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Localization;
@@ -14,6 +16,11 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Глобальний перехоплювач помилок: не даємо застосунку аварійно завершитися без повідомлення.
+        DispatcherUnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            Debug.WriteLine($"Domain unhandled exception: {(args.ExceptionObject as Exception)?.Message}");
 
         var sc = new ServiceCollection();
 
@@ -36,5 +43,15 @@ public partial class App : Application
         var mainWindow = new MainWindow();
         mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
         mainWindow.Show();
+    }
+
+    private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        Debug.WriteLine($"Unhandled exception: {e.Exception}");
+        var loc = LocalizationService.Instance;
+        MessageBox.Show(
+            string.Format(loc["error.unknown"], e.Exception.Message),
+            loc["error.title"], MessageBoxButton.OK, MessageBoxImage.Error);
+        e.Handled = true;
     }
 }

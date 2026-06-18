@@ -217,6 +217,7 @@ public class MainViewModel : INotifyPropertyChanged
     private ProjectConfig GetConfig(int? userCountOverride = null)
     {
         if (!int.TryParse(UserCount, out var uc) || uc < 1) uc = 100;
+        uc = Math.Clamp(uc, 1, 5000);
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         var loadProfile = productType == ProductType.DocumentFlow ? LoadProfile.Performance : LoadProfile.Basic;
         return new ProjectConfig
@@ -243,7 +244,7 @@ public class MainViewModel : INotifyPropertyChanged
             var (req, perfReq) = CalculateInternal(config);
             _lastResult = req;
             _lastResultPerf = perfReq;
-            ShowResults(req, perfReq);
+            ShowResults(req, perfReq, config);
             _historyService.SaveToHistory(config, req);
             LoadHistory();
             SelectedTabIndex = 2;
@@ -281,7 +282,8 @@ public class MainViewModel : INotifyPropertyChanged
             UserCount = config.UserCount,
             DeploymentType = config.DeploymentType,
             ProductType = otherProduct,
-            LoadProfile = otherProfile
+            LoadProfile = otherProfile,
+            DatabaseType = config.DatabaseType
         };
         _engine.SetProductType(otherProduct);
         _engine.SetModules(_engine.Modules.ToClonedList());
@@ -291,15 +293,15 @@ public class MainViewModel : INotifyPropertyChanged
         return (req, perfReq);
     }
 
-    private void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq)
+    private void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq, ProjectConfig config)
     {
         TotalCpu = $"{req.TotalCpu:F1}";
         TotalRam = $"{req.TotalRamGb:F1} GB";
         TotalStorage = $"{req.TotalStorageGb} GB";
         TotalIops = $"{req.TotalIops}";
         TotalNodes = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
-        ResultSummary = BuildSummary(req, GetConfig());
-        DiskRecommendations = BuildDiskRecommendations(req, GetConfig());
+        ResultSummary = BuildSummary(req, config);
+        DiskRecommendations = BuildDiskRecommendations(req, config);
         ResultInfrastructure = new ObservableCollection<InfrastructureNode>(req.Infrastructure);
         OnPropertyChanged(nameof(ResultInfrastructure));
 
@@ -329,7 +331,7 @@ public class MainViewModel : INotifyPropertyChanged
         foreach (var n in req.Infrastructure.Where(n => n.NodeCount > 0))
         {
             sb.AppendLine(string.Format(_loc["results.summaryNode"],
-                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.StorageGb * n.NodeCount));
+                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.TotalStorageGb));
         }
         sb.Append(string.Format(_loc["results.summaryTotals"],
             req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"), req.TotalStorageGb, req.TotalIops));

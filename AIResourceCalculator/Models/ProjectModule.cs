@@ -11,6 +11,26 @@ public enum ReplicaFormula
     OnePlusPer100       // 1 + Int(користувачі/100)
 }
 
+// Єдине джерело правди для розрахунку кількості реплік за формулою.
+public static class ReplicaMath
+{
+    public static int Resolve(ReplicaFormula formula, int fixedReplicas, int userCount)
+    {
+        if (userCount < 0) userCount = 0;
+        return formula switch
+        {
+            ReplicaFormula.Fixed => fixedReplicas,
+            ReplicaFormula.Per25Users => (int)Math.Ceiling(userCount / 25.0),
+            ReplicaFormula.Per100Users => (int)Math.Ceiling(userCount / 100.0),
+            ReplicaFormula.Per50Users => (int)Math.Ceiling(userCount / 50.0),
+            ReplicaFormula.Per100Plus1000 => 1 + (int)(userCount / 100.0) + (int)(userCount / 1000.0),
+            ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(userCount / 500.0),
+            ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
+            _ => Math.Max(1, fixedReplicas)
+        };
+    }
+}
+
 public class ModuleComponent
 {
     public string Name { get; set; } = "";
@@ -54,18 +74,7 @@ public class ProjectModule
 
         foreach (var comp in Components)
         {
-            int replicas = comp.Formula switch
-            {
-                ReplicaFormula.Fixed => comp.FixedReplicas,
-                ReplicaFormula.Per25Users => (int)Math.Ceiling(userCount / 25.0),
-                ReplicaFormula.Per100Users => (int)Math.Ceiling(userCount / 100.0),
-                ReplicaFormula.Per50Users => (int)Math.Ceiling(userCount / 50.0),
-                ReplicaFormula.Per100Plus1000 => 1 + (int)(userCount / 100.0) + (int)(userCount / 1000.0),
-                ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(userCount / 500.0),
-                ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
-                _ => Math.Max(1, comp.FixedReplicas)
-            };
-
+            int replicas = ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount);
             if (replicas == 0) replicas = 1;
 
             var cpu = profile == LoadProfile.Performance && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;

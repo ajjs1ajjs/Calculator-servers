@@ -8,26 +8,35 @@ namespace AIResourceCalculator.Views;
 
 public partial class CalculatorTabControl : UserControl
 {
+    private bool _wired;
+
     public CalculatorTabControl()
     {
         InitializeComponent();
-        Loaded += (_, _) =>
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        ModulesPanel.ItemsSource = vm.Modules;
+
+        // Підписки чіпляємо лише один раз — Loaded може спрацьовувати багаторазово.
+        if (_wired) return;
+        _wired = true;
+
+        CommandManager.AddPreviewExecutedHandler(TxtUserCount, OnPaste);
+        // Дозволяємо лише цифри саме у полі кількості користувачів, а не в усьому контролі.
+        TxtUserCount.PreviewTextInput += (_, args) =>
         {
-            if (DataContext is not MainViewModel vm) return;
-            ModulesPanel.ItemsSource = vm.Modules;
+            if (args.Text != null && args.Text.Any(c => !char.IsDigit(c)))
+                args.Handled = true;
+        };
 
-            CommandManager.AddPreviewExecutedHandler(TxtUserCount, OnPaste);
-            PreviewTextInput += (_, e) =>
-            {
-                if (e.Text != null && e.Text.Any(c => !char.IsDigit(c)))
-                    e.Handled = true;
-            };
-
-            vm.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(MainViewModel.Modules))
-                    ModulesPanel.ItemsSource = vm.Modules;
-            };
+        vm.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.Modules))
+                ModulesPanel.ItemsSource = vm.Modules;
         };
     }
 

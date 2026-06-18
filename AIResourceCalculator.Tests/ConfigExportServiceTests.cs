@@ -268,6 +268,48 @@ public class ConfigExportServiceTests
         Assert.DoesNotContain("REDIS_CONNECTION", result);
     }
 
+    // --- Regression: екранування XSS у HTML-звіті (назви з імпортованого Excel) ---
+    [Fact]
+    public void ExportHtml_EscapesMaliciousNodeName()
+    {
+        var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
+        req.Infrastructure.Add(new InfrastructureNode { Name = "<script>alert(1)</script>", Cpu = 4, RamGb = 16, NodeCount = 1, StorageGb = 100 });
+        var result = _svc.ExportHtml(req, _config);
+        Assert.DoesNotContain("<script>alert(1)</script>", result);
+        Assert.Contains("&lt;script&gt;", result);
+    }
+
+    // --- Regression: згенерований Terraform має визначати NIC та subnet, а не посилатися на неіснуючий ресурс ---
+    [Fact]
+    public void ExportTerraform_DefinesNetworkInterfaceAndSubnet()
+    {
+        var result = _svc.ExportTerraform(_req, _config);
+        Assert.Contains("azurerm_subnet", result);
+        Assert.Contains("azurerm_network_interface", result);
+        Assert.DoesNotContain("nic_${count.index}", result);
+    }
+
+    // --- Regression: некоректні символи у назві вузла не потрапляють в ідентифікатор ресурсу ---
+    [Fact]
+    public void ExportTerraform_SanitizesSlashInNodeName()
+    {
+        var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
+        req.Infrastructure.Add(new InfrastructureNode { Name = "GPU Node (T4/A10)", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200 });
+        var result = _svc.ExportTerraform(req, _config);
+        Assert.DoesNotContain("\"gpunodet4/a10\"", result);
+        Assert.Contains("\"gpu-node-t4-a10\"", result);
+    }
+
+    // --- Regression: K8s-маніфест бере креденшали з Secret, а не з відкритого env value ---
+    [Fact]
+    public void ExportK8sDeployment_LocalSql_UsesSecretReference()
+    {
+        var req = MakeK8sReq(new ServiceComponent { Name = "Api", Cpu = 2, RamGb = 4, Replicas = 1, HasLocalSql = true });
+        var result = _svc.ExportK8sDeployment(req, _config);
+        Assert.Contains("kind: Secret", result);
+        Assert.Contains("secretKeyRef", result);
+    }
+
     private static ResourceRequirement MakeK8sReq(ServiceComponent component)
     {
         var req = new ResourceRequirement
