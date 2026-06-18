@@ -97,8 +97,9 @@ public class SizingEngine : ISizingEngine
         var workerCount = Math.Max(1,
             (int)Math.Ceiling(Math.Max(totalCpu / workerCpuCapacity, totalRam / workerRamCapacity)));
 
-        req.TotalCpu = totalCpu;
-        req.TotalRamGb = totalRam;
+        // totalCpu/totalRam — це сукупний ЗАПИТ подів; він потрібен лише для розрахунку
+        // кількості worker-вузлів вище. Підсумкові TotalCpu/TotalRamGb рахуються нижче
+        // як ФІЗИЧНІ ресурси всіх вузлів (щоб значення було зіставне з Windows-режимом).
         req.WorkerNodeCount = workerCount;
         req.MasterNodeCount = masterNode.NodeCount > 0 ? masterNode.NodeCount : 1;
 
@@ -136,7 +137,6 @@ public class SizingEngine : ISizingEngine
             PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType
         });
 
-        req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
         req.TotalIops = sqlRange?.Iops ?? 500;
         req.TotalLatency = sqlRange?.Latency ?? 1;
 
@@ -151,10 +151,12 @@ public class SizingEngine : ISizingEngine
                 Name = "GPU Node (T4/A10)", Os = "Ubuntu 24.04", Cpu = GpuNodeCpu, RamGb = GpuNodeRamGb,
                 NodeCount = gpuCount, StorageGb = GpuNodeStorageGb, StorageType = "SSD"
             });
-            req.TotalCpu += GpuNodeCpu * gpuCount;
-            req.TotalRamGb += GpuNodeRamGb * gpuCount;
-            req.TotalStorageGb += GpuNodeStorageGb * gpuCount;
         }
+
+        // Підсумок = сума ФІЗИЧНИХ ресурсів усіх вузлів (SQL + Master + Worker [+ GPU]).
+        req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
+        req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
     }
 
     private void CalculateWindows(ResourceRequirement req, ProjectConfig config)
@@ -250,9 +252,6 @@ public class SizingEngine : ISizingEngine
         CalculateK8s(k8sReq, k8sConfig);
         CalculateWindows(winReq, winConfig);
 
-        req.TotalCpu = k8sReq.TotalCpu + winReq.TotalCpu;
-        req.TotalRamGb = k8sReq.TotalRamGb + winReq.TotalRamGb;
-        req.TotalStorageGb = k8sReq.TotalStorageGb + winReq.TotalStorageGb;
         req.TotalIops = k8sReq.TotalIops + winReq.TotalIops;
         req.TotalLatency = Math.Min(k8sReq.TotalLatency, winReq.TotalLatency);
         req.WorkerNodeCount = k8sReq.WorkerNodeCount + winReq.WorkerNodeCount;
@@ -281,6 +280,12 @@ public class SizingEngine : ISizingEngine
                 req.Infrastructure.Remove(other);
             }
         }
+
+        // Підсумок рахуємо з ФІНАЛЬНОГО списку вузлів (після дедуплікації спільної БД),
+        // інакше CPU/RAM/диски подвоювали б SQL-вузол.
+        req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
+        req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
     }
 
     private UserLoadRange? FindDatabaseRange(int userCount, LoadProfile profile, DatabaseType dbType)

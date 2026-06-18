@@ -39,7 +39,7 @@ public class SizingEngineTests
     }
 
     [Fact]
-    public void Calculate_K8sPerformance_100Users_ReturnsHigherThanBasic()
+    public void Calculate_K8sPerformance_100Users_NotLessThanBasic()
     {
         var basicConfig = new ProjectConfig
         {
@@ -57,7 +57,11 @@ public class SizingEngineTests
         var basic = _engine.Calculate(basicConfig);
         var perf = _engine.Calculate(perfConfig);
 
-        Assert.True(perf.TotalCpu >= basic.TotalCpu);
+        // Підсумок тепер = ФІЗИЧНІ ресурси вузлів. Профіль "Продуктивний" не зменшує робоче
+        // навантаження: к-сть worker-вузлів і RAM не нижчі за базовий профіль.
+        // (CPU вузла БД для перф-профілю у матриці навмисно НИЖЧИЙ — 6 проти 8 на 51-100,
+        //  тому пряме порівняння TotalCpu тут некоректне.)
+        Assert.True(perf.WorkerNodeCount >= basic.WorkerNodeCount);
         Assert.True(perf.TotalRamGb >= basic.TotalRamGb);
     }
 
@@ -308,6 +312,23 @@ public class SizingEngineTests
         };
         Assert.Equal(750, node.DiskPerNodeGb);
         Assert.Equal(1500, node.TotalStorageGb);
+    }
+
+    // --- Regression: "Всього vCPU/RAM" = фізичні ресурси вузлів, однаково для K8s і Windows ---
+    [Theory]
+    [InlineData(DeploymentType.Kubernetes)]
+    [InlineData(DeploymentType.Windows)]
+    public void Calculate_TotalCpuAndRam_EqualPhysicalNodeResources(DeploymentType deploy)
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = deploy, LoadProfile = LoadProfile.Basic
+        };
+
+        var result = _engine.Calculate(config);
+
+        Assert.Equal(result.Infrastructure.Sum(n => n.Cpu * n.NodeCount), result.TotalCpu);
+        Assert.Equal(result.Infrastructure.Sum(n => n.RamGb * n.NodeCount), result.TotalRamGb);
     }
 
     [Fact]
