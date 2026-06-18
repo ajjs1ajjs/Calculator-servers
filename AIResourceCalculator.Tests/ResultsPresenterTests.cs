@@ -5,7 +5,7 @@ namespace AIResourceCalculator.Tests;
 
 public class ResultsPresenterTests
 {
-    private readonly ResultsPresenter _presenter = new();
+    private readonly ResultsPresenter _presenter = new(new ConfigExportService(), new ValidationEngine());
     private readonly ResourceRequirement _req;
     private readonly ResourceRequirement _perfReq;
     private readonly ProjectConfig _config;

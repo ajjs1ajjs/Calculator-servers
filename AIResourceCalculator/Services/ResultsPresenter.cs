@@ -1,11 +1,18 @@
+using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Models;
 
 namespace AIResourceCalculator.Services;
 
 public class ResultsPresenter
 {
-    private readonly ConfigExportService _export = new();
-    private readonly ValidationEngine _validator = new();
+    private readonly ConfigExportService _export;
+    private readonly IValidationEngine _validator;
+
+    public ResultsPresenter(ConfigExportService export, IValidationEngine validator)
+    {
+        _export = export;
+        _validator = validator;
+    }
 
     public List<ValidationResult> CompareProfiles(ResourceRequirement profile1, ResourceRequirement profile2)
         => _validator.CompareProfiles(profile1, profile2);

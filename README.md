@@ -34,10 +34,28 @@ dotnet build AIResourceCalculator.slnx -c Release
 dotnet test  AIResourceCalculator.slnx -c Release
 
 # Публікація self-contained exe (артефакт у git не зберігається)
-dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release
+dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --output publish
 ```
 
 Потрібен .NET SDK 10 (версія зафіксована у [`global.json`](global.json)).
+
+### Цифровий підпис exe
+
+Скрипт [`sign.ps1`](sign.ps1) підписує опублікований `publish\AIResourceCalculator.exe`:
+
+```powershell
+# Самопідписаний сертифікат (для внутрішнього використання)
+./sign.ps1
+
+# Корпоративний / придбаний сертифікат — підпис, якому довірятимуть інші ПК
+./sign.ps1 -PfxPath C:\certs\company.pfx -PfxPassword (Read-Host -AsSecureString)
+```
+
+- **Самопідписаний** підпис вбудовується у файл, але на чужих ПК SmartScreen усе одно
+  попереджатиме, доки сертифікат не додано в їхній Trusted Root (прапорець `-TrustLocally`
+  додає його лише на поточну машину).
+- Щоб попередження зникали на будь-якому ПК, потрібен сертифікат від довіреного центру (CA) —
+  передайте його через `-PfxPath`.
 
 ## Структура проекту
 

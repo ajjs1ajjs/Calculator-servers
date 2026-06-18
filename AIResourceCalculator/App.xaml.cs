@@ -30,6 +30,7 @@ public partial class App : Application
         sc.AddTransient<IValidationEngine, ValidationEngine>();
         sc.AddSingleton<AIResourceCalculator.Data.SizingMatrix>();
         sc.AddSingleton<MatrixManager>();
+        sc.AddTransient<ConfigExportService>();
         sc.AddTransient<ResultsPresenter>();
         sc.AddSingleton<ISizingEngine>(sp =>
         {

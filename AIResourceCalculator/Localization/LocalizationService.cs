@@ -1,8 +1,5 @@
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using AIResourceCalculator.Interfaces;
 
 namespace AIResourceCalculator.Localization;
@@ -276,7 +273,6 @@ public class LocalizationService : ILocalizationService
     private LocalizationService()
     {
         _strings = new Dictionary<string, string>(StringsUk);
-        MergeFromJson("uk", _strings);
     }
 
     public void LoadLanguage(string lang)
@@ -284,7 +280,6 @@ public class LocalizationService : ILocalizationService
         _strings = lang == "uk"
             ? new Dictionary<string, string>(StringsUk)
             : new Dictionary<string, string>(StringsEn);
-        MergeFromJson(lang, _strings);
         _currentLang = lang;
 
         OnPropertyChanged("");
@@ -302,26 +297,5 @@ public class LocalizationService : ILocalizationService
     private void OnPropertyChanged([CallerMemberName] string? name = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    }
-
-    private static void MergeFromJson(string lang, Dictionary<string, string> target)
-    {
-        try
-        {
-            var jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Localization", $"strings.{lang}.json");
-            if (File.Exists(jsonPath))
-            {
-                var json = File.ReadAllText(jsonPath);
-                var jsonDict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                if (jsonDict != null)
-                {
-                    foreach (var (key, value) in jsonDict)
-                    {
-                        target[key] = value;
-                    }
-                }
-            }
-        }
-        catch (Exception ex) { Debug.WriteLine($"Localization merge failed: {ex.Message}"); }
     }
 }
