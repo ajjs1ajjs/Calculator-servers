@@ -181,19 +181,37 @@ public class ExcelImporter
         string? currentSection = null;
         var maxRow = ws.Dimension?.End.Row ?? 100;
 
-        for (int row = Math.Max(1, FindHeaderRow(ws, 1, 1, new[] { "Pods", "підав", "подов", "pods" })); row <= maxRow; row++)
+        // The "Pods:" header sits in column B (not A) — start parsing components from that row so
+        // the infrastructure rows above it (SQL / Master / Worker) are NOT ingested as pods.
+        var podsHeader = FindHeaderRow(ws, 1, 2, new[] { "Pods", "под", "pods" });
+        for (int row = Math.Max(1, podsHeader); row <= maxRow; row++)
         {
             var name = GetString(ws, row, 2);
             if (string.IsNullOrEmpty(name) || name.StartsWith("---")) continue;
             if (name == "Pods:" || name == "CPU" || name == "RAM" || name == "Кількість") continue;
+
+            // Defensive guard: never treat infrastructure node rows as service components.
+            if (name.Contains("Worker", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("Master", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SQL", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("node", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("вузол", StringComparison.OrdinalIgnoreCase))
+                continue;
 
             // Skip summary rows (totals)
             var col1 = GetString(ws, row, 1);
             if (col1.Contains("ліцензій") || col1.Contains("сесій") || col1 == "1")
                 continue;
 
-            // Section header -> switch module context
-            if (_sectionHeaders.Contains(name))
+            var cpu = GetDouble(ws, row, 3);
+            var ram = GetDouble(ws, row, 4);
+            var qty = GetInt(ws, row, 5);
+            var notes = GetString(ws, row, 8);
+
+            // Section header -> switch module context. A header row carries the section label with
+            // NO numeric CPU/RAM (e.g. "LMS" + "CPU"/"RAM" labels); a real component named "LMS"
+            // does have numbers, so it must NOT be mistaken for the header.
+            if (_sectionHeaders.Contains(name) && cpu <= 0 && ram <= 0)
             {
                 currentSection = name;
                 continue;
@@ -201,11 +219,6 @@ public class ExcelImporter
 
             // Determine target module
             var moduleName = currentSection ?? DetermineModuleByComponent(name);
-
-            var cpu = GetDouble(ws, row, 3);
-            var ram = GetDouble(ws, row, 4);
-            var qty = GetInt(ws, row, 5);
-            var notes = GetString(ws, row, 8);
 
             if (cpu == 0 && ram == 0) continue;
 
@@ -259,7 +272,8 @@ public class ExcelImporter
         {
             return name switch
             {
-                string n when n.Contains("ROBOT") => (ReplicaFormula.Per100Plus1000, 1),
+                // Only the ROBOT scheduler scales; its helper pods (ROBOT-Local SQL, ROBOT-Redis) are fixed.
+                string n when n.Contains("ROBOT") && !n.Contains("-") => (ReplicaFormula.Per100Plus1000, 1),
                 string n when n.Contains("WS (Веб сервіси)") || n.Contains("WS (WebSocket)") => (ReplicaFormula.Per50Plus500, 1),
                 string n when n.Contains("ForceBPM Engine") => (ReplicaFormula.OnePlusPer100, 1),
                 _ => (ReplicaFormula.Fixed, qty)

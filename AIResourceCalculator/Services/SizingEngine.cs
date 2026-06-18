@@ -169,16 +169,9 @@ public class SizingEngine : ISizingEngine
         var appNode = _matrix.DefaultWindowsApp;
         var webNode = _matrix.DefaultWindowsWeb;
 
-        var enabledModules = _modules.Where(m => m.IsEnabled && !m.IsKubernetesOnly).ToList();
-        double totalCpu = 0, totalRam = 0;
-
-        foreach (var module in enabledModules)
-        {
-            var (modCpu, modRam) = module.CalculateReplicas(config.UserCount, config.LoadProfile);
-            totalCpu += modCpu;
-            totalRam += modRam;
-        }
-
+        // Windows sizing mirrors the Excel "Windows" sheet: it is purely VM-based
+        // (SQL + AppServers×count + WebServers×count). The K8s module/pod breakdown is NOT added —
+        // on Windows the application runs inside the app-server VMs, so adding pod CPU/RAM would double-count.
         var appCpu = appRange?.Cpu ?? 4;
         var appRam = appRange?.RamRec ?? 16;
         var appCount = appRange?.InstanceCount ?? 1;
@@ -186,8 +179,8 @@ public class SizingEngine : ISizingEngine
         var webRam = webRange?.RamRec ?? 8;
         var webCount = webRange?.InstanceCount ?? 1;
 
-        req.TotalCpu = totalCpu + (sqlRange?.Cpu ?? 4) + appCpu * appCount + webCpu * webCount;
-        req.TotalRamGb = totalRam + (sqlRange?.RamRec ?? 16) + appRam * appCount + webRam * webCount;
+        req.TotalCpu = (sqlRange?.Cpu ?? 4) + appCpu * appCount + webCpu * webCount;
+        req.TotalRamGb = (sqlRange?.RamRec ?? 16) + appRam * appCount + webRam * webCount;
         req.TotalIops = (appRange?.Iops ?? 200) + (webRange?.Iops ?? 200) + (sqlRange?.Iops ?? 500);
 
         req.WorkerNodeCount = appCount + webCount;

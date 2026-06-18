@@ -101,6 +101,58 @@ public class RealExcelImportTests
     }
 
     [Fact]
+    public void ImportedMatrix_DoesNotIngestInfraNodesAsComponents()
+    {
+        var m = Import();
+        // Regression: the SQL/Master/Worker infrastructure rows must NOT become pod components
+        // (that bug inflated 100-user sizing to ~152 vCPU / 20 worker nodes).
+        var comps = m.StandardModules.SelectMany(x => x.Components).Select(c => c.Name);
+        Assert.DoesNotContain(comps, n => n.Contains("Worker", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(comps, n => n.Contains("Master", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ImportedMatrix_100Users_ProducesReasonableTotals()
+    {
+        var m = Import();
+        var engine = new SizingEngine(m);
+        engine.SetProductType(ProductType.Standard);
+        var req = engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes,
+            ProductType = ProductType.Standard, LoadProfile = LoadProfile.Basic, DatabaseType = DatabaseType.MsSql
+        });
+        // 100 users on a default 8 vCPU / 32 GB worker should need only a handful of workers.
+        Assert.True(req.TotalCpu < 60, $"TotalCpu too high: {req.TotalCpu}");
+        Assert.True(req.WorkerNodeCount <= 6, $"Worker nodes too high: {req.WorkerNodeCount}");
+    }
+
+    [Fact]
+    public void Import_LmsModule_KeepsCoreLmsComponent()
+    {
+        var m = Import();
+        var lms = m.StandardModules.FirstOrDefault(x => x.Name == "LMS");
+        Assert.NotNull(lms);
+        // The core "LMS" pod must not be swallowed by the section header of the same name.
+        Assert.Contains(lms!.Components, c => c.Name == "LMS");
+    }
+
+    [Fact]
+    public void Windows_100Users_IsVmOnly_NoModuleDoubleCount()
+    {
+        var m = Import();
+        var engine = new SizingEngine(m);
+        engine.SetProductType(ProductType.Standard);
+        var req = engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows,
+            ProductType = ProductType.Standard, LoadProfile = LoadProfile.Basic, DatabaseType = DatabaseType.MsSql
+        });
+        // VM-only: SQL(8) + App 4x2 + Web 4x1 = 20 vCPU. If pod modules were added it would be ~44.
+        Assert.True(req.TotalCpu <= 24, $"Windows TotalCpu should be VM-only (~20), got {req.TotalCpu}");
+    }
+
+    [Fact]
     public void Import_SqlNode_HasMultiDiskLayout()
     {
         var m = Import();
