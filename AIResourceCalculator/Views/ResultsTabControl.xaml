@@ -6,7 +6,7 @@
     <UserControl.Resources>
         <conv:VisibilityConverter x:Key="VisibilityConverter"/>
     </UserControl.Resources>
-    <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+    <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   PreviewMouseWheel="RootScroll_PreviewMouseWheel">
         <StackPanel Margin="15">
             <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
@@ -87,15 +87,15 @@
                                 </TextBlock>
                                 <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="120"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="150"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="45"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="45"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="45"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="90"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="60"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="140"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </StackPanel>
@@ -106,18 +106,18 @@
             <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
             <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
-                    <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="120"/>
-                    <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="150"/>
-                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="45"/>
-                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="45"/>
-                    <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="70"/>
-                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="40"/>
-                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="75"/>
-                    <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="80"/>
-                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="60"/>
-                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="70"/>
-                    <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*"/>
+                    <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
+                    <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                    <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
+                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45"/>
+                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45"/>
+                    <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
+                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45"/>
+                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75"/>
+                    <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto"/>
+                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55"/>
+                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto"/>
+                    <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
                 </DataGrid.Columns>
             </DataGrid>
             <StackPanel Visibility="{Binding HasDocComparison, Converter={StaticResource VisibilityConverter}}" Margin="0,0,0,12">
