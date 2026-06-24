@@ -413,13 +413,17 @@ public class MainViewModel : INotifyPropertyChanged
         {
             var test = EnvironmentScaler.ScaleFromProd(prodBase, s.TestScaleFactor);
             EnvironmentScaler.AddBackupReserve(test, reserve);
-            reports.Add(new() { Environment = DeployEnvironment.Test, Name = "TEST", UserCount = config.UserCount, Requirement = test });
+            // Кількість користувачів TEST — масштабована від PROD (узгоджено з урізаною потужністю).
+            var testUsers = Math.Max(1, (int)Math.Round(config.UserCount * s.TestScaleFactor));
+            reports.Add(new() { Environment = DeployEnvironment.Test, Name = "TEST", UserCount = testUsers, Requirement = test });
         }
         if (s.IncludePredProd)
         {
             var pp = EnvironmentScaler.ScaleFromProd(prodBase, s.TestScaleFactor * s.PredProdMultiplier);
             EnvironmentScaler.AddBackupReserve(pp, reserve);
-            reports.Add(new() { Environment = DeployEnvironment.PredProd, Name = "PreProd", UserCount = config.UserCount, Requirement = pp });
+            var ppUsers = Math.Min(config.UserCount,
+                Math.Max(1, (int)Math.Round(config.UserCount * s.TestScaleFactor * s.PredProdMultiplier)));
+            reports.Add(new() { Environment = DeployEnvironment.PredProd, Name = "PreProd", UserCount = ppUsers, Requirement = pp });
         }
 
         _environments = reports;

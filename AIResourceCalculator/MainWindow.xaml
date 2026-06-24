@@ -4,7 +4,8 @@
         xmlns:loc="clr-namespace:AIResourceCalculator.Localization"
         xmlns:views="clr-namespace:AIResourceCalculator.Views"
         Title="{loc:Loc app.title}" Height="900" Width="1300"
-        WindowStartupLocation="CenterScreen"
+        MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized"
         Background="{DynamicResource WindowBg}">
     <Window.Resources>
         <ResourceDictionary>

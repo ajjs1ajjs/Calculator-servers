@@ -6,7 +6,8 @@
     <UserControl.Resources>
         <conv:VisibilityConverter x:Key="VisibilityConverter"/>
     </UserControl.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                  PreviewMouseWheel="RootScroll_PreviewMouseWheel">
         <StackPanel Margin="15">
             <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
             <Border Background="{DynamicResource HighlightBg}" Padding="14" CornerRadius="8" Margin="0,0,0,12"
@@ -82,7 +83,7 @@
                         <DataTemplate>
                             <StackPanel Margin="0,0,0,8">
                                 <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2">
-                                    <Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — ліцензій: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
+                                    <Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
                                 </TextBlock>
                                 <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                                     <DataGrid.Columns>

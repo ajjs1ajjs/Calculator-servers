@@ -372,7 +372,7 @@ public class ConfigExportService
     private static void BuildEnvironmentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
         var ws = pkg.Workbook.Worksheets.Add("Середовища");
-        string[] headers = { "Середовище", "Ліцензій", "CPU", "RAM (ГБ)", "Диски (ГБ)", "IOPS (БД)", "ВМ (серверів)" };
+        string[] headers = { "Середовище", "Користувачів", "CPU", "RAM (ГБ)", "Диски (ГБ)", "IOPS (БД)", "ВМ (серверів)" };
         WriteHeader(ws, headers);
 
         int row = 2;
