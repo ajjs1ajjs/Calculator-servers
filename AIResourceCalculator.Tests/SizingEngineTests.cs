@@ -102,6 +102,33 @@ public class SizingEngineTests
         Assert.NotEmpty(result.Infrastructure);
     }
 
+    // --- Регресія Bug 3: MasterNodeCount узгоджений із таблицею інфраструктури ---
+    // Windows — без master-вузла (0); у гібриді master лише один (від K8s), а не 1+1=2.
+    [Fact]
+    public void Calculate_MasterNodeCount_MatchesInfrastructure()
+    {
+        _engine.SetModules(_engine.Modules.Where(m => m.Name != "Windows Infrastructure").ToList());
+
+        var win = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 200, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        var hybrid = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 200, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic
+        });
+
+        // Windows: master-вузлів немає ні в полі, ні в інфраструктурі.
+        Assert.Equal(0, win.MasterNodeCount);
+        Assert.DoesNotContain(win.Infrastructure, n => n.Name.Contains("Master"));
+
+        // Гібрид: рівно один master-вузол — поле збігається з фактом у таблиці.
+        var hybridMasterNodes = hybrid.Infrastructure
+            .Where(n => n.Name.Contains("Master")).Sum(n => n.NodeCount);
+        Assert.Equal(1, hybridMasterNodes);
+        Assert.Equal(hybridMasterNodes, hybrid.MasterNodeCount);
+    }
+
     // --- Регресія: гібрид НЕ дублює app/web (раніше "криво рахував" на 10 ліцензіях) ---
     [Fact]
     public void Calculate_Hybrid_DoesNotDoubleCountAppWeb()

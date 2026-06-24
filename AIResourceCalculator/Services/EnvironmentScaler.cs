@@ -51,8 +51,17 @@ public static class EnvironmentScaler
             req.Infrastructure.Add(c);
         }
 
-        req.WorkerNodeCount = req.Infrastructure.Where(n => n.Name.Contains("Worker", StringComparison.OrdinalIgnoreCase)).Sum(n => n.NodeCount);
-        req.MasterNodeCount = req.Infrastructure.Where(n => n.Name.Contains("Master", StringComparison.OrdinalIgnoreCase)).Sum(n => n.NodeCount);
+        // Лічильники ролей. Master беремо з PROD: масштабування потужності не змінює к-сть
+        // керуючих вузлів. Worker рахуємо за ЗАЛИШКОВИМ принципом (усі ноди, крім БД, master і
+        // GPU), бо app/web-вузли Windows названі українською («Сервери додатків») — пошук
+        // підрядка "Worker" у назві давав 0. Назви master/GPU задає рушій англійською, тож
+        // зіставлення з ними надійне.
+        req.MasterNodeCount = prod.MasterNodeCount;
+        req.WorkerNodeCount = req.Infrastructure
+            .Where(n => !IsDb(n)
+                && !n.Name.Contains("Master", StringComparison.OrdinalIgnoreCase)
+                && !n.Name.Contains("GPU", StringComparison.OrdinalIgnoreCase))
+            .Sum(n => n.NodeCount);
         req.PodCpu = Math.Round(prod.PodCpu * powerFactor, 1);
         req.PodRamGb = Math.Round(prod.PodRamGb * powerFactor, 1);
         Recalculate(req);

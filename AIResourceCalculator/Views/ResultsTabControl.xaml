@@ -104,7 +104,8 @@
                 </ItemsControl>
             </StackPanel>
             <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
-            <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12">
+            <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12"
+                      ItemsSource="{Binding ResultInfrastructure}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
                     <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>

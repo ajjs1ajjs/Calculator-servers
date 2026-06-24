@@ -208,7 +208,10 @@ public class SizingEngine : ISizingEngine
         req.TotalIops = sqlRange?.Iops ?? 500;
 
         req.WorkerNodeCount = appCount + webCount;
-        req.MasterNodeCount = 1;
+        // Windows — суто VM-розгортання без керуючого (master) вузла Kubernetes, тож 0.
+        // Інакше у гібриді master рахувався як K8s(1)+Windows(1)=2, хоча в інфраструктурі
+        // master-вузол лише один (від K8s) — звідси розбіжність «статистика 2 / таблиця 1».
+        req.MasterNodeCount = 0;
 
         var dbName = GetDatabaseNodeName(config.DatabaseType);
         var sqlRam = sqlRange?.RamRec ?? sqlNode.RamGb;

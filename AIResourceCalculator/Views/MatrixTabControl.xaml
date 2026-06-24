@@ -21,7 +21,8 @@
                 </Button>
             </StackPanel>
             <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True">
-                <DataGrid x:Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True">
+                <DataGrid x:Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True"
+                          ItemsSource="{Binding MatrixVM.MsSqlRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
                         <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
@@ -34,7 +35,8 @@
                 </DataGrid>
             </Expander>
             <Expander Header="{loc:Loc matrix.performance}">
-                <DataGrid x:Name="GridMatrixMsSqlPerf" Height="140" IsReadOnly="False" CanUserAddRows="True">
+                <DataGrid x:Name="GridMatrixMsSqlPerf" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                          ItemsSource="{Binding MatrixVM.MsSqlPerformanceRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="80"/>
                         <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="80"/>
@@ -71,7 +73,8 @@
                 </DataGrid>
             </Expander>
             <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True">
-                <DataGrid x:Name="GridMatrixInfra" Height="140" IsReadOnly="False" CanUserAddRows="True">
+                <DataGrid x:Name="GridMatrixInfra" Height="140" IsReadOnly="False" CanUserAddRows="True"
+                          ItemsSource="{Binding MatrixVM.InfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="120"/>
                         <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>

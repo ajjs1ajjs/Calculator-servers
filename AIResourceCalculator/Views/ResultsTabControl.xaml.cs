@@ -1,6 +1,5 @@
 using System.Windows.Controls;
 using System.Windows.Input;
-using AIResourceCalculator.ViewModels;
 
 namespace AIResourceCalculator.Views;
 
@@ -17,16 +16,8 @@ public partial class ResultsTabControl : UserControl
     public ResultsTabControl()
     {
         InitializeComponent();
-        Loaded += (_, _) =>
-        {
-            if (DataContext is not MainViewModel vm) return;
-            GridInfrastructure.ItemsSource = vm.ResultInfrastructure;
-
-            vm.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(MainViewModel.ResultInfrastructure))
-                    GridInfrastructure.ItemsSource = vm.ResultInfrastructure;
-            };
-        };
+        // GridInfrastructure.ItemsSource прив'язано в XAML (ResultInfrastructure). Раніше тут на
+        // кожен Loaded реєструвався анонімний PropertyChanged без відписки — витік пам'яті, бо
+        // обробники накопичувались при кожному показі вкладки.
     }
 }

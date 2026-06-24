@@ -103,6 +103,48 @@ public class EnvironmentScalerTests
         Assert.Equal(prod.TotalIops, test.TotalIops);
     }
 
+    // --- Регресія Bug 1: масштабування Windows-середовища не обнуляє лічильники вузлів ---
+    // Раніше ScaleFromProd шукав підрядки "Worker"/"Master" у назвах, а Windows-вузли названі
+    // українською («Сервери додатків»/«Веб-сервери (IIS)») → Worker/Master ставали 0.
+    [Fact]
+    public void Scale_WindowsUkrainianNamedNodes_DoesNotZeroNodeCounts()
+    {
+        var prod = new ResourceRequirement
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            WorkerNodeCount = 3, MasterNodeCount = 0  // Windows: app+web воркери, master відсутній
+        };
+        prod.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, StorageGb = 300 });
+        prod.Infrastructure.Add(new InfrastructureNode { Name = "Сервери додатків", Cpu = 4, RamGb = 16, NodeCount = 2, StorageGb = 150 });
+        prod.Infrastructure.Add(new InfrastructureNode { Name = "Веб-сервери (IIS)", Cpu = 4, RamGb = 8, NodeCount = 1, StorageGb = 150 });
+
+        var test = EnvironmentScaler.ScaleFromProd(prod, 0.5);
+
+        // Головне: лічильник НЕ обнуляється. Воркери = усі ноди, крім БД/master/GPU,
+        // і збігаються з фактичною (вже масштабованою) к-стю app+web у таблиці.
+        var workersInInfra = test.Infrastructure
+            .Where(n => n.Name.Contains("додатків") || n.Name.Contains("Веб"))
+            .Sum(n => n.NodeCount);
+        Assert.True(test.WorkerNodeCount > 0);
+        Assert.Equal(workersInInfra, test.WorkerNodeCount);
+        Assert.Equal(0, test.MasterNodeCount);
+    }
+
+    // --- Регресія Bug 1: master переноситься з PROD, worker рахується за залишком (K8s) ---
+    [Fact]
+    public void Scale_K8sNodes_CarriesMasterAndCountsWorkers()
+    {
+        var prod = BuildProd();
+        prod.MasterNodeCount = 1;
+        prod.WorkerNodeCount = 3;
+
+        var test = EnvironmentScaler.ScaleFromProd(prod, 0.5);
+
+        Assert.Equal(1, test.MasterNodeCount);
+        // Worker Node після масштабування: round(3 × 0.5) = 2 (БД та master виключені).
+        Assert.Equal(test.Infrastructure.First(n => n.Name == "Worker Node").NodeCount, test.WorkerNodeCount);
+    }
+
     [Fact]
     public void AddBackupReserve_GrowsDevDiskByReserve()
     {
