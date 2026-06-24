@@ -10,4 +10,9 @@ public class ProjectConfig
     public DatabaseType DatabaseType { get; set; } = DatabaseType.MsSql;
     public bool HaEnabled { get; set; } = true;
     public List<string> SelectedModules { get; set; } = new();
+
+    // Обсяг РЕЛЯЦІЙНИХ даних БД, ГБ (без неструктурованого контенту/вкладень).
+    // При постачанні база невелика (≈4-6 ГБ основна + 4 ГБ системна) і зростає згодом.
+    // Визначає розмір дисків Data/Logs БД та обсяг резерву під бекап.
+    public int DbDataSizeGb { get; set; } = 20;
 }

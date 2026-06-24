@@ -39,4 +39,7 @@ public class EnvironmentReport
     public int StorageGb => Requirement.TotalStorageGb;
     public int Iops => Requirement.TotalIops;
     public int Nodes => Requirement.Infrastructure.Sum(n => n.NodeCount);
+
+    // Перелік ВМ середовища (для розбивки у звіті/UI).
+    public IEnumerable<InfrastructureNode> Vms => Requirement.Infrastructure.Where(n => n.NodeCount > 0);
 }

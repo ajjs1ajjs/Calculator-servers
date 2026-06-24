@@ -60,12 +60,19 @@ public class ProjectModule
     public bool IsKubernetesOnly { get; set; }
     // Обов'язковий сервіс (App Server / ROBOT / Web) — завжди ввімкнений, не виноситься у вибір.
     public bool IsMandatory { get; set; }
+    // Окрема кількість користувачів для цього модуля (напр., LMS/HR Portal використовує не вся
+    // компанія). 0 = брати загальну кількість користувачів проєкту. Понад загальну не піднімається.
+    public int UserCount { get; set; }
     public List<ModuleComponent> Components { get; set; } = new();
+
+    // Ефективна кількість користувачів модуля: власна (якщо задана), але не більша за загальну.
+    public int EffectiveUsers(int projectUsers)
+        => UserCount > 0 ? Math.Min(UserCount, projectUsers) : projectUsers;
 
     public ProjectModule Clone() => new()
     {
         Name = Name, Description = Description, IsEnabled = IsEnabled,
-        IsKubernetesOnly = IsKubernetesOnly, IsMandatory = IsMandatory,
+        IsKubernetesOnly = IsKubernetesOnly, IsMandatory = IsMandatory, UserCount = UserCount,
         Components = Components.Select(c => c.Clone()).ToList()
     };
 

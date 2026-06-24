@@ -5,6 +5,7 @@
              xmlns:loc="clr-namespace:AIResourceCalculator.Localization">
     <UserControl.Resources>
         <conv:VisibilityConverter x:Key="VisibilityConverter"/>
+        <conv:ZeroEmptyConverter x:Key="ZeroEmptyConverter"/>
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="15">
@@ -15,7 +16,7 @@
                         <StackPanel>
                             <Grid Margin="0,0,0,8">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="180"/><ColumnDefinition Width="*"/>
@@ -34,6 +35,8 @@
                                 <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4">
                                     <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="Oracle 19c"/>
                                 </ComboBox>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc env.dbData}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DbDataSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -46,8 +49,14 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" Margin="4,2" FontSize="13" FontWeight="SemiBold"
-                                                  ToolTip="{Binding Description}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="4,2,14,2">
+                                            <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                      VerticalAlignment="Center" ToolTip="{Binding Description}"/>
+                                            <TextBox Width="50" Margin="6,0,0,0" Padding="3,1" FontSize="12" VerticalAlignment="Center"
+                                                     Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ZeroEmptyConverter}}"
+                                                     ToolTip="{loc:Loc modules.usersTooltip}"
+                                                     IsEnabled="{Binding IsEnabled}"/>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -65,14 +74,11 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="60"/>
                                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="50"/>
-                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="50"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                 <TextBox Grid.Column="1" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
                                 <TextBlock Grid.Column="2" Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="12,0,4,0"/>
                                 <TextBox Grid.Column="3" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
-                                <TextBlock Grid.Column="4" Text="{loc:Loc env.backupComp}" VerticalAlignment="Center" Margin="12,0,4,0"/>
-                                <TextBox Grid.Column="5" Text="{Binding BackupCompressionPct, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
                             </Grid>
                         </StackPanel>
                     </Border>

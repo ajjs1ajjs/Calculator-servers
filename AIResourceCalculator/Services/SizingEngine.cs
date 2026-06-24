@@ -69,14 +69,17 @@ public class SizingEngine : ISizingEngine
 
         foreach (var module in enabledModules)
         {
-            var (modCpu, modRam) = module.CalculateReplicas(config.UserCount, config.LoadProfile);
+            // Модуль масштабується за СВОЄЮ кількістю користувачів (LMS/HR Portal використовує
+            // не вся компанія); 0 = загальна, понад загальну не піднімається.
+            var moduleUsers = module.EffectiveUsers(config.UserCount);
+            var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, config.LoadProfile);
             totalCpu += modCpu;
             totalRam += modRam;
 
             var isPerf = config.LoadProfile == LoadProfile.Performance;
             foreach (var comp in module.Components ?? new())
             {
-                int rep = CalcReplicas(comp, config.UserCount);
+                int rep = CalcReplicas(comp, moduleUsers);
                 if (rep == 0) rep = 1;
 
                 var cpu = isPerf && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
@@ -116,17 +119,20 @@ public class SizingEngine : ISizingEngine
         var sqlNode = _matrix.DefaultK8sSql ?? _defaultSql;
         if (includeDatabase)
         {
-            req.Infrastructure.Add(new InfrastructureNode
+            var dbRam = sqlRange?.RamRec ?? sqlNode.RamGb;
+            var dbNode = new InfrastructureNode
             {
                 Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
-                RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
+                RamGb = dbRam, NodeCount = 1,
                 StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
                 StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
                 StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
                 StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
                 PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
                 Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
-            });
+            };
+            ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, dbRam);
+            req.Infrastructure.Add(dbNode);
         }
         req.Infrastructure.Add(new InfrastructureNode
         {
@@ -197,35 +203,29 @@ public class SizingEngine : ISizingEngine
 
         req.TotalCpu = (sqlRange?.Cpu ?? 4) + appCpu * appCount + webCpu * webCount;
         req.TotalRamGb = (sqlRange?.RamRec ?? 16) + appRam * appCount + webRam * webCount;
-        req.TotalIops = (appRange?.Iops ?? 200) + (webRange?.Iops ?? 200) + (sqlRange?.Iops ?? 500);
+        // IOPS не сумуються між дисками/вузлами — визначальним є вузол БД (найвибагливіший).
+        // IOPS app/web показуються окремо в таблиці по вузлах.
+        req.TotalIops = sqlRange?.Iops ?? 500;
 
         req.WorkerNodeCount = appCount + webCount;
         req.MasterNodeCount = 1;
 
         var dbName = GetDatabaseNodeName(config.DatabaseType);
-        req.Infrastructure.Add(new InfrastructureNode
+        var sqlRam = sqlRange?.RamRec ?? sqlNode.RamGb;
+        var dbNode = new InfrastructureNode
         {
             Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
-            RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
+            RamGb = sqlRam, NodeCount = 1,
             StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
             StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
             StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
             StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
-            PageFileGb = sqlNode.PageFileGb > 0 ? sqlNode.PageFileGb : (int)Math.Ceiling((sqlRange?.RamRec ?? sqlNode.RamGb) * 1.0),
+            PageFileGb = sqlNode.PageFileGb > 0 ? sqlNode.PageFileGb : (int)Math.Ceiling(sqlRam * 1.0),
             PageFileType = sqlNode.PageFileType ?? "Auto",
             Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
-        });
-        // Disk separation for >64 GB RAM
-        var sqlRam = sqlRange?.RamRec ?? sqlNode.RamGb;
-        var sqlNodeRef = req.Infrastructure.Last(n => n.Name == dbName);
-        if (sqlRam > 64)
-        {
-            sqlNodeRef.StorageType2 = "Premium SSD";
-            sqlNodeRef.StorageGb2 = Math.Max(100, (int)(sqlRam * 1.5));
-            sqlNodeRef.StorageType3 = "Standard SSD";
-            sqlNodeRef.StorageGb3 = Math.Max(100, (int)(sqlNodeRef.StorageGb * 0.15));
-            sqlNodeRef.Notes = "Separate disks: Data, Logs, TempDB recommended";
-        }
+        };
+        ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, sqlRam);
+        req.Infrastructure.Add(dbNode);
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = appNode?.Name ?? "App Server", Os = appNode?.Os ?? "Windows Server 2022",
@@ -325,6 +325,37 @@ public class SizingEngine : ISizingEngine
         DatabaseType.PostgreSQL => "PostgreSQL",
         DatabaseType.Oracle => "Oracle 19c",
         _ => "SQL Server"
+    };
+
+    // Диски вузла БД масштабуються за ОБСЯГОМ ДАНИХ (а не фіксовано): немає сенсу тримати
+    // терабайтні диски під базу в 10-20 ГБ. OS-диск та Content (холодні/неструктуровані дані)
+    // лишаються як у матриці; Data та Logs/TempDB рахуються від обсягу даних із розумним мінімумом.
+    private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, int dbDataGb, double dbRamGb)
+    {
+        dbDataGb = Math.Max(1, dbDataGb);
+        // Logs + TempDB ≈ обсяг даних (tempdb може сягати розміру БД); мінімум 50 ГБ.
+        db.StorageGb2 = Math.Max(50, (int)Math.Ceiling(dbDataGb * 1.0));
+        if (string.IsNullOrWhiteSpace(db.StorageType2)) db.StorageType2 = "SSD";
+        // MainData: дані + індекси + запас на зростання (×2); мінімум 100 ГБ (стартова конфігурація).
+        db.StorageGb3 = Math.Max(100, (int)Math.Ceiling(dbDataGb * 2.0));
+        if (string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
+
+        db.DbVersion = DbVersionLabel(dbType, dbRamGb);
+        if (dbType == DatabaseType.MsSql && dbRamGb > MsSqlStandardMaxRamGb)
+        {
+            var note = $"RAM {dbRamGb:0} ГБ > {MsSqlStandardMaxRamGb:0} ГБ — потрібна редакція Enterprise (ліміт пам'яті Standard)";
+            db.Notes = string.IsNullOrWhiteSpace(db.Notes) ? note : $"{db.Notes}; {note}";
+        }
+    }
+
+    // SQL Server мінімальна підтримувана версія — 2022 (за вимогами D-AD-ADM-E).
+    // Редакція Standard обмежена 128 ГБ ОЗП на екземпляр БД → понад це потрібна Enterprise.
+    private const double MsSqlStandardMaxRamGb = 128;
+    public static string DbVersionLabel(DatabaseType dbType, double dbRamGb) => dbType switch
+    {
+        DatabaseType.PostgreSQL => "PostgreSQL 17+",
+        DatabaseType.Oracle => "Oracle Database 19c Enterprise Edition",
+        _ => $"MS SQL Server 2022 {(dbRamGb > MsSqlStandardMaxRamGb ? "Enterprise" : "Standard")}"
     };
 
     // Fallback worker capacity when matrix node specs are missing

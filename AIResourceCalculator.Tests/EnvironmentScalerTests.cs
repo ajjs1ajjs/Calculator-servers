@@ -22,6 +22,7 @@ public class EnvironmentScalerTests
         req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
         req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
+        req.TotalIops = 800;
         return req;
     }
 
@@ -31,36 +32,48 @@ public class EnvironmentScalerTests
     };
 
     [Fact]
-    public void BackupReserve_IsRetentionTimesCompressedDbSize()
+    public void BackupReserve_IsRetentionTimesCompressedDataSize_NotFullDisk()
     {
-        var prod = BuildProd();
-        // 750 ГБ даних БД × (1 − 0.5) × 7 днів = 2625 ГБ.
-        Assert.Equal(2625, EnvironmentScaler.BackupReserveGb(prod, Settings));
+        // Резерв рахується від ОБСЯГУ ДАНИХ (20 ГБ), а не від усього диска БД (750 ГБ):
+        // 20 × (1 − 0.5) × 7 = 70 ГБ.
+        Assert.Equal(70, EnvironmentScaler.BackupReserveGb(20, Settings));
     }
 
     [Fact]
-    public void Test_ReducesPowerButNeverDisk()
+    public void BackupReserve_ZeroData_NoReserve()
+    {
+        Assert.Equal(0, EnvironmentScaler.BackupReserveGb(0, Settings));
+    }
+
+    [Fact]
+    public void Test_ReducesPower_KeepsDbDataDisks()
     {
         var prod = BuildProd();
-        var reserve = EnvironmentScaler.BackupReserveGb(prod, Settings);
-        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor, reserve);
+        var reserve = EnvironmentScaler.BackupReserveGb(20, Settings);
+        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor);
+        EnvironmentScaler.AddBackupReserve(test, reserve);
 
-        // Потужність нижча за PROD.
+        // Потужність нижча за PROD (менше ВМ/ядер/пам'яті).
         Assert.True(test.TotalCpu < prod.TotalCpu);
         Assert.True(test.TotalRamGb < prod.TotalRamGb);
-        // Диск НЕ менший за PROD (навпаки — більший на бекап-резерв).
-        Assert.True(test.TotalStorageGb >= prod.TotalStorageGb);
+
+        // Диски ДАНИХ вузла БД зберігаються (не зменшуються), плюс додається бекап-резерв.
+        var prodDb = prod.Infrastructure.First(n => n.Name.Contains("SQL"));
+        var testDb = test.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.True(testDb.DiskPerNodeGb >= prodDb.DiskPerNodeGb);
+        Assert.Equal(prodDb.DiskPerNodeGb + reserve, testDb.DiskPerNodeGb);
     }
 
     [Fact]
     public void Test_AddsBackupReserveToDatabaseNode()
     {
         var prod = BuildProd();
-        var reserve = EnvironmentScaler.BackupReserveGb(prod, Settings);
-        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor, reserve);
+        var reserve = EnvironmentScaler.BackupReserveGb(20, Settings);
+        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor);
+        EnvironmentScaler.AddBackupReserve(test, reserve);
 
         var db = test.Infrastructure.First(n => n.Name.Contains("SQL"));
-        // Початковий StorageGb4 = 200, плюс резерв 2625.
+        // Початковий StorageGb4 = 200, плюс резерв.
         Assert.Equal(200 + reserve, db.StorageGb4);
         Assert.Contains("бекап", db.Notes);
     }
@@ -69,15 +82,25 @@ public class EnvironmentScalerTests
     public void PredProd_IsMorePowerfulThanTest_SameDisk()
     {
         var prod = BuildProd();
-        var reserve = EnvironmentScaler.BackupReserveGb(prod, Settings);
-        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor, reserve);
-        var pred = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor * Settings.PredProdMultiplier, reserve);
+        var reserve = EnvironmentScaler.BackupReserveGb(20, Settings);
+        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor);
+        EnvironmentScaler.AddBackupReserve(test, reserve);
+        var pred = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor * Settings.PredProdMultiplier);
+        EnvironmentScaler.AddBackupReserve(pred, reserve);
 
         Assert.True(pred.TotalCpu >= test.TotalCpu);
         Assert.True(pred.TotalRamGb >= test.TotalRamGb);
-        // Диск однаковий (PROD + той самий бекап-резерв) і не менший за PROD.
+        // Диск однаковий (та сама к-сть ВМ + той самий бекап-резерв).
         Assert.Equal(test.TotalStorageGb, pred.TotalStorageGb);
-        Assert.True(pred.TotalStorageGb >= prod.TotalStorageGb);
+    }
+
+    [Fact]
+    public void Scale_KeepsDbIopsNotSummed()
+    {
+        var prod = BuildProd();
+        var test = EnvironmentScaler.ScaleFromProd(prod, Settings.TestScaleFactor);
+        // IOPS не сумуються між дисками — лишається IOPS вузла БД, як у PROD.
+        Assert.Equal(prod.TotalIops, test.TotalIops);
     }
 
     [Fact]
@@ -88,8 +111,8 @@ public class EnvironmentScalerTests
         dev.TotalStorageGb = dev.Infrastructure.Sum(n => n.TotalStorageGb);
         var before = dev.TotalStorageGb;
 
-        EnvironmentScaler.AddBackupReserve(dev, 500);
+        EnvironmentScaler.AddBackupReserve(dev, 70);
 
-        Assert.Equal(before + 500, dev.TotalStorageGb);
+        Assert.Equal(before + 70, dev.TotalStorageGb);
     }
 }

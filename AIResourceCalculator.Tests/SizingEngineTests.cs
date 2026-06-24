@@ -447,6 +447,100 @@ public class SizingEngineTests
         Assert.Equal(expected, result.TotalStorageGb);
     }
 
+    // --- Диски вузла БД масштабуються за обсягом даних: мала БД → малі диски Data/Logs ---
+    [Fact]
+    public void Calculate_SmallDbData_ProducesSmallDbDisks()
+    {
+        var small = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic, DbDataSizeGb = 10
+        });
+        var big = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic, DbDataSizeGb = 1000
+        });
+
+        var dbSmall = small.Infrastructure.First(n => n.Name.Contains("SQL"));
+        var dbBig = big.Infrastructure.First(n => n.Name.Contains("SQL"));
+
+        // Мала БД (10 ГБ): Logs ≥ 50 (мінімум), MainData ≥ 100 (мінімум) — без терабайтів.
+        Assert.True(dbSmall.StorageGb3 <= 100);
+        Assert.True(dbSmall.StorageGb2 <= 50);
+        // Велика БД (1000 ГБ): диски значно більші (data ×2 = 2000).
+        Assert.True(dbBig.StorageGb3 > dbSmall.StorageGb3);
+        Assert.Equal(2000, dbBig.StorageGb3);
+    }
+
+    // --- IOPS не сумуються між вузлами: підсумок = IOPS вузла БД ---
+    [Fact]
+    public void Calculate_Windows_TotalIops_EqualsDbNodeIops_NotSum()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Equal(db.Iops, result.TotalIops);
+        // Сума IOPS усіх вузлів була б більшою — підсумок її не дорівнює.
+        var sum = result.Infrastructure.Sum(n => n.Iops);
+        Assert.True(result.TotalIops <= sum);
+    }
+
+    // --- Версія/редакція СУБД: SQL 2022; >128 ГБ ОЗП → Enterprise, інакше Standard ---
+    [Fact]
+    public void DbVersionLabel_Sql_PicksEditionByRam()
+    {
+        Assert.Equal("MS SQL Server 2022 Standard", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 64));
+        Assert.Equal("MS SQL Server 2022 Standard", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 128));
+        Assert.Equal("MS SQL Server 2022 Enterprise", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 240));
+        Assert.Contains("PostgreSQL 17", SizingEngine.DbVersionLabel(DatabaseType.PostgreSQL, 64));
+        Assert.Contains("Oracle Database 19c", SizingEngine.DbVersionLabel(DatabaseType.Oracle, 64));
+    }
+
+    [Fact]
+    public void Calculate_LargeUserCount_SqlNode_RequiresEnterprise()
+    {
+        // 5000 користувачів → RamRec 1152 ГБ > 128 → Enterprise + примітка.
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 5000, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Contains("Enterprise", db.DbVersion);
+        Assert.Contains("Enterprise", db.Notes);
+    }
+
+    // --- Кількість користувачів модуля: модуль масштабується за СВОЇМ числом ---
+    [Fact]
+    public void EffectiveUsers_CapsAtProjectUsers()
+    {
+        var m = new ProjectModule();
+        Assert.Equal(100, m.EffectiveUsers(100));   // 0 = загальна
+        m.UserCount = 30;
+        Assert.Equal(30, m.EffectiveUsers(100));    // власна
+        m.UserCount = 200;
+        Assert.Equal(100, m.EffectiveUsers(100));   // не понад загальну
+    }
+
+    [Fact]
+    public void Calculate_ModuleUserCount_ScalesModuleIndependently()
+    {
+        var modules = _engine.Modules.ToClonedList();
+        var lms = modules.First(m => m.Name == "LMS");
+        lms.IsEnabled = true;
+        lms.UserCount = 25; // LMS використовують лише 25 із 100
+        _engine.SetModules(modules);
+
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        // LMS-GraphQL = Per25Users → 25 користувачів дають 1 репліку (а не 4, як було б на 100).
+        var graphql = result.Components.First(c => c.Name == "LMS-GraphQL");
+        Assert.Equal(1, graphql.Replicas);
+    }
+
     [Fact]
     public void Calculate_Windows_Postgres_ReturnsPostgresNode()
     {

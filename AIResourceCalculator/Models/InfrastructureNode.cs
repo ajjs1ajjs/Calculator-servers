@@ -22,6 +22,8 @@ public class InfrastructureNode
     public int PageFileGb { get; set; }
     public string PageFileType { get; set; } = "";
     public string Notes { get; set; } = "";
+    // Версія/редакція СУБД для вузлів БД, напр. "MS SQL Server 2022 Standard". Порожнє для не-БД вузлів.
+    public string DbVersion { get; set; } = "";
     // Сума всіх дисків одного вузла (OS + Logs + Data + Content).
     public int DiskPerNodeGb => StorageGb + StorageGb2 + StorageGb3 + StorageGb4;
     // Сумарний обсяг дисків з урахуванням кількості вузлів.

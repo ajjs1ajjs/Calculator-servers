@@ -23,6 +23,16 @@ public class ResourceRequirement
     public List<ServiceComponent> Components { get; set; } = new();
     public List<InfrastructureNode> Infrastructure { get; set; } = new();
 
+    // Глибока копія: інфраструктура клонується повузлово (щоб модифікації середовищ — напр.
+    // бекап-резерв — не зачіпали оригінал PROD). Компоненти копіюються у новий список.
+    public ResourceRequirement DeepClone()
+    {
+        var r = (ResourceRequirement)MemberwiseClone();
+        r.Infrastructure = Infrastructure.Select(n => n.Clone()).ToList();
+        r.Components = Components.ToList();
+        return r;
+    }
+
 
     public string Summary()
     {

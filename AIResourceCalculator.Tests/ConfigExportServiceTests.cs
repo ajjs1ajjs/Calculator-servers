@@ -44,7 +44,7 @@ public class ConfigExportServiceTests
         Assert.Contains("TestProject", result);
         Assert.Contains("<ResourceReport", result);
         Assert.Contains("<Totals", result);
-        Assert.Contains("iops=\"5000\"", result);
+        Assert.Contains("iopsDb=\"5000\"", result);
     }
 
     [Fact]

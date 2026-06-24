@@ -6,8 +6,8 @@
     <UserControl.Resources>
         <conv:VisibilityConverter x:Key="VisibilityConverter"/>
     </UserControl.Resources>
-    <Grid Margin="15">
-        <StackPanel Grid.Column="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+        <StackPanel Margin="15">
             <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
             <Border Background="{DynamicResource HighlightBg}" Padding="14" CornerRadius="8" Margin="0,0,0,12"
                     BorderBrush="{DynamicResource AccentBg}" BorderThickness="1"
@@ -71,15 +71,43 @@
                         <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80"/>
                         <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat={}{0} GB}" Width="100"/>
                         <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="80"/>
-                        <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="70"/>
+                        <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="90"/>
                     </DataGrid.Columns>
                 </DataGrid>
+
+                <!-- Розбивка ВМ для кожного середовища -->
+                <TextBlock Text="{loc:Loc env.vmsTitle}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,10,0,4"/>
+                <ItemsControl ItemsSource="{Binding Environments}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2">
+                                    <Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — ліцензій: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
+                                </TextBlock>
+                                <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="120"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="150"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="45"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="45"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="45"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="90"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="60"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
             <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
             <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="*"/>
                     <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="120"/>
+                    <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="150"/>
                     <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="45"/>
                     <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="45"/>
                     <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="70"/>
@@ -91,6 +119,17 @@
                     <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*"/>
                 </DataGrid.Columns>
             </DataGrid>
+            <StackPanel Visibility="{Binding HasDocComparison, Converter={StaticResource VisibilityConverter}}" Margin="0,0,0,12">
+                <TextBlock Text="{loc:Loc doc.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
+                <DataGrid ItemsSource="{Binding DocComparison}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{loc:Loc col.metric}" Binding="{Binding Metric}" Width="*"/>
+                        <DataGridTextColumn Header="{loc:Loc col.docValue}" Binding="{Binding Document}" Width="140"/>
+                        <DataGridTextColumn Header="{loc:Loc col.calcValue}" Binding="{Binding Calculated}" Width="140"/>
+                        <DataGridTextColumn Header="{loc:Loc col.status}" Binding="{Binding Status}" Width="140"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
             <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,8"
                     Visibility="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
                 <StackPanel>
@@ -106,5 +145,5 @@
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportHtmlCommand}" Content="HTML"/>
             </StackPanel>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </UserControl>

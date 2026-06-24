@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using AIResourceCalculator.Data;
 using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Localization;
 using AIResourceCalculator.Models;
@@ -113,14 +114,19 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _includePredProd;
     private string _devUserCount = "10";
     private string _backupDays = "7";
-    private string _backupCompressionPct = "50";
+    private string _dbDataSizeGb = "20";
+
+    // Припущення про стиснення бекапу. На практиці точний коефіцієнт наперед невідомий, тож його
+    // не виносимо в UI — беремо типове для стисненого бекапу СУБД значення (50%).
+    private const double DefaultBackupCompression = 0.5;
 
     public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); } }
     public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); } }
     public bool IncludePredProd { get => _includePredProd; set { _includePredProd = value; OnPropertyChanged(); } }
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
     public string BackupDays { get => _backupDays; set { _backupDays = value; OnPropertyChanged(); } }
-    public string BackupCompressionPct { get => _backupCompressionPct; set { _backupCompressionPct = value; OnPropertyChanged(); } }
+    // Обсяг реляційних даних БД (ГБ) — визначає диски Data/Logs та резерв під бекап.
+    public string DbDataSizeGb { get => _dbDataSizeGb; set { _dbDataSizeGb = value; OnPropertyChanged(); } }
 
     public string StatusText
     {
@@ -192,6 +198,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<EnvironmentReport> Environments { get; private set; } = new();
     public bool HasEnvironments => Environments.Count > 1;
 
+    // Звірка розрахунку з вимогами документа D-AD-ADM-E (сервер БД, лише MS SQL).
+    public ObservableCollection<DocComparisonItem> DocComparison { get; private set; } = new();
+    public bool HasDocComparison => DocComparison.Count > 0;
+
     public ObservableCollection<CalculationHistoryItem> HistoryItems { get; private set; } = new();
     public bool HasHistory => HistoryItems.Count > 0;
 
@@ -248,10 +258,12 @@ public class MainViewModel : INotifyPropertyChanged
         uc = Math.Clamp(uc, 1, 5000);
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         var loadProfile = productType == ProductType.DocumentFlow ? LoadProfile.Performance : LoadProfile.Basic;
+        if (!int.TryParse(DbDataSizeGb, out var dbData) || dbData < 0) dbData = 20;
         return new ProjectConfig
         {
             ProjectName = "Project",
             UserCount = userCountOverride ?? uc,
+            DbDataSizeGb = Math.Clamp(dbData, 0, 1_000_000),
             DeploymentType = DeploymentIndex switch
             {
                 0 => DeploymentType.Kubernetes,
@@ -323,9 +335,14 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq, ProjectConfig config)
     {
+        // Спершу будуємо середовища — це додає бекап-резерв і до PROD (req),
+        // тож KPI нижче вже відображають повний диск PROD з бекапом.
+        BuildEnvironments(config, req);
+
         TotalCpu = $"{req.TotalCpu:F1}";
         TotalRam = $"{req.TotalRamGb:F1} GB";
         TotalStorage = $"{req.TotalStorageGb} GB";
+        // IOPS визначаються вузлом БД (не сумою) — показуємо саме його.
         TotalIops = $"{req.TotalIops}";
         TotalNodes = $"{req.Infrastructure.Sum(n => n.NodeCount)}";
         ResultSummary = BuildSummary(req, config);
@@ -339,14 +356,15 @@ public class MainViewModel : INotifyPropertyChanged
         ResultComponents = new ObservableCollection<ServiceComponent>(req.Components);
         OnPropertyChanged(nameof(ResultComponents));
 
-        BuildEnvironments(config, req);
+        DocComparison = new ObservableCollection<DocComparisonItem>(DocumentRequirements.Compare(req, config));
+        OnPropertyChanged(nameof(DocComparison));
+        OnPropertyChanged(nameof(HasDocComparison));
     }
 
     private EnvironmentSettings GetEnvSettings()
     {
         if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
         if (!int.TryParse(BackupDays, out var days) || days < 1) days = 7;
-        if (!double.TryParse(BackupCompressionPct, out var pct)) pct = 50;
         return new EnvironmentSettings
         {
             IncludeDev = IncludeDev,
@@ -354,20 +372,28 @@ public class MainViewModel : INotifyPropertyChanged
             IncludePredProd = IncludePredProd,
             DevUserCount = Math.Clamp(dev, 1, 5000),
             BackupRetentionDays = Math.Clamp(days, 1, 365),
-            BackupCompression = Math.Clamp(pct / 100.0, 0, 0.95)
+            BackupCompression = DefaultBackupCompression
         };
     }
 
     // PROD завжди; DEV/TEST/PredProd додаються за вибором. TEST/PredProd — масштабування PROD,
-    // DEV — окремий розрахунок рушієм на меншій к-сті ліцензій. Усі не-prod отримують бекап-резерв.
+    // DEV — окремий розрахунок рушієм на меншій к-сті ліцензій.
+    // Бекап-резерв (від обсягу даних БД) додається до КОЖНОГО середовища, включно з PROD.
     private void BuildEnvironments(ProjectConfig config, ResourceRequirement prodReq)
     {
         var s = GetEnvSettings();
+        int reserve = EnvironmentScaler.BackupReserveGb(config.DbDataSizeGb, s);
+
+        // Знімок PROD ДО бекап-резерву — основа для масштабування TEST/PreProd (щоб не подвоїти резерв).
+        var prodBase = prodReq.DeepClone();
+
+        // PROD отримує бекап-резерв так само, як решта середовищ.
+        EnvironmentScaler.AddBackupReserve(prodReq, reserve);
+
         var reports = new List<EnvironmentReport>
         {
             new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq }
         };
-        int reserve = EnvironmentScaler.BackupReserveGb(prodReq, s);
 
         if (s.IncludeDev)
         {
@@ -375,7 +401,8 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 ProjectName = config.ProjectName, UserCount = s.DevUserCount,
                 DeploymentType = config.DeploymentType, ProductType = config.ProductType,
-                LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType
+                LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
+                DbDataSizeGb = config.DbDataSizeGb
             };
             _engine.SetModules(Modules.ToList());
             var devReq = _engine.Calculate(devConfig);
@@ -384,12 +411,14 @@ public class MainViewModel : INotifyPropertyChanged
         }
         if (s.IncludeTest)
         {
-            var test = EnvironmentScaler.ScaleFromProd(prodReq, s.TestScaleFactor, reserve);
+            var test = EnvironmentScaler.ScaleFromProd(prodBase, s.TestScaleFactor);
+            EnvironmentScaler.AddBackupReserve(test, reserve);
             reports.Add(new() { Environment = DeployEnvironment.Test, Name = "TEST", UserCount = config.UserCount, Requirement = test });
         }
         if (s.IncludePredProd)
         {
-            var pp = EnvironmentScaler.ScaleFromProd(prodReq, s.TestScaleFactor * s.PredProdMultiplier, reserve);
+            var pp = EnvironmentScaler.ScaleFromProd(prodBase, s.TestScaleFactor * s.PredProdMultiplier);
+            EnvironmentScaler.AddBackupReserve(pp, reserve);
             reports.Add(new() { Environment = DeployEnvironment.PredProd, Name = "PreProd", UserCount = config.UserCount, Requirement = pp });
         }
 
@@ -420,8 +449,11 @@ public class MainViewModel : INotifyPropertyChanged
         sb.AppendLine(string.Format(_loc["results.summaryHeader"], config.UserCount, deploy, product, db));
         foreach (var n in req.Infrastructure.Where(n => n.NodeCount > 0))
         {
-            sb.AppendLine(string.Format(_loc["results.summaryNode"],
-                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.TotalStorageGb, n.Os));
+            var line = string.Format(_loc["results.summaryNode"],
+                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.TotalStorageGb, n.Os);
+            // Версія/редакція СУБД для вузлів БД.
+            if (!string.IsNullOrEmpty(n.DbVersion)) line += $" · {n.DbVersion}";
+            sb.AppendLine(line);
         }
         sb.AppendLine(string.Format(_loc["results.summaryTotals"],
             req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"), req.TotalStorageGb, req.TotalIops));
