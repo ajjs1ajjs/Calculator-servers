@@ -130,7 +130,7 @@ public class SizingMatrix
         new()
         {
             Name = "App Server", Description = "Core application server with local SQL and Redis cache",
-            IsEnabled = true,
+            IsEnabled = true, IsMandatory = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "AS (App Server)", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
@@ -141,7 +141,7 @@ public class SizingMatrix
         new()
         {
             Name = "ROBOT", Description = "Robot process automation services",
-            IsEnabled = true,
+            IsEnabled = true, IsMandatory = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "ROBOT", Cpu = 1.0, RamGb = 8, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
@@ -152,7 +152,7 @@ public class SizingMatrix
         new()
         {
             Name = "Web", Description = "Web services including WebSocket and SmartID",
-            IsEnabled = true,
+            IsEnabled = true, IsMandatory = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },
@@ -217,7 +217,7 @@ public class SizingMatrix
         new()
         {
             Name = "App Server", Description = "Core application server with local SQL and Redis cache (DocumentFlow)",
-            IsEnabled = true,
+            IsEnabled = true, IsMandatory = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "AS (App Server)", Cpu = 1.3, RamGb = 10, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per25Users },
@@ -228,7 +228,7 @@ public class SizingMatrix
         new()
         {
             Name = "ROBOT", Description = "Robot process automation services (DocumentFlow)",
-            IsEnabled = true,
+            IsEnabled = true, IsMandatory = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "ROBOT", Cpu = 1.3, RamGb = 10, PerfCpu = 1.3, PerfRamGb = 10, Formula = ReplicaFormula.Per100Plus1000 },
@@ -239,7 +239,7 @@ public class SizingMatrix
         new()
         {
             Name = "Web", Description = "Web services including WebSocket and SmartID (DocumentFlow)",
-            IsEnabled = true,
+            IsEnabled = true, IsMandatory = true,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "Webrmd", Cpu = 0.2, RamGb = 1.5, Formula = ReplicaFormula.Per25Users },

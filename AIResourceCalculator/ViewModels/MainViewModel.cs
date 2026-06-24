@@ -204,6 +204,9 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<ProjectModule> Modules { get; private set; }
 
+    // Лише опціональні модулі — обов'язкові (App Server / ROBOT / Web) у вибір не виносимо.
+    public IEnumerable<ProjectModule> SelectableModules => Modules.Where(m => !m.IsMandatory);
+
     #endregion
 
     #region Tab Headers
@@ -466,7 +469,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             foreach (var mod in Modules)
             {
-                mod.IsEnabled = config.SelectedModules.Contains(mod.Name);
+                mod.IsEnabled = mod.IsMandatory || config.SelectedModules.Contains(mod.Name);
             }
             Modules = new ObservableCollection<ProjectModule>(Modules);
             OnPropertyChanged(nameof(Modules));
@@ -508,17 +511,24 @@ public class MainViewModel : INotifyPropertyChanged
 
         foreach (var mod in Modules)
         {
-            mod.IsEnabled = deploymentType switch
+            // Обов'язкові сервіси (App Server / ROBOT / Web) — завжди ввімкнені.
+            if (mod.IsMandatory) { mod.IsEnabled = true; continue; }
+
+            // Чи застосовний модуль до цього типу розгортання.
+            bool applicable = deploymentType switch
             {
-                DeploymentType.Kubernetes => !mod.Name.Contains("Windows") && !mod.Name.Contains("Сервери додатків") && !mod.Name.Contains("Веб сервери"),
+                DeploymentType.Kubernetes => !mod.Name.Contains("Windows"),
                 DeploymentType.Windows => !mod.IsKubernetesOnly,
-                DeploymentType.Hybrid => true,
-                _ => mod.IsEnabled
+                _ => true
             };
+            // Незастосовні вимикаємо; застосовні зберігають свій (типовий або обраний) стан —
+            // зокрема LMS/HR лишаються вимкненими за замовчуванням.
+            if (!applicable) mod.IsEnabled = false;
         }
 
         Modules = new ObservableCollection<ProjectModule>(Modules);
         OnPropertyChanged(nameof(Modules));
+        OnPropertyChanged(nameof(SelectableModules));
 
         var loc = _loc;
         var deployName = deploymentType switch

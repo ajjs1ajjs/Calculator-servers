@@ -58,12 +58,14 @@ public class ProjectModule
     public string Description { get; set; } = "";
     public bool IsEnabled { get; set; } = true;
     public bool IsKubernetesOnly { get; set; }
+    // Обов'язковий сервіс (App Server / ROBOT / Web) — завжди ввімкнений, не виноситься у вибір.
+    public bool IsMandatory { get; set; }
     public List<ModuleComponent> Components { get; set; } = new();
 
     public ProjectModule Clone() => new()
     {
         Name = Name, Description = Description, IsEnabled = IsEnabled,
-        IsKubernetesOnly = IsKubernetesOnly,
+        IsKubernetesOnly = IsKubernetesOnly, IsMandatory = IsMandatory,
         Components = Components.Select(c => c.Clone()).ToList()
     };
 

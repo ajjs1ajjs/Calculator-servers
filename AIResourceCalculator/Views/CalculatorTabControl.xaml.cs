@@ -19,7 +19,7 @@ public partial class CalculatorTabControl : UserControl
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
-        ModulesPanel.ItemsSource = vm.Modules;
+        ModulesPanel.ItemsSource = vm.SelectableModules;
 
         // Підписки чіпляємо лише один раз — Loaded може спрацьовувати багаторазово.
         if (_wired) return;
@@ -36,7 +36,7 @@ public partial class CalculatorTabControl : UserControl
         vm.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.Modules))
-                ModulesPanel.ItemsSource = vm.Modules;
+                ModulesPanel.ItemsSource = vm.SelectableModules;
         };
     }
 

@@ -156,6 +156,28 @@ public class SizingEngineTests
         Assert.Equal(comp.CpuPerReplica * comp.Replicas, comp.Cpu, 3);
     }
 
+    // --- Обов'язкові сервіси позначені; LMS/HR вимкнені за замовчуванням ---
+    [Theory]
+    [InlineData("App Server")]
+    [InlineData("ROBOT")]
+    [InlineData("Web")]
+    public void Matrix_CoreServices_AreMandatory(string moduleName)
+    {
+        var mod = _engine.Modules.First(m => m.Name == moduleName);
+        Assert.True(mod.IsMandatory);
+        Assert.True(mod.IsEnabled);
+    }
+
+    [Theory]
+    [InlineData("LMS")]
+    [InlineData("HR Portal")]
+    public void Matrix_RareServices_AreOffByDefault(string moduleName)
+    {
+        var mod = _engine.Modules.First(m => m.Name == moduleName);
+        Assert.False(mod.IsMandatory);
+        Assert.False(mod.IsEnabled);
+    }
+
     [Fact]
     public void FindMsSqlRange_25Users_ReturnsCorrectRange()
     {
