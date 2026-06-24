@@ -1,5 +1,6 @@
 bin/
 obj/
+*_wpftmp.csproj
 *.suo
 *.user
 *.userosscache

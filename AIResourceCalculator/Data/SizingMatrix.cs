@@ -4,6 +4,11 @@ namespace AIResourceCalculator.Data;
 
 public class SizingMatrix
 {
+    // Версія структури збереженої матриці. Підвищуйте, коли змінюється модель так, що старі
+    // matrix.json більше не сумісні (нові поля/правила). Несумісні збереження відкидаються.
+    public const int CurrentSchemaVersion = 2;
+    public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+
     public List<UserLoadRange> MsSqlRanges { get; set; } = new()
     {
         new() { MinUsers = 1, MaxUsers = 10,    Cpu = 2,  RamMin = 4,   RamRec = 8,    Iops = 200,   Latency = 8 },

@@ -40,7 +40,14 @@ public class DataService : IDataService
         try
         {
             var json = File.ReadAllText(MatrixPath);
-            return JsonSerializer.Deserialize<SizingMatrix>(json) ?? new SizingMatrix();
+            var loaded = JsonSerializer.Deserialize<SizingMatrix>(json);
+            // Несумісна (стара) матриця — відкидаємо й видаляємо, щоб не перебивала дефолти коду.
+            if (loaded == null || loaded.SchemaVersion < SizingMatrix.CurrentSchemaVersion)
+            {
+                ClearMatrix();
+                return new SizingMatrix();
+            }
+            return loaded;
         }
         catch (Exception ex)
         {

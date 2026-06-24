@@ -62,6 +62,25 @@ public class MatrixManager
         target.DefaultWindowsSql = source.DefaultWindowsSql?.Clone();
         target.DefaultWindowsApp = source.DefaultWindowsApp?.Clone();
         target.DefaultWindowsWeb = source.DefaultWindowsWeb?.Clone();
+
+        NormalizeModulePolicy(target);
+    }
+
+    // Обов'язковість і дефолтний стан модулів — інваріант КОДУ, а не збережених/імпортованих
+    // даних. Тому після будь-якого завантаження матриці примусово відновлюємо політику:
+    //  • App Server / ROBOT / Web — обов'язкові, завжди ввімкнені;
+    //  • LMS / HR Portal — вимкнені за замовчуванням (рідкі сервіси, вмикаються за потреби).
+    private static readonly HashSet<string> MandatoryModules = new() { "App Server", "ROBOT", "Web" };
+    private static readonly HashSet<string> OffByDefaultModules = new() { "LMS", "HR Portal" };
+
+    private static void NormalizeModulePolicy(SizingMatrix m)
+    {
+        foreach (var mod in m.StandardModules.Concat(m.DocumentFlowModules))
+        {
+            mod.IsMandatory = MandatoryModules.Contains(mod.Name);
+            if (mod.IsMandatory) mod.IsEnabled = true;
+            else if (OffByDefaultModules.Contains(mod.Name)) mod.IsEnabled = false;
+        }
     }
 
     public void SyncGridsToMatrix(
