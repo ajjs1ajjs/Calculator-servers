@@ -26,6 +26,13 @@ public class ConfigExportService
         _ => "Гібрид (K8s + Windows)"
     };
 
+    private static string ProductName(ProductType t) => t == ProductType.DocumentFlow ? "Документообіг" : "Стандарт";
+
+    // Зрозуміла назва профілю навантаження (замість англ. Basic/Performance).
+    private static string ProfileName(LoadProfile p) => p == LoadProfile.Performance
+        ? "Продуктивний (підвищене навантаження)"
+        : "Базовий (звичайне навантаження)";
+
     // Кількість worker-вузлів K8s (саме на них лягають поди), окремо від Windows-VM.
     private static int WorkerNodes(ResourceRequirement req)
         => req.Infrastructure.Where(n => n.Name.Contains("Worker", StringComparison.OrdinalIgnoreCase))
@@ -56,7 +63,9 @@ public class ConfigExportService
         sb.AppendLine("</head><body>");
         sb.AppendLine($"<h1>{SanitizeHtml(ReportTitle(config))}</h1>");
         sb.AppendLine($"<p class='intro'>Цей документ описує, <b>яке обладнання (сервери) потрібно підготувати</b> для роботи системи на " +
-            $"<b>{config.UserCount}</b> користувачів. Тип розгортання: <b>{SanitizeHtml(DeployName(config.DeploymentType))}</b>, " +
+            $"<b>{config.UserCount}</b> користувачів. Продукт: <b>{ProductName(config.ProductType)}</b>, " +
+            $"тип розгортання: <b>{SanitizeHtml(DeployName(config.DeploymentType))}</b>, " +
+            $"профіль навантаження: <b>{ProfileName(config.LoadProfile)}</b>, " +
             $"база даних: <b>{DbName(config.DatabaseType)}</b>, очікуваний обсяг даних: <b>{config.DbDataSizeGb} ГБ</b>. " +
             "Нижче — підсумкові потреби, перелік серверів (віртуальних машин) з поясненням їхнього призначення, вимоги до дисків та звірка з офіційними вимогами.</p>");
         sb.AppendLine("<div class='kpi'>");
@@ -394,11 +403,26 @@ public class ConfigExportService
     {
         var ws = pkg.Workbook.Worksheets.Add("Підсумок");
         int r = 1;
-        ws.Cells[r, 1].Value = $"{config.ProjectName} — Звіт про ресурси";
+        ws.Cells[r, 1].Value = ReportTitle(config);
         ws.Cells[r, 1, r, 2].Merge = true;
         ws.Cells[r, 1].Style.Font.Size = 14;
         ws.Cells[r, 1].Style.Font.Bold = true;
+        r++;
+        ws.Cells[r, 1].Value = $"Документ описує, яке обладнання (сервери) потрібно підготувати для роботи системи на {config.UserCount} користувачів.";
+        ws.Cells[r, 1, r, 2].Merge = true;
+        ws.Cells[r, 1].Style.WrapText = true;
+        ws.Cells[r, 1].Style.Font.Italic = true;
         r += 2;
+
+        void Section(string title)
+        {
+            ws.Cells[r, 1].Value = title;
+            ws.Cells[r, 1, r, 2].Merge = true;
+            ws.Cells[r, 1].Style.Font.Bold = true;
+            ws.Cells[r, 1].Style.Font.Size = 12;
+            ws.Cells[r, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
+            r++;
+        }
 
         void Kv(string k, object v)
         {
@@ -408,31 +432,37 @@ public class ConfigExportService
             r++;
         }
 
+        Section("Параметри");
         Kv("Користувачів", config.UserCount);
-        Kv("Розгортання", DeployName(config.DeploymentType));
-        Kv("Профіль навантаження", config.LoadProfile.ToString());
-        Kv("СКБД", DbName(config.DatabaseType));
+        Kv("Продукт", ProductName(config.ProductType));
+        Kv("Тип розгортання", DeployName(config.DeploymentType));
+        Kv("Профіль навантаження", ProfileName(config.LoadProfile));
+        Kv("База даних (СКБД)", DbName(config.DatabaseType));
         Kv("Обсяг даних БД (ГБ)", config.DbDataSizeGb);
         r++;
-        Kv("Всього CPU (ядер)", Math.Round(req.TotalCpu, 1));
-        Kv("Всього RAM (ГБ)", Math.Round(req.TotalRamGb, 1));
-        Kv("Всього диски (ГБ)", req.TotalStorageGb);
-        Kv("IOPS (БД)", req.TotalIops);
-        Kv("Всього ВМ (серверів)", req.Infrastructure.Sum(n => n.NodeCount));
+        Section("Підсумкові потреби (на все рішення)");
+        Kv("Всього CPU (ядер процесора)", Math.Round(req.TotalCpu, 1));
+        Kv("Всього RAM (оперативної пам'яті), ГБ", Math.Round(req.TotalRamGb, 1));
+        Kv("Всього диски, ГБ", req.TotalStorageGb);
+        Kv("IOPS сервера БД (швидкодія диска)", req.TotalIops);
+        Kv("Всього серверів (ВМ)", req.Infrastructure.Sum(n => n.NodeCount));
         if (req.PodCpu > 0)
         {
             r++;
-            Kv("Запит подів CPU", Math.Round(req.PodCpu, 1));
-            Kv("Запит подів RAM (ГБ)", Math.Round(req.PodRamGb, 1));
+            Section("Контейнери (поди) Kubernetes");
+            Kv("Сумарний запит подів, CPU", Math.Round(req.PodCpu, 1));
+            Kv("Сумарний запит подів, RAM (ГБ)", Math.Round(req.PodRamGb, 1));
             Kv("Подів усього", TotalPods(req));
-            Kv("Worker-вузлів", WorkerNodes(req));
+            Kv("Worker-вузлів (на них працюють поди)", WorkerNodes(req));
             r++;
             ws.Cells[r, 1].Value = PodDistribution(req);
             ws.Cells[r, 1, r, 2].Merge = true;
             ws.Cells[r, 1].Style.WrapText = true;
+            ws.Cells[r, 1].Style.Font.Italic = true;
         }
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
-        ws.Column(1).Width = 26;
+        ws.Column(1).Width = 36;
+        ws.Column(2).Width = 28;
     }
 
     private static void BuildInfrastructureSheet(ExcelPackage pkg, ResourceRequirement req)
