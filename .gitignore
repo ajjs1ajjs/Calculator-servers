@@ -32,3 +32,8 @@ task_impl
 credentials.txt
 master.key
 publish/
+
+# Згенеровані звіти
+resources*.xlsx
+resources*.html
+resources*.xml
