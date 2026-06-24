@@ -21,22 +21,22 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="180"/><ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.product}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                <ComboBox Grid.Row="1" Grid.Column="1" SelectedIndex="{Binding ProductIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.users}"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14" ToolTip="{loc:Loc tooltip.users}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.product}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.product}"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" SelectedIndex="{Binding ProductIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.product}">
                                     <ComboBoxItem Content="{loc:Loc product.standard}"/><ComboBoxItem Content="{loc:Loc product.documentflow}"/>
                                 </ComboBox>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                <ComboBox Grid.Row="2" Grid.Column="1" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.deployment}"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.deployment}">
                                     <ComboBoxItem Content="{loc:Loc deploy.k8s}"/><ComboBoxItem Content="{loc:Loc deploy.windows}"/><ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
                                 </ComboBox>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Database" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4">
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Database" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.database}"/>
+                                <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.database}">
                                     <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="Oracle 19c"/>
                                 </ComboBox>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc env.dbData}" FontSize="14" VerticalAlignment="Center" Margin="3"/>
-                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DbDataSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14"/>
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc env.dbData}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.dbData}"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DbDataSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14" ToolTip="{loc:Loc tooltip.dbData}"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -64,8 +64,8 @@
                     </Border>
                     <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                         <StackPanel>
-                            <TextBlock Text="{loc:Loc env.title}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{loc:Loc env.title}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8" ToolTip="{loc:Loc tooltip.env}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" ToolTip="{loc:Loc tooltip.env}">
                                 <CheckBox Content="{loc:Loc env.dev}" IsChecked="{Binding IncludeDev, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
                                 <CheckBox Content="{loc:Loc env.test}" IsChecked="{Binding IncludeTest, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
                                 <CheckBox Content="{loc:Loc env.predprod}" IsChecked="{Binding IncludePredProd, Mode=TwoWay}" FontWeight="SemiBold"/>
@@ -75,10 +75,10 @@
                                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="60"/>
                                     <ColumnDefinition Width="Auto"/><ColumnDefinition Width="50"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                <TextBox Grid.Column="1" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
-                                <TextBlock Grid.Column="2" Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="12,0,4,0"/>
-                                <TextBox Grid.Column="3" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
+                                <TextBlock Grid.Column="0" Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.devUsers}"/>
+                                <TextBox Grid.Column="1" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}"/>
+                                <TextBlock Grid.Column="2" Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="12,0,4,0" ToolTip="{loc:Loc tooltip.backupDays}"/>
+                                <TextBox Grid.Column="3" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.backupDays}"/>
                             </Grid>
                         </StackPanel>
                     </Border>

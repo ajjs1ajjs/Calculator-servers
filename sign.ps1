@@ -17,10 +17,15 @@ param(
     [string]$PfxPath,
     [System.Security.SecureString]$PfxPassword,
     [string]$TimestampUrl = "http://timestamp.digicert.com",
-    [string]$SelfSignedSubject = "CN=AIResourceCalculator Dev",
+    [string]$SelfSignedSubject = "CN=IT-Enterprise AIResourceCalculator",
+    # Термін дії самопідписаного сертифіката, років. Великий строк = практично «без терміну».
+    # Мітка часу (timestamp) і так лишає підпис чинним після завершення строку дії.
+    [int]$Years = 25,
     # Opt-in: add the self-signed cert to this machine's Trusted Root so the signature
     # validates locally. This changes the machine trust store - off by default.
-    [switch]$TrustLocally
+    [switch]$TrustLocally,
+    # Експортувати публічний сертифікат (.cer) поряд з exe — для роздачі на всі ПК через GPO.
+    [switch]$ExportCert
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,10 +42,10 @@ if ($PfxPath) {
         Where-Object { $_.Subject -eq $SelfSignedSubject -and $_.HasPrivateKey } |
         Select-Object -First 1
     if (-not $cert) {
-        Write-Host "Creating self-signed certificate: $SelfSignedSubject"
+        Write-Host "Creating self-signed certificate: $SelfSignedSubject (valid $Years years)"
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $SelfSignedSubject `
             -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable `
-            -KeyUsage DigitalSignature -NotAfter (Get-Date).AddYears(3)
+            -KeyUsage DigitalSignature -NotAfter (Get-Date).AddYears($Years)
     } else {
         Write-Host "Using existing self-signed certificate."
     }
@@ -84,4 +89,15 @@ if ($result.SignerCertificate) {
     }
 } else {
     throw "Signing failed: $($result.StatusMessage)"
+}
+
+# Експорт публічного сертифіката (.cer) для роздачі на всі ПК організації через Group Policy:
+# Computer Configuration → Policies → Windows Settings → Security Settings →
+#   Public Key Policies → Trusted Root Certification Authorities (імпортувати .cer)
+#   та Trusted Publishers (щоб не питало про невідомого видавця).
+if ($ExportCert -and -not $PfxPath) {
+    $cerPath = [System.IO.Path]::ChangeExtension($ExePath, ".cer")
+    Export-Certificate -Cert $cert -FilePath $cerPath -Type CERT | Out-Null
+    Write-Host "Public certificate exported: $cerPath"
+    Write-Host "Роздайте цей .cer на всі ПК через GPO (Trusted Root + Trusted Publishers)."
 }
