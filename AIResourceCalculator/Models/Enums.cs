@@ -35,3 +35,11 @@ public enum AiProvider
     LocalOllama,
     DeepSeek
 }
+
+public enum DeployEnvironment
+{
+    Prod,
+    Dev,
+    Test,
+    PredProd
+}

@@ -23,9 +23,15 @@ public class ResultsPresenter
     public List<ValidationResult> ValidateProject(ProjectConfig config, ResourceRequirement calculated, List<InfrastructureNode> actual)
         => _validator.ValidateProject(config, calculated, actual);
 
-    public string ExportText(ResourceRequirement req, ProjectConfig config)
-        => _export.ExportTxt(req, config);
+    public string ExportXml(ResourceRequirement req, ProjectConfig config,
+        IReadOnlyList<EnvironmentReport>? environments = null)
+        => _export.ExportXml(req, config, environments);
 
-    public string ExportHtml(ResourceRequirement req, ProjectConfig config)
-        => _export.ExportHtml(req, config);
+    public string ExportHtml(ResourceRequirement req, ProjectConfig config,
+        IReadOnlyList<EnvironmentReport>? environments = null)
+        => _export.ExportHtml(req, config, environments);
+
+    public byte[] ExportExcel(ResourceRequirement req, ProjectConfig config,
+        IReadOnlyList<EnvironmentReport>? environments = null)
+        => _export.ExportExcel(req, config, environments);
 }

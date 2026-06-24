@@ -102,6 +102,60 @@ public class SizingEngineTests
         Assert.NotEmpty(result.Infrastructure);
     }
 
+    // --- Регресія: гібрид НЕ дублює app/web (раніше "криво рахував" на 10 ліцензіях) ---
+    [Fact]
+    public void Calculate_Hybrid_DoesNotDoubleCountAppWeb()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 10, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic
+        };
+
+        var result = _engine.Calculate(config);
+
+        // App/Web живуть на Windows-VM, тож серед K8s-подів їх бути не повинно.
+        Assert.DoesNotContain(result.Components, c => c.Name.Contains("AS (App Server)"));
+        Assert.DoesNotContain(result.Components, c => c.Name == "Webrmd");
+        // ForceBPM та інші сервіси — на K8s.
+        Assert.Contains(result.Components, c => c.Category == "ForceBPM");
+        // Windows-частина дає app/web VM + БД.
+        Assert.Contains(result.Infrastructure, n => n.Name.Contains("додатків") || n.Name.Contains("App"));
+        Assert.Contains(result.Infrastructure, n => n.Name.Contains("Веб") || n.Name.Contains("Web"));
+        // Рівно один вузол БД (а не два, як було через подвійний облік).
+        Assert.Equal(1, result.Infrastructure.Count(n => n.Name.Contains("SQL")));
+    }
+
+    // --- Регресія: app/web-вузли Windows мають файл підкачки (page file) ---
+    [Fact]
+    public void Calculate_Windows_AppAndWebHavePageFile()
+    {
+        var config = new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        };
+
+        var result = _engine.Calculate(config);
+
+        var app = result.Infrastructure.First(n => n.Name.Contains("додатків") || n.Name.Contains("App"));
+        var web = result.Infrastructure.First(n => n.Name.Contains("Веб") || n.Name.Contains("Web"));
+        Assert.True(app.PageFileGb > 0);
+        Assert.True(web.PageFileGb > 0);
+    }
+
+    // --- Регресія: компоненти зберігають ресурси на 1 репліку та сумарні ---
+    [Fact]
+    public void Calculate_K8s_ComponentsExposePerReplicaAndTotal()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        var comp = result.Components.First(c => c.Cpu > 0 && c.Replicas > 1);
+        Assert.True(comp.CpuPerReplica > 0);
+        Assert.Equal(comp.CpuPerReplica * comp.Replicas, comp.Cpu, 3);
+    }
+
     [Fact]
     public void FindMsSqlRange_25Users_ReturnsCorrectRange()
     {

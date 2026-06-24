@@ -41,7 +41,7 @@ public class ResultsPresenterTests
     {
         var results = _presenter.CompareProfiles(_req, _perfReq);
         Assert.NotEmpty(results);
-        Assert.Contains(results, r => r.ResourceName == "vCPU");
+        Assert.Contains(results, r => r.ResourceName == "CPU");
         Assert.Contains(results, r => r.ResourceName == "RAM");
         Assert.Contains(results, r => r.ResourceName is "Storage" or "Сховище");
         Assert.Contains(results, r => r.ResourceName == "IOPS");
@@ -51,7 +51,7 @@ public class ResultsPresenterTests
     public void CompareProfiles_BasicVsPerf_DetectsDifferences()
     {
         var results = _presenter.CompareProfiles(_req, _perfReq);
-        var cpuResult = results.First(r => r.ResourceName == "vCPU");
+        var cpuResult = results.First(r => r.ResourceName == "CPU");
         Assert.NotEqual(0, cpuResult.Delta);
         Assert.NotNull(cpuResult.Severity);
     }
@@ -69,17 +69,25 @@ public class ResultsPresenterTests
         var low = new ResourceRequirement { TotalCpu = 4 };
         var high = new ResourceRequirement { TotalCpu = 16 };
         var results = _presenter.Validate(high, low);
-        var cpuResult = results.First(r => r.ResourceName == "vCPU");
+        var cpuResult = results.First(r => r.ResourceName == "CPU");
         Assert.Equal("CRITICAL", cpuResult.Severity);
     }
 
     [Fact]
-    public void ExportText_ContainsProjectInfo()
+    public void ExportXml_ContainsProjectInfo()
     {
-        var result = _presenter.ExportText(_req, _config);
+        var result = _presenter.ExportXml(_req, _config);
         Assert.Contains("Test", result);
-        Assert.Contains("vCPU", result);
-        Assert.Contains("RAM", result);
+        Assert.Contains("<ResourceReport", result);
+        Assert.Contains("<Totals", result);
+    }
+
+    [Fact]
+    public void ExportExcel_ProducesWorkbookBytes()
+    {
+        var bytes = _presenter.ExportExcel(_req, _config);
+        Assert.True(bytes.Length > 0);
+        Assert.Equal((byte)'P', bytes[0]);
     }
 
     [Fact]
@@ -88,7 +96,7 @@ public class ResultsPresenterTests
         var result = _presenter.ExportHtml(_req, _config);
         Assert.Contains("<html", result);
         Assert.Contains("</html>", result);
-        Assert.Contains("vCPU", result);
+        Assert.Contains("CPU", result);
     }
 
     [Fact]
@@ -113,7 +121,7 @@ public class ResultsPresenterTests
         };
 
         var results = _presenter.ValidateProject(_config, calculated, actual);
-        Assert.Contains(results, r => r.ResourceName.Contains("vCPU"));
+        Assert.Contains(results, r => r.ResourceName.Contains("CPU"));
         Assert.Contains(results, r => r.ResourceName.Contains("RAM"));
     }
 }

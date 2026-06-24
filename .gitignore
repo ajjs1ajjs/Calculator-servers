@@ -14,8 +14,10 @@ build/
 
 # Згенеровані застосунком приклади звітів (не зберігаємо в репозиторії)
 /resources.html
-/resources.txt
+/resources.xml
+/resources.xlsx
 /infrastructure.svg
+task_impl
 
 # Secrets
 .env

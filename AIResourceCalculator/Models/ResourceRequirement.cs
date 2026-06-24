@@ -27,7 +27,7 @@ public class ResourceRequirement
     public string Summary()
     {
         return $"[{DeploymentType} / {LoadProfile}] Users: {UserCount}\n" +
-               $"vCPU: {TotalCpu:F1} | RAM: {TotalRamGb:F1} GB | Storage: {TotalStorageGb} GB | IOPS: {TotalIops}\n" +
+               $"CPU: {TotalCpu:F1} | RAM: {TotalRamGb:F1} GB | Storage: {TotalStorageGb} GB | IOPS: {TotalIops}\n" +
                $"Nodes: {MasterNodeCount} Master + {WorkerNodeCount} Worker";
     }
 }

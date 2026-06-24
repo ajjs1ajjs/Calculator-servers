@@ -9,11 +9,14 @@
 ## Можливості
 
 - **Розрахунок ресурсів** — CPU, RAM, дискова підсистема та IOPS для K8s / Windows / Hybrid.
+  У гібриді сервери додатків і веб (IIS) — на Windows-VM, ForceBPM та інші сервіси — на K8s, БД — на Windows.
+- **Середовища** — PROD завжди; за вибором DEV (окрема к-сть ліцензій), TEST (зменшений PROD, диск ≥ PROD + бекап-резерв)
+  та PreProd (на 20% потужніший за TEST), з порівняльною таблицею.
 - **Типи СУБД** — MS SQL Server, PostgreSQL, Oracle 19c.
 - **Профілі навантаження** — Стандарт (Basic) та Документообіг (Performance), з порівнянням.
 - **Вимоги до дисків** — окрема розкладка для БД (OS / Logs+TempDB / Data / Content) та файл підкачки для app/web-вузлів.
 - **Імпорт Excel** — завантаження та редагування матриці сайзингу.
-- **Експорт звіту** — TXT та HTML.
+- **Експорт звіту** — Excel (.xlsx, для тендерних документів), XML (для імпорту) та HTML.
 - **Історія розрахунків** — останні 20 розрахунків зберігаються локально.
 - **Локалізація** — українська та англійська мови.
 
@@ -62,7 +65,7 @@ dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --out
 | Каталог | Призначення |
 |---------|-------------|
 | `AIResourceCalculator/Models` | Моделі даних (вузли, діапазони навантаження, модулі). |
-| `AIResourceCalculator/Services` | Бізнес-логіка: рушій сайзингу, експорт TXT/HTML, валідація, вимоги до дисків. |
+| `AIResourceCalculator/Services` | Бізнес-логіка: рушій сайзингу, масштабування середовищ, експорт Excel/XML/HTML, валідація, вимоги до дисків. |
 | `AIResourceCalculator/ViewModels` | ViewModel'и MVVM. |
 | `AIResourceCalculator/Views` | XAML-вкладки інтерфейсу. |
 | `AIResourceCalculator/Data` | Матриця сайзингу за замовчуванням та імпорт Excel. |

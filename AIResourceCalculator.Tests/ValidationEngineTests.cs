@@ -39,7 +39,7 @@ public class ValidationEngineTests
         var allocated = new ResourceRequirement { TotalCpu = 8 };
 
         var results = _validator.Validate(required, allocated);
-        var cpuResult = results.First(r => r.ResourceName == "vCPU");
+        var cpuResult = results.First(r => r.ResourceName == "CPU");
 
         Assert.Equal("CRITICAL", cpuResult.Severity);
         Assert.False(cpuResult.IsCompliant);
@@ -108,7 +108,7 @@ public class ValidationEngineTests
 
         var results = _validator.ValidateProject(new ProjectConfig(), calculated, actualResources);
 
-        Assert.Contains(results, r => r.ResourceName.Contains("vCPU"));
+        Assert.Contains(results, r => r.ResourceName.Contains("CPU"));
         Assert.Contains(results, r => r.ResourceName.Contains("RAM"));
         Assert.Contains(results, r => r.ResourceName.Contains("count"));
     }

@@ -111,7 +111,7 @@ public class ValidationEngine : IValidationEngine
 
             results.Add(new ValidationResult
             {
-                ResourceName = $"{infra.Name} - vCPU",
+                ResourceName = $"{infra.Name} - CPU",
                 Required = infra.Cpu, Allocated = actual.Cpu, Unit = "cores",
                 Severity = GetSeverity(infra.Cpu, actual.Cpu),
                 Recommendation = GetCpuRecommendation(infra.Cpu, actual.Cpu)

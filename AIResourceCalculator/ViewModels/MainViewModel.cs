@@ -107,6 +107,21 @@ public class MainViewModel : INotifyPropertyChanged
         set { _databaseIndex = value; OnPropertyChanged(); }
     }
 
+    // --- Похідні середовища (PROD завжди; решта — за вибором) ---
+    private bool _includeDev;
+    private bool _includeTest;
+    private bool _includePredProd;
+    private string _devUserCount = "10";
+    private string _backupDays = "7";
+    private string _backupCompressionPct = "50";
+
+    public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); } }
+    public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); } }
+    public bool IncludePredProd { get => _includePredProd; set { _includePredProd = value; OnPropertyChanged(); } }
+    public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
+    public string BackupDays { get => _backupDays; set { _backupDays = value; OnPropertyChanged(); } }
+    public string BackupCompressionPct { get => _backupCompressionPct; set { _backupCompressionPct = value; OnPropertyChanged(); } }
+
     public string StatusText
     {
         get => _statusText;
@@ -173,6 +188,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<InfrastructureNode> ResultInfrastructure { get; private set; } = new();
     public ObservableCollection<ServiceComponent> ResultComponents { get; private set; } = new();
 
+    private List<EnvironmentReport> _environments = new();
+    public ObservableCollection<EnvironmentReport> Environments { get; private set; } = new();
+    public bool HasEnvironments => Environments.Count > 1;
+
     public ObservableCollection<CalculationHistoryItem> HistoryItems { get; private set; } = new();
     public bool HasHistory => HistoryItems.Count > 0;
 
@@ -198,7 +217,8 @@ public class MainViewModel : INotifyPropertyChanged
     #region Commands
 
     public ICommand CalculateCommand { get; private set; } = null!;
-    public ICommand ExportTxtCommand { get; private set; } = null!;
+    public ICommand ExportExcelCommand { get; private set; } = null!;
+    public ICommand ExportXmlCommand { get; private set; } = null!;
     public ICommand ExportHtmlCommand { get; private set; } = null!;
     public ICommand LangSwitchCommand { get; private set; } = null!;
     public ICommand RecallHistoryCommand { get; private set; } = null!;
@@ -206,7 +226,8 @@ public class MainViewModel : INotifyPropertyChanged
     private void InitializeCommands()
     {
         CalculateCommand = new RelayCommand(_ => Calculate());
-        ExportTxtCommand = new RelayCommand(_ => ExportTxt());
+        ExportExcelCommand = new RelayCommand(_ => ExportExcel());
+        ExportXmlCommand = new RelayCommand(_ => ExportXml());
         ExportHtmlCommand = new RelayCommand(_ => ExportHtml());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
@@ -314,6 +335,65 @@ public class MainViewModel : INotifyPropertyChanged
 
         ResultComponents = new ObservableCollection<ServiceComponent>(req.Components);
         OnPropertyChanged(nameof(ResultComponents));
+
+        BuildEnvironments(config, req);
+    }
+
+    private EnvironmentSettings GetEnvSettings()
+    {
+        if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
+        if (!int.TryParse(BackupDays, out var days) || days < 1) days = 7;
+        if (!double.TryParse(BackupCompressionPct, out var pct)) pct = 50;
+        return new EnvironmentSettings
+        {
+            IncludeDev = IncludeDev,
+            IncludeTest = IncludeTest,
+            IncludePredProd = IncludePredProd,
+            DevUserCount = Math.Clamp(dev, 1, 5000),
+            BackupRetentionDays = Math.Clamp(days, 1, 365),
+            BackupCompression = Math.Clamp(pct / 100.0, 0, 0.95)
+        };
+    }
+
+    // PROD завжди; DEV/TEST/PredProd додаються за вибором. TEST/PredProd — масштабування PROD,
+    // DEV — окремий розрахунок рушієм на меншій к-сті ліцензій. Усі не-prod отримують бекап-резерв.
+    private void BuildEnvironments(ProjectConfig config, ResourceRequirement prodReq)
+    {
+        var s = GetEnvSettings();
+        var reports = new List<EnvironmentReport>
+        {
+            new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq }
+        };
+        int reserve = EnvironmentScaler.BackupReserveGb(prodReq, s);
+
+        if (s.IncludeDev)
+        {
+            var devConfig = new ProjectConfig
+            {
+                ProjectName = config.ProjectName, UserCount = s.DevUserCount,
+                DeploymentType = config.DeploymentType, ProductType = config.ProductType,
+                LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType
+            };
+            _engine.SetModules(Modules.ToList());
+            var devReq = _engine.Calculate(devConfig);
+            EnvironmentScaler.AddBackupReserve(devReq, reserve);
+            reports.Add(new() { Environment = DeployEnvironment.Dev, Name = "DEV", UserCount = s.DevUserCount, Requirement = devReq });
+        }
+        if (s.IncludeTest)
+        {
+            var test = EnvironmentScaler.ScaleFromProd(prodReq, s.TestScaleFactor, reserve);
+            reports.Add(new() { Environment = DeployEnvironment.Test, Name = "TEST", UserCount = config.UserCount, Requirement = test });
+        }
+        if (s.IncludePredProd)
+        {
+            var pp = EnvironmentScaler.ScaleFromProd(prodReq, s.TestScaleFactor * s.PredProdMultiplier, reserve);
+            reports.Add(new() { Environment = DeployEnvironment.PredProd, Name = "PreProd", UserCount = config.UserCount, Requirement = pp });
+        }
+
+        _environments = reports;
+        Environments = new ObservableCollection<EnvironmentReport>(reports);
+        OnPropertyChanged(nameof(Environments));
+        OnPropertyChanged(nameof(HasEnvironments));
     }
 
     // Plain-language summary of what to provision, so the numbers read as understandable needs.
@@ -338,10 +418,21 @@ public class MainViewModel : INotifyPropertyChanged
         foreach (var n in req.Infrastructure.Where(n => n.NodeCount > 0))
         {
             sb.AppendLine(string.Format(_loc["results.summaryNode"],
-                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.TotalStorageGb));
+                n.NodeCount, n.Name, n.Cpu, n.RamGb, n.TotalStorageGb, n.Os));
         }
-        sb.Append(string.Format(_loc["results.summaryTotals"],
+        sb.AppendLine(string.Format(_loc["results.summaryTotals"],
             req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"), req.TotalStorageGb, req.TotalIops));
+
+        // Розподіл подів по worker-вузлах (а не лише перелік реплік).
+        var pods = req.Components.Where(c => c.Cpu > 0).Sum(c => c.Replicas);
+        if (pods > 0)
+        {
+            var workers = req.Infrastructure
+                .Where(n => n.Name.Contains("Worker", StringComparison.OrdinalIgnoreCase))
+                .Sum(n => n.NodeCount);
+            var perNode = workers > 0 ? (int)Math.Ceiling((double)pods / workers) : pods;
+            sb.Append(string.Format(_loc["results.summaryPods"], pods, workers, perNode));
+        }
         return sb.ToString();
     }
 
@@ -439,16 +530,32 @@ public class MainViewModel : INotifyPropertyChanged
         StatusText = string.Format(loc["status.deploymentChanged"], deployName);
     }
 
-    private void ExportTxt()
+    private void ExportXml()
     {
         if (_lastResult == null) return;
-        ExportConfig(_results.ExportText(_lastResult, GetConfig()), "txt");
+        ExportConfig(_results.ExportXml(_lastResult, GetConfig(), _environments), "xml");
     }
 
     private void ExportHtml()
     {
         if (_lastResult == null) return;
-        ExportConfig(_results.ExportHtml(_lastResult, GetConfig()), "html");
+        ExportConfig(_results.ExportHtml(_lastResult, GetConfig(), _environments), "html");
+    }
+
+    private void ExportExcel()
+    {
+        if (_lastResult == null) return;
+        var saveDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "Excel files (*.xlsx)|*.xlsx",
+            FileName = "resources.xlsx"
+        };
+        if (saveDialog.ShowDialog() == true)
+        {
+            var bytes = _results.ExportExcel(_lastResult, GetConfig(), _environments);
+            System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
+            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
+        }
     }
 
     private void ExportConfig(string content, string extension)
@@ -457,7 +564,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             Filter = extension switch
             {
-                "txt" => "Text files (*.txt)|*.txt",
+                "xml" => "XML files (*.xml)|*.xml",
                 "html" => "HTML files (*.html)|*.html",
                 _ => $"*{extension}|*{extension}"
             },

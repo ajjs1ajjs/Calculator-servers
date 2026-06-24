@@ -52,7 +52,10 @@ public class SizingEngine : ISizingEngine
         return req;
     }
 
-    private void CalculateK8s(ResourceRequirement req, ProjectConfig config)
+    // includeDatabase=false і excludeModules використовуються в гібриді: БД та app/web
+    // частина живуть на Windows, тому K8s їх не додає (інакше — подвійний облік).
+    private void CalculateK8s(ResourceRequirement req, ProjectConfig config,
+        bool includeDatabase = true, HashSet<string>? excludeModules = null)
     {
         var sqlRange = FindDatabaseRange(config.UserCount, config.LoadProfile, config.DatabaseType);
         var masterNode = _matrix.DefaultK8sMaster ?? _defaultMaster;
@@ -60,7 +63,9 @@ public class SizingEngine : ISizingEngine
 
         double totalCpu = 0, totalRam = 0;
 
-        var enabledModules = _modules.Where(m => m.IsEnabled && !m.Name.Contains("Windows")).ToList();
+        var enabledModules = _modules.Where(m => m.IsEnabled
+            && !m.Name.Contains("Windows")
+            && (excludeModules == null || !excludeModules.Contains(m.Name))).ToList();
 
         foreach (var module in enabledModules)
         {
@@ -81,6 +86,8 @@ public class SizingEngine : ISizingEngine
                     Name = comp.Name,
                     Cpu = cpu * rep,
                     RamGb = ram * rep,
+                    CpuPerReplica = cpu,
+                    RamPerReplicaGb = ram,
                     Replicas = rep,
                     FixedReplicas = comp.FixedReplicas,
                     Formula = comp.Formula,
@@ -107,17 +114,20 @@ public class SizingEngine : ISizingEngine
 
         var dbName = GetDatabaseNodeName(config.DatabaseType);
         var sqlNode = _matrix.DefaultK8sSql ?? _defaultSql;
-        req.Infrastructure.Add(new InfrastructureNode
+        if (includeDatabase)
         {
-            Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
-            RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
-            StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
-            StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
-            StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
-            StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
-            PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
-            Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
-        });
+            req.Infrastructure.Add(new InfrastructureNode
+            {
+                Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+                RamGb = sqlRange?.RamRec ?? sqlNode.RamGb, NodeCount = 1,
+                StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
+                StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
+                StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
+                StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
+                PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
+                Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
+            });
+        }
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = "Master Node", Os = masterNode.Os, Cpu = masterNode.Cpu,
@@ -139,7 +149,9 @@ public class SizingEngine : ISizingEngine
             PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType
         });
 
-        req.TotalIops = sqlRange?.Iops ?? 500;
+        // IOPS/latency атрибутуються БД-вузлу. У гібриді (includeDatabase=false) БД на Windows,
+        // тож тут IOPS = 0, а підсумок IOPS рахується у CalculateHybrid із Windows-частини.
+        req.TotalIops = includeDatabase ? (sqlRange?.Iops ?? 500) : 0;
         req.TotalLatency = sqlRange?.Latency ?? 1;
 
         // GPU node for video transcoding (LMS-Videoutilities)
@@ -222,7 +234,9 @@ public class SizingEngine : ISizingEngine
             StorageType2 = appNode?.StorageType2 ?? "", StorageGb2 = appNode?.StorageGb2 ?? 0,
             StorageType3 = appNode?.StorageType3 ?? "", StorageGb3 = appNode?.StorageGb3 ?? 0,
             StorageType4 = appNode?.StorageType4 ?? "", StorageGb4 = appNode?.StorageGb4 ?? 0,
-            PageFileGb = appNode?.PageFileGb ?? 0, PageFileType = appNode?.PageFileType ?? "",
+            // Файл підкачки app-сервера: з матриці або, якщо не задано, = RAM вузла.
+            PageFileGb = appNode?.PageFileGb > 0 ? appNode.PageFileGb : (int)Math.Ceiling(appRam),
+            PageFileType = string.IsNullOrEmpty(appNode?.PageFileType) ? "SSD" : appNode.PageFileType,
             Iops = appNode?.Iops ?? 0, IopsProfile = appNode?.IopsProfile ?? "",
             Latency = appNode?.Latency ?? 0
         });
@@ -234,7 +248,9 @@ public class SizingEngine : ISizingEngine
             StorageType2 = webNode?.StorageType2 ?? "", StorageGb2 = webNode?.StorageGb2 ?? 0,
             StorageType3 = webNode?.StorageType3 ?? "", StorageGb3 = webNode?.StorageGb3 ?? 0,
             StorageType4 = webNode?.StorageType4 ?? "", StorageGb4 = webNode?.StorageGb4 ?? 0,
-            PageFileGb = webNode?.PageFileGb ?? 0, PageFileType = webNode?.PageFileType ?? "",
+            // Файл підкачки IIS/web-сервера: з матриці або, якщо не задано, = RAM вузла.
+            PageFileGb = webNode?.PageFileGb > 0 ? webNode.PageFileGb : (int)Math.Ceiling(webRam),
+            PageFileType = string.IsNullOrEmpty(webNode?.PageFileType) ? "SSD" : webNode.PageFileType,
             Iops = webNode?.Iops ?? 0, IopsProfile = webNode?.IopsProfile ?? "",
             Latency = webNode?.Latency ?? 0
         });
@@ -243,50 +259,36 @@ public class SizingEngine : ISizingEngine
         req.TotalLatency = sqlRange?.Latency ?? 1;
     }
 
+    // Гібрид: Сервери додатків та Веб-сервери (IIS) розгортаються на Windows-VM, а ForceBPM
+    // та інші сервіси — на K8s (Linux). База даних — на Windows. Тому:
+    //  • K8s рахує лише свої модулі (App Server + Web ВИКЛЮЧЕНІ) і НЕ додає БД;
+    //  • Windows додає app/web VM + БД.
+    // Так усувається подвійний облік, через який гібрид «криво рахував».
+    private static readonly HashSet<string> HybridWindowsModules = new() { "App Server", "Web" };
+
     private void CalculateHybrid(ResourceRequirement req, ProjectConfig config)
     {
         var k8sReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
         var winReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile };
 
-        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, ProductType = config.ProductType };
-        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, ProductType = config.ProductType };
+        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, ProductType = config.ProductType, DatabaseType = config.DatabaseType };
+        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, ProductType = config.ProductType, DatabaseType = config.DatabaseType };
 
-        CalculateK8s(k8sReq, k8sConfig);
+        CalculateK8s(k8sReq, k8sConfig, includeDatabase: false, excludeModules: HybridWindowsModules);
         CalculateWindows(winReq, winConfig);
 
-        req.TotalIops = k8sReq.TotalIops + winReq.TotalIops;
-        req.TotalLatency = Math.Min(k8sReq.TotalLatency, winReq.TotalLatency);
+        // БД — на Windows-частині; K8s IOPS = 0, тож підсумок IOPS бере Windows.
+        req.TotalIops = winReq.TotalIops + k8sReq.TotalIops;
+        req.TotalLatency = winReq.TotalLatency;
         req.PodCpu = k8sReq.PodCpu;
         req.PodRamGb = k8sReq.PodRamGb;
         req.WorkerNodeCount = k8sReq.WorkerNodeCount + winReq.WorkerNodeCount;
         req.MasterNodeCount = k8sReq.MasterNodeCount + winReq.MasterNodeCount;
 
-        req.Infrastructure.AddRange(k8sReq.Infrastructure);
-        req.Infrastructure.AddRange(winReq.Infrastructure);
+        req.Infrastructure.AddRange(k8sReq.Infrastructure); // Master + Worker (+ GPU), без БД
+        req.Infrastructure.AddRange(winReq.Infrastructure); // App + Web (IIS) + БД
         req.Components.AddRange(k8sReq.Components);
-        req.Components.AddRange(winReq.Components);
 
-        // Deduplicate database nodes (Hybrid runs both K8s + Windows, both add DB)
-        var dbNodeName = GetDatabaseNodeName(config.DatabaseType);
-        var sqlNodes = req.Infrastructure.Where(n => n.Name == dbNodeName).ToList();
-        if (sqlNodes.Count > 1)
-        {
-            var best = sqlNodes.OrderByDescending(n => n.RamGb).First();
-            foreach (var other in sqlNodes.Where(n => n != best))
-            {
-                best.StorageGb += other.StorageGb * other.NodeCount;
-                best.StorageGb2 += other.StorageGb2 * other.NodeCount;
-                best.StorageGb3 += other.StorageGb3 * other.NodeCount;
-                best.StorageGb4 += other.StorageGb4 * other.NodeCount;
-                best.Iops = Math.Max(best.Iops, other.Iops);
-                best.Latency = Math.Min(best.Latency, other.Latency);
-                best.PageFileGb = Math.Max(best.PageFileGb, other.PageFileGb);
-                req.Infrastructure.Remove(other);
-            }
-        }
-
-        // Підсумок рахуємо з ФІНАЛЬНОГО списку вузлів (після дедуплікації спільної БД),
-        // інакше CPU/RAM/диски подвоювали б SQL-вузол.
         req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
         req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);

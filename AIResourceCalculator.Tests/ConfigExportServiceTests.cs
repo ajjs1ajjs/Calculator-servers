@@ -38,29 +38,42 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportTxt_ContainsProjectAndTotals()
+    public void ExportXml_ContainsProjectAndTotals()
     {
-        var result = _svc.ExportTxt(_req, _config);
+        var result = _svc.ExportXml(_req, _config);
         Assert.Contains("TestProject", result);
-        Assert.Contains("vCPU", result);
-        Assert.Contains("RAM", result);
-        Assert.Contains("IOPS", result);
+        Assert.Contains("<ResourceReport", result);
+        Assert.Contains("<Totals", result);
+        Assert.Contains("iops=\"5000\"", result);
     }
 
     [Fact]
-    public void ExportTxt_IsCloudAgnostic()
+    public void ExportXml_IsCloudAgnostic()
     {
-        var result = _svc.ExportTxt(_req, _config);
+        var result = _svc.ExportXml(_req, _config);
         Assert.DoesNotContain("Azure", result);
         Assert.DoesNotContain("Standard_", result);
     }
 
     [Fact]
-    public void ExportTxt_ShowsPerNodeDiskTotal()
+    public void ExportXml_EscapesMaliciousNodeName()
     {
-        // SQL-вузол: 300 + 150 = 450 GB на вузол.
-        var result = _svc.ExportTxt(_req, _config);
-        Assert.Contains("450", result);
+        var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
+        req.Infrastructure.Add(new InfrastructureNode { Name = "<script>", Cpu = 4, RamGb = 16, NodeCount = 1, StorageGb = 100 });
+        var result = _svc.ExportXml(req, _config);
+        Assert.DoesNotContain("<script>", result);
+        Assert.Contains("&lt;script&gt;", result);
+    }
+
+    [Fact]
+    public void ExportExcel_ProducesNonEmptyWorkbook()
+    {
+        var bytes = _svc.ExportExcel(_req, _config);
+        Assert.NotNull(bytes);
+        // .xlsx — це ZIP, тож починається з сигнатури "PK".
+        Assert.True(bytes.Length > 0);
+        Assert.Equal((byte)'P', bytes[0]);
+        Assert.Equal((byte)'K', bytes[1]);
     }
 
     [Fact]
@@ -69,7 +82,17 @@ public class ConfigExportServiceTests
         var result = _svc.ExportHtml(_req, _config);
         Assert.Contains("<html", result);
         Assert.Contains("</html>", result);
-        Assert.Contains("vCPU", result);
+        Assert.Contains("CPU", result);
+        // Регресія: термін vCPU замінено на CPU.
+        Assert.DoesNotContain("vCPU", result);
+    }
+
+    [Fact]
+    public void ExportHtml_ShowsPerNodeDiskTotal()
+    {
+        // SQL-вузол: 300 + 150 = 450 GB на вузол.
+        var result = _svc.ExportHtml(_req, _config);
+        Assert.Contains("450", result);
     }
 
     [Fact]

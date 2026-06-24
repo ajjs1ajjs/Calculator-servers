@@ -53,6 +53,29 @@
                             </ItemsControl>
                         </StackPanel>
                     </Border>
+                    <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="{loc:Loc env.title}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <CheckBox Content="{loc:Loc env.dev}" IsChecked="{Binding IncludeDev, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
+                                <CheckBox Content="{loc:Loc env.test}" IsChecked="{Binding IncludeTest, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
+                                <CheckBox Content="{loc:Loc env.predprod}" IsChecked="{Binding IncludePredProd, Mode=TwoWay}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="50"/>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBox Grid.Column="1" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
+                                <TextBlock Grid.Column="2" Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                                <TextBox Grid.Column="3" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
+                                <TextBlock Grid.Column="4" Text="{loc:Loc env.backupComp}" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                                <TextBox Grid.Column="5" Text="{Binding BackupCompressionPct, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
                     <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
                         <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,12"
                                 Command="{Binding CalculateCommand}" FontSize="15">
