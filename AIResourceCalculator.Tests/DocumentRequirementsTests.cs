@@ -34,7 +34,7 @@ public class DocumentRequirementsTests
     public void Compare_PassesWhenMeetsRequirement()
     {
         var req = new ResourceRequirement { UserCount = 100 };
-        req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, Iops = 500, ThroughputMiBs = 240, Latency = 5 });
+        req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, Iops = 500, ThroughputMiBs = 240, Latency = 4 });
         var config = new ProjectConfig { UserCount = 100, DatabaseType = DatabaseType.MsSql };
 
         var items = DocumentRequirements.Compare(req, config);

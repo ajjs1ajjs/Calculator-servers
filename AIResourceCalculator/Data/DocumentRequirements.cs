@@ -35,18 +35,18 @@ public static class DocumentRequirements
 {
     public const string Source = "D-AD-ADM-E «Вимоги до технічного та системного програмного забезпечення»";
 
-    // Таблиця сервера БД (MS SQL Server) за кількістю конкурентних ліцензій.
-    // CPU/RAM/IOPS/латенсі — з розділу 3.2 «Вимоги до сервера бази даних» (авторитетна таблиця);
-    // MiB/s — з таблиці зведення конфігурацій (розділ 1.3). Профіль IOPS — 50r/50w.
+    // Таблиця сервера БД (MS SQL Server) за кількістю конкурентних ліцензій — з таблиці зведення
+    // конфігурацій документа D-AD-ADM-E (розділ 1.3): CPU/RAM/IOPS/латенсі/MiB-с.
+    // Латенсі (Lat <=, мс): 8,7,5,4,3,2,1,0.6,0.2,0.1,0.1,0.1. Профіль IOPS — 50r/50w.
     public static readonly List<DocRequirementRow> SqlServer = new()
     {
-        new() { MinUsers = 1,    MaxUsers = 10,   CpuCores = 2,  RamMinGb = 4,   RamRecGb = 8,    Iops = 200,   LatencyMs = 10,  ThroughputMiBs = 60 },
-        new() { MinUsers = 11,   MaxUsers = 25,   CpuCores = 4,  RamMinGb = 8,   RamRecGb = 12,   Iops = 250,   LatencyMs = 10,  ThroughputMiBs = 120 },
-        new() { MinUsers = 26,   MaxUsers = 50,   CpuCores = 6,  RamMinGb = 16,  RamRecGb = 24,   Iops = 300,   LatencyMs = 8,   ThroughputMiBs = 160 },
-        new() { MinUsers = 51,   MaxUsers = 100,  CpuCores = 8,  RamMinGb = 32,  RamRecGb = 48,   Iops = 500,   LatencyMs = 5,   ThroughputMiBs = 240 },
+        new() { MinUsers = 1,    MaxUsers = 10,   CpuCores = 2,  RamMinGb = 4,   RamRecGb = 8,    Iops = 200,   LatencyMs = 8,   ThroughputMiBs = 60 },
+        new() { MinUsers = 11,   MaxUsers = 25,   CpuCores = 4,  RamMinGb = 8,   RamRecGb = 12,   Iops = 250,   LatencyMs = 7,   ThroughputMiBs = 120 },
+        new() { MinUsers = 26,   MaxUsers = 50,   CpuCores = 6,  RamMinGb = 16,  RamRecGb = 24,   Iops = 300,   LatencyMs = 5,   ThroughputMiBs = 160 },
+        new() { MinUsers = 51,   MaxUsers = 100,  CpuCores = 8,  RamMinGb = 32,  RamRecGb = 48,   Iops = 500,   LatencyMs = 4,   ThroughputMiBs = 240 },
         new() { MinUsers = 101,  MaxUsers = 200,  CpuCores = 10, RamMinGb = 64,  RamRecGb = 96,   Iops = 800,   LatencyMs = 3,   ThroughputMiBs = 500 },
         new() { MinUsers = 201,  MaxUsers = 350,  CpuCores = 12, RamMinGb = 112, RamRecGb = 168,  Iops = 1400,  LatencyMs = 2,   ThroughputMiBs = 600 },
-        new() { MinUsers = 351,  MaxUsers = 500,  CpuCores = 16, RamMinGb = 168, RamRecGb = 240,  Iops = 2000,  LatencyMs = 2,   ThroughputMiBs = 700 },
+        new() { MinUsers = 351,  MaxUsers = 500,  CpuCores = 16, RamMinGb = 168, RamRecGb = 240,  Iops = 2000,  LatencyMs = 1,   ThroughputMiBs = 700 },
         new() { MinUsers = 501,  MaxUsers = 1000, CpuCores = 20, RamMinGb = 240, RamRecGb = 384,  Iops = 4000,  LatencyMs = 0.6, ThroughputMiBs = 800 },
         new() { MinUsers = 1001, MaxUsers = 2000, CpuCores = 22, RamMinGb = 384, RamRecGb = 576,  Iops = 12000, LatencyMs = 0.2, ThroughputMiBs = 900 },
         new() { MinUsers = 2001, MaxUsers = 3000, CpuCores = 24, RamMinGb = 576, RamRecGb = 768,  Iops = 24000, LatencyMs = 0.1, ThroughputMiBs = 1000 },

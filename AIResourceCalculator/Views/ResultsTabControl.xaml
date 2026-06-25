@@ -10,21 +10,21 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
         </Style>
+        <!-- Згортуваний розділ результатів. -->
+        <Style x:Key="SectionExpander" TargetType="Expander">
+            <Setter Property="IsExpanded" Value="True"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
     </UserControl.Resources>
     <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                  PreviewMouseWheel="RootScroll_PreviewMouseWheel">
+                  CanContentScroll="False" PreviewMouseWheel="RootScroll_PreviewMouseWheel">
         <StackPanel Margin="15">
             <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
-            <Border Background="{DynamicResource HighlightBg}" Padding="14" CornerRadius="8" Margin="0,0,0,12"
-                    BorderBrush="{DynamicResource AccentBg}" BorderThickness="1"
-                    Visibility="{Binding HasResultSummary, Converter={StaticResource VisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock Text="{loc:Loc results.summaryTitle}" FontSize="15" FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
-                    <TextBlock Text="{Binding ResultSummary}" FontSize="13" Foreground="{DynamicResource TextPrimary}"
-                               TextWrapping="Wrap" LineHeight="20"/>
-                </StackPanel>
-            </Border>
+
+            <!-- KPI-картки (завжди видимі) -->
             <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -64,100 +64,119 @@
                     </Border>
                 </Grid>
             </Border>
-            <TextBlock Text="{Binding PodRequests}" FontSize="11" FontStyle="Italic"
-                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="2,0,0,12"
-                       Visibility="{Binding HasPodRequests, Converter={StaticResource VisibilityConverter}}"/>
-            <StackPanel Visibility="{Binding HasEnvironments, Converter={StaticResource VisibilityConverter}}" Margin="0,0,0,12">
-                <TextBlock Text="{loc:Loc env.compare}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
-                <DataGrid ItemsSource="{Binding Environments}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.env}" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="{loc:Loc col.users}" Binding="{Binding UserCount}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="70" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat={}{0} GB}" Width="100" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="90" ElementStyle="{StaticResource CenterCell}"/>
-                    </DataGrid.Columns>
-                </DataGrid>
 
-                <!-- Розбивка ВМ для кожного середовища -->
-                <TextBlock Text="{loc:Loc env.vmsTitle}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,10,0,4"/>
-                <ItemsControl ItemsSource="{Binding Environments}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,0,0,12">
-                                <TextBlock FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2">
-                                    <Run Text="Середовище "/><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
-                                </TextBlock>
-                                <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="140"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                                <!-- Компоненти (поди) цього середовища -->
-                                <TextBlock Text="{loc:Loc results.envComponents}" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,2"
-                                           Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}"/>
-                                <DataGrid ItemsSource="{Binding Components}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
-                                          MaxHeight="200"
-                                          Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="Auto" MinWidth="90"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-            <TextBlock Text="{loc:Loc results.infraProd}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2"/>
-            <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextPrimary}"
-                       TextWrapping="Wrap" Margin="0,0,0,6"/>
-            <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12"
-                      ItemsSource="{Binding ResultInfrastructure}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
-                    <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
-                    <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
-                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
-                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
-                    <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
-                </DataGrid.Columns>
-            </DataGrid>
-            <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,8"
-                    Visibility="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock Text="{loc:Loc results.disksTitle}" FontSize="14" FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
-                    <TextBlock Text="{Binding DiskRecommendations}" FontSize="12" Foreground="{DynamicResource TextPrimary}"
-                               TextWrapping="Wrap" LineHeight="18" FontFamily="Consolas"/>
+            <!-- Розділ: Підсумок потреб -->
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.summaryTitle}"
+                      Visibility="{Binding HasResultSummary, Converter={StaticResource VisibilityConverter}}">
+                <StackPanel Margin="4,6,0,0">
+                    <TextBlock Text="{Binding ResultSummary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                               TextWrapping="Wrap" LineHeight="20"/>
+                    <TextBlock Text="{Binding PodRequests}" FontSize="11" FontStyle="Italic" FontWeight="Normal"
+                               Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Visibility="{Binding HasPodRequests, Converter={StaticResource VisibilityConverter}}"/>
                 </StackPanel>
-            </Border>
-            <StackPanel Orientation="Horizontal">
+            </Expander>
+
+            <!-- Розділ: Середовища (порівняння + розбивка по середовищах, із власною прокруткою) -->
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc env.compare}"
+                      Visibility="{Binding HasEnvironments, Converter={StaticResource VisibilityConverter}}">
+                <StackPanel Margin="0,6,0,0">
+                    <DataGrid ItemsSource="{Binding Environments}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{loc:Loc col.env}" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="{loc:Loc col.users}" Binding="{Binding UserCount}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="70" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat={}{0} GB}" Width="100" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="90" ElementStyle="{StaticResource CenterCell}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Розбивка ВМ та компонентів для кожного середовища — з прокруткою в межах розділу -->
+                    <TextBlock Text="{loc:Loc env.vmsTitle}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,10,0,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="460" CanContentScroll="False">
+                        <ItemsControl ItemsSource="{Binding Environments}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <TextBlock FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2">
+                                            <Run Text="Середовище "/><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="140"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <!-- Компоненти (поди) цього середовища -->
+                                        <TextBlock Text="{loc:Loc results.envComponents}" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,2"
+                                                   Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}"/>
+                                        <DataGrid ItemsSource="{Binding Components}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                                                  MaxHeight="200" FontWeight="Normal"
+                                                  Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="Auto" MinWidth="90"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Expander>
+
+            <!-- Розділ: Інфраструктура (PROD) -->
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.infraProd}">
+                <StackPanel Margin="0,6,0,0">
+                    <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                               TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <DataGrid x:Name="GridInfrastructure" MinHeight="120" MaxHeight="320" AutoGenerateColumns="False" IsReadOnly="True" FontWeight="Normal"
+                              ItemsSource="{Binding ResultInfrastructure}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
+                            <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                            <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
+                            <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
+                            <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Expander>
+
+            <!-- Розділ: Вимоги до дисків -->
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.disksTitle}"
+                      Visibility="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
+                <TextBlock Text="{Binding DiskRecommendations}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" LineHeight="18" FontFamily="Consolas" Margin="4,6,0,0"/>
+            </Expander>
+
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                 <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Command="{Binding ExportExcelCommand}" Content="Excel"/>
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportXmlCommand}" Content="XML"/>
                 <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportHtmlCommand}" Content="HTML"/>
