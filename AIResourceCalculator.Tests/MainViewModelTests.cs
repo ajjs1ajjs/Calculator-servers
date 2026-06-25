@@ -47,6 +47,25 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void EnvModuleCounts_DevUsesOwnModuleCount()
+    {
+        var vm = BuildVm(out _);
+        vm.UserCount = "100";
+        // Увімкнути LMS і задати велику к-сть LMS у DEV.
+        foreach (var m in vm.Modules) if (m.Name == "LMS") m.IsEnabled = true;
+        vm.IncludeDev = true;
+        var lmsRow = vm.EnvModuleCounts.First(r => r.ModuleName == "LMS");
+        lmsRow.DevUsers = 500;     // DEV LMS = 500 → LMS-SmartID = ceil(500/25) = 20
+
+        vm.CalculateCommand.Execute(null);
+
+        var dev = vm.Environments.First(e => e.Name == "DEV");
+        var smartId = dev.Requirement.Components.First(c =>
+            c.Category == "LMS" && c.Name == ComponentDisplayName.Localize("LMS-SmartID"));
+        Assert.Equal(20, smartId.Replicas);
+    }
+
+    [Fact]
     public void CalculateCommand_ProducesResultsAndSwitchesToResultsTab()
     {
         var vm = BuildVm(out _);

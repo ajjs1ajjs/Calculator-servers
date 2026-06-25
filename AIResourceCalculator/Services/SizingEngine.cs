@@ -67,16 +67,16 @@ public class SizingEngine : ISizingEngine
             && !m.Name.Contains("Windows")
             && (excludeModules == null || !excludeModules.Contains(m.Name))).ToList();
 
-        // PROD рахує модулі за ВЛАСНОЮ (необмеженою) к-стю користувачів — як у Excel
-        // (напр. LMS 7500 при 50 ліцензіях). Похідні середовища обмежують к-стю середовища.
-        bool capModules = config.Environment != DeployEnvironment.Prod;
+        // Кожен модуль рахується за ВЛАСНОЮ (необмеженою) к-стю користувачів — як у Excel
+        // (напр. LMS 7500 при 50 ліцензіях). Для похідних середовищ власні к-сті модулів
+        // задаються окремо (MainViewModel клонує модулі з к-стями цього середовища).
         // За Excel ROBOT і WS масштабуються ще й від к-сті користувачів HR Portal (A40).
         int hrUsers = enabledModules.FirstOrDefault(m => m.Name == "HR Portal")
-            ?.EffectiveUsers(config.UserCount, capModules) ?? 0;
+            ?.EffectiveUsers(config.UserCount) ?? 0;
 
         foreach (var module in enabledModules)
         {
-            var moduleUsers = module.EffectiveUsers(config.UserCount, capModules);
+            var moduleUsers = module.EffectiveUsers(config.UserCount);
             var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, config.LoadProfile, hrUsers);
             totalCpu += modCpu;
             totalRam += modRam;

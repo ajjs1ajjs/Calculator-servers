@@ -100,6 +100,20 @@
                                     <TextBox Width="50" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.backupDays}"/>
                                 </StackPanel>
                             </WrapPanel>
+                            <!-- Окремі к-сті користувачів опціональних модулів по середовищах -->
+                            <StackPanel Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}" Margin="0,6,0,0">
+                                <TextBlock Text="{loc:Loc env.moduleUsers}" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2" ToolTip="{loc:Loc tooltip.moduleUsers}"/>
+                                <DataGrid ItemsSource="{Binding EnvModuleCounts}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                          CanUserAddRows="False" CanUserDeleteRows="False" MaxHeight="160" ToolTip="{loc:Loc tooltip.moduleUsers}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{loc:Loc col.module}" Binding="{Binding ModuleName}" IsReadOnly="True" Width="*" MinWidth="120"/>
+                                        <DataGridTextColumn Header="{loc:Loc env.dev}" Binding="{Binding DevUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                                        <DataGridTextColumn Header="{loc:Loc env.test}" Binding="{Binding TestUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                                        <DataGridTextColumn Header="{loc:Loc env.predprod}" Binding="{Binding PredProdUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <StackPanel Orientation="Horizontal" Margin="0,15,0,0">

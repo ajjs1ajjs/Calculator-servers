@@ -59,6 +59,7 @@ public class MainViewModel : INotifyPropertyChanged
         InitializeCommands();
 
         OnDeploymentTypeChanged();
+        RebuildEnvModuleCounts();
     }
 
     private void OnLanguageChanged()
@@ -220,6 +221,24 @@ public class MainViewModel : INotifyPropertyChanged
 
     // Лише опціональні модулі — обов'язкові (App Server / ROBOT / Web) у вибір не виносимо.
     public IEnumerable<ProjectModule> SelectableModules => Modules.Where(m => !m.IsMandatory);
+
+    // К-сть користувачів опціональних модулів (LMS/HR/ForceBPM) ОКРЕМО для DEV/TEST/PreProd.
+    public ObservableCollection<EnvModuleCount> EnvModuleCounts { get; private set; } = new();
+    public bool HasEnvModuleCounts => EnvModuleCounts.Count > 0;
+
+    // Перебудова рядків к-сті модулів по середовищах зі збереженням раніше введених значень.
+    private void RebuildEnvModuleCounts()
+    {
+        var existing = EnvModuleCounts.ToDictionary(r => r.ModuleName);
+        var rows = Modules.Where(m => !m.IsMandatory).Select(m =>
+            existing.TryGetValue(m.Name, out var old)
+                ? old
+                : new EnvModuleCount { ModuleName = m.Name, DevUsers = 10, TestUsers = 25, PredProdUsers = 50 })
+            .ToList();
+        EnvModuleCounts = new ObservableCollection<EnvModuleCount>(rows);
+        OnPropertyChanged(nameof(EnvModuleCounts));
+        OnPropertyChanged(nameof(HasEnvModuleCounts));
+    }
 
     #endregion
 
@@ -407,7 +426,14 @@ public class MainViewModel : INotifyPropertyChanged
                 LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
                 DbDataSizeGb = config.DbDataSizeGb, Environment = env
             };
-            _engine.SetModules(Modules.ToList());
+            // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
+            var envModules = Modules.Select(m => m.Clone()).ToList();
+            foreach (var m in envModules)
+            {
+                var rowx = EnvModuleCounts.FirstOrDefault(r => r.ModuleName == m.Name);
+                if (rowx != null) m.UserCount = Math.Clamp(rowx.CountFor(env), 1, 5000);
+            }
+            _engine.SetModules(envModules);
             var req = _engine.Calculate(envConfig);
             EnvironmentScaler.AddBackupReserve(req, reserve);
             return new EnvironmentReport { Environment = env, Name = name, UserCount = users, Requirement = req };
@@ -530,6 +556,7 @@ public class MainViewModel : INotifyPropertyChanged
         _engine.SetModules(Modules.ToList());
         OnPropertyChanged(nameof(Modules));
         OnDeploymentTypeChanged();
+        RebuildEnvModuleCounts();
     }
 
     private void OnProductTypeChanged()
@@ -539,6 +566,7 @@ public class MainViewModel : INotifyPropertyChanged
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules.ToClonedList());
         _engine.SetModules(Modules.ToList());
         OnDeploymentTypeChanged();
+        RebuildEnvModuleCounts();
         var loc = _loc;
         StatusText = string.Format(loc["status.productChanged"],
             productType == ProductType.Standard ? loc["product.standard"] : loc["product.documentflow"]);

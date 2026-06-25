@@ -22,6 +22,24 @@ public class EnvironmentSettings
     public bool AnyDerived => IncludeDev || IncludeTest || IncludePredProd;
 }
 
+// Рядок таблиці «к-сть користувачів модуля по середовищах»: для одного модуля (LMS/HR/ForceBPM)
+// окремі к-сті користувачів у DEV/TEST/PreProd. PROD бере к-сть із полів модуля на вкладці.
+public class EnvModuleCount
+{
+    public string ModuleName { get; set; } = "";
+    public int DevUsers { get; set; }
+    public int TestUsers { get; set; }
+    public int PredProdUsers { get; set; }
+
+    public int CountFor(DeployEnvironment env) => env switch
+    {
+        DeployEnvironment.Dev => DevUsers,
+        DeployEnvironment.Test => TestUsers,
+        DeployEnvironment.PredProd => PredProdUsers,
+        _ => 0
+    };
+}
+
 // Один порахований звіт середовища (PROD/DEV/TEST/PredProd) + його людська назва.
 public class EnvironmentReport
 {
