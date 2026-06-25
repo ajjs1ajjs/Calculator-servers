@@ -427,11 +427,16 @@ public class MainViewModel : INotifyPropertyChanged
                 DbDataSizeGb = config.DbDataSizeGb, Environment = env
             };
             // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
+            // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).
             var envModules = Modules.Select(m => m.Clone()).ToList();
             foreach (var m in envModules)
             {
                 var rowx = EnvModuleCounts.FirstOrDefault(r => r.ModuleName == m.Name);
-                if (rowx != null) m.UserCount = Math.Clamp(rowx.CountFor(env), 1, 5000);
+                if (rowx == null) continue;
+                var cnt = rowx.CountFor(env);
+                // Виключаємо модуль, якщо знято галочку для цього середовища або к-сть = 0.
+                if (!rowx.EnabledFor(env) || cnt <= 0) m.IsEnabled = false;
+                else m.UserCount = Math.Clamp(cnt, 1, 5000);
             }
             _engine.SetModules(envModules);
             var req = _engine.Calculate(envConfig);

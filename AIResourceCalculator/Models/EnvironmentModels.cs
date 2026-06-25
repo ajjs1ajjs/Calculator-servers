@@ -31,12 +31,25 @@ public class EnvModuleCount
     public int TestUsers { get; set; }
     public int PredProdUsers { get; set; }
 
+    // Увімкнення модуля ОКРЕМО для кожного середовища (незалежно від PROD).
+    public bool DevEnabled { get; set; } = true;
+    public bool TestEnabled { get; set; } = true;
+    public bool PredProdEnabled { get; set; } = true;
+
     public int CountFor(DeployEnvironment env) => env switch
     {
         DeployEnvironment.Dev => DevUsers,
         DeployEnvironment.Test => TestUsers,
         DeployEnvironment.PredProd => PredProdUsers,
         _ => 0
+    };
+
+    public bool EnabledFor(DeployEnvironment env) => env switch
+    {
+        DeployEnvironment.Dev => DevEnabled,
+        DeployEnvironment.Test => TestEnabled,
+        DeployEnvironment.PredProd => PredProdEnabled,
+        _ => true
     };
 }
 

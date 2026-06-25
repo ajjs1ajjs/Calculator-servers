@@ -105,12 +105,15 @@
                                 <TextBlock Text="{loc:Loc env.moduleUsers}" FontSize="12" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2" ToolTip="{loc:Loc tooltip.moduleUsers}"/>
                                 <DataGrid ItemsSource="{Binding EnvModuleCounts}" AutoGenerateColumns="False" HeadersVisibility="Column"
-                                          CanUserAddRows="False" CanUserDeleteRows="False" MaxHeight="160" ToolTip="{loc:Loc tooltip.moduleUsers}">
+                                          CanUserAddRows="False" CanUserDeleteRows="False" MaxHeight="180" ToolTip="{loc:Loc tooltip.moduleUsers}">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="{loc:Loc col.module}" Binding="{Binding ModuleName}" IsReadOnly="True" Width="*" MinWidth="120"/>
-                                        <DataGridTextColumn Header="{loc:Loc env.dev}" Binding="{Binding DevUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
-                                        <DataGridTextColumn Header="{loc:Loc env.test}" Binding="{Binding TestUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
-                                        <DataGridTextColumn Header="{loc:Loc env.predprod}" Binding="{Binding PredProdUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                                        <DataGridCheckBoxColumn Header="DEV ✓" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="55"/>
+                                        <DataGridTextColumn Header="DEV к-сть" Binding="{Binding DevUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75"/>
+                                        <DataGridCheckBoxColumn Header="TEST ✓" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="55"/>
+                                        <DataGridTextColumn Header="TEST к-сть" Binding="{Binding TestUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="75"/>
+                                        <DataGridCheckBoxColumn Header="PreProd ✓" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                                        <DataGridTextColumn Header="PreProd к-сть" Binding="{Binding PredProdUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="85"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </StackPanel>

@@ -66,6 +66,23 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void EnvModuleCounts_DisablingModuleExcludesItFromEnvironment()
+    {
+        var vm = BuildVm(out _);
+        vm.UserCount = "100";
+        foreach (var m in vm.Modules) if (m.Name == "LMS") m.IsEnabled = true; // LMS у PROD
+        vm.IncludeDev = true;
+        vm.EnvModuleCounts.First(r => r.ModuleName == "LMS").DevEnabled = false; // але не в DEV
+
+        vm.CalculateCommand.Execute(null);
+
+        var prod = vm.Environments.First(e => e.Name == "PROD");
+        var dev = vm.Environments.First(e => e.Name == "DEV");
+        Assert.Contains(prod.Requirement.Components, c => c.Category == "LMS");      // у PROD є
+        Assert.DoesNotContain(dev.Requirement.Components, c => c.Category == "LMS"); // у DEV немає
+    }
+
+    [Fact]
     public void CalculateCommand_ProducesResultsAndSwitchesToResultsTab()
     {
         var vm = BuildVm(out _);
