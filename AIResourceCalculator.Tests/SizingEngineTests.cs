@@ -143,8 +143,9 @@ public class SizingEngineTests
         var result = _engine.Calculate(config);
 
         // App/Web живуть на Windows-VM, тож серед K8s-подів їх бути не повинно.
-        Assert.DoesNotContain(result.Components, c => c.Name.Contains("AS (App Server)"));
-        Assert.DoesNotContain(result.Components, c => c.Name == "Webrmd");
+        // Перевіряємо за Категорією (= назва модуля), бо назви компонентів локалізовані.
+        Assert.DoesNotContain(result.Components, c => c.Category == "App Server");
+        Assert.DoesNotContain(result.Components, c => c.Category == "Web");
         // ForceBPM та інші сервіси — на K8s.
         Assert.Contains(result.Components, c => c.Category == "ForceBPM");
         // Windows-частина дає app/web VM + БД.
@@ -619,7 +620,8 @@ public class SizingEngineTests
         });
 
         // LMS-GraphQL = Per25Users → 25 користувачів дають 1 репліку (а не 4, як було б на 100).
-        var graphql = result.Components.First(c => c.Name == "LMS-GraphQL");
+        // Назва компонента у звітах локалізована (ComponentDisplayName).
+        var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("LMS-GraphQL"));
         Assert.Equal(1, graphql.Replicas);
     }
 

@@ -86,7 +86,7 @@ public class SizingEngine : ISizingEngine
                 var ram = isPerf && comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;
                 req.Components.Add(new ServiceComponent
                 {
-                    Name = comp.Name,
+                    Name = ComponentDisplayName.Localize(comp.Name),
                     Cpu = cpu * rep,
                     RamGb = ram * rep,
                     CpuPerReplica = cpu,
@@ -348,8 +348,10 @@ public class SizingEngine : ISizingEngine
     };
 
     // Диски вузла БД масштабуються за ОБСЯГОМ ДАНИХ (а не фіксовано): немає сенсу тримати
-    // терабайтні диски під базу в 10-20 ГБ. OS-диск та Content (холодні/неструктуровані дані)
-    // лишаються як у матриці; Data та Logs/TempDB рахуються від обсягу даних із розумним мінімумом.
+    // терабайтні диски під базу в 10-20 ГБ. Data та Logs/TempDB рахуються від обсягу даних із
+    // розумним мінімумом. У non-prod середовищах (DEV/TEST/PreProd) окреме сховище нереляційного
+    // Content не виділяється (потрібне лише у PROD) і OS-диск зменшується.
+    private const int NonProdOsDiskGb = 100;
     private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, int dbDataGb, double dbRamGb,
         DeployEnvironment environment)
     {
@@ -360,6 +362,14 @@ public class SizingEngine : ISizingEngine
         // MainData: дані + індекси + запас на зростання (×2); мінімум 100 ГБ (стартова конфігурація).
         db.StorageGb3 = Math.Max(100, (int)Math.Ceiling(dbDataGb * 2.0));
         if (string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
+
+        // non-prod: прибираємо диск Content (нереляційний контент) і зменшуємо OS-диск.
+        if (environment != DeployEnvironment.Prod)
+        {
+            db.StorageGb4 = 0;
+            db.StorageType4 = "";
+            if (db.StorageGb > NonProdOsDiskGb) db.StorageGb = NonProdOsDiskGb;
+        }
 
         db.DbVersion = DbVersionLabel(dbType, dbRamGb, db.Cpu, environment);
         // Для робочих середовищ Enterprise потрібна, якщо перевищено ліміти Standard (RAM або ядра).
