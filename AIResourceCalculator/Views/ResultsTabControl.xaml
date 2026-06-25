@@ -84,8 +84,9 @@
                 <StackPanel Margin="0,6,0,0">
                     <DataGrid ItemsSource="{Binding Environments}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="{loc:Loc col.env}" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="{loc:Loc col.env}" Binding="{Binding Name}" Width="Auto" MinWidth="80"/>
                             <DataGridTextColumn Header="{loc:Loc col.users}" Binding="{Binding UserCount}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc env.moduleUsersCol}" Binding="{Binding ModulesInfo}" Width="*" MinWidth="200"/>
                             <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="70" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat={}{0} GB}" Width="100" ElementStyle="{StaticResource CenterCell}"/>

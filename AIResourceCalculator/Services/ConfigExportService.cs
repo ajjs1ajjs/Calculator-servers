@@ -88,15 +88,17 @@ public class ConfigExportService
                 "<b>DEV</b> — для розробки, <b>TEST</b> — для тестування, <b>PreProd</b> — попередній прогін перед випуском. " +
                 "Кожне середовище рахується окремо за власною кількістю користувачів. " +
                 "Нижче — зведення, а далі — перелік серверів і компонентів для кожного середовища окремо.</p>");
-            sb.AppendLine("<table><tr><th>Середовище</th><th>Користувачів</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>Диски, ГБ</th><th>IOPS (БД)</th><th>Серверів (ВМ)</th></tr>");
+            sb.AppendLine("<table><tr><th>Середовище</th><th>Користувачів</th><th>Модулі (користувачів)</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>Диски, ГБ</th><th>IOPS (БД)</th><th>Серверів (ВМ)</th></tr>");
             foreach (var e in environments)
-                sb.AppendLine($"<tr><td>{SanitizeHtml(e.Name)}</td><td>{e.UserCount}</td><td>{e.Cpu:F1}</td><td>{e.RamGb:F1}</td><td>{e.StorageGb}</td><td>{e.Iops}</td><td>{e.Nodes}</td></tr>");
+                sb.AppendLine($"<tr><td>{SanitizeHtml(e.Name)}</td><td>{e.UserCount}</td><td>{SanitizeHtml(e.ModulesInfo)}</td><td>{e.Cpu:F1}</td><td>{e.RamGb:F1}</td><td>{e.StorageGb}</td><td>{e.Iops}</td><td>{e.Nodes}</td></tr>");
             sb.AppendLine("</table>");
 
             // Розбивка ВМ та компонентів для кожного середовища.
             foreach (var e in environments)
             {
                 sb.AppendLine($"<h3>Середовище {SanitizeHtml(e.Name)} — сервери (користувачів: {e.UserCount})</h3>");
+                if (!string.IsNullOrEmpty(e.ModulesInfo))
+                    sb.AppendLine($"<p class='intro'><b>Модулі (користувачів):</b> {SanitizeHtml(e.ModulesInfo)}</p>");
                 AppendInfraTableHtml(sb, e.Requirement);
                 AppendComponentsTableHtml(sb, e.Requirement, $"Компоненти (поди) середовища {e.Name}");
             }
@@ -399,7 +401,7 @@ public class ConfigExportService
     private static void BuildEnvironmentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
         var ws = pkg.Workbook.Worksheets.Add("Середовища");
-        string[] headers = { "Середовище", "Користувачів", "CPU", "RAM (ГБ)", "Диски (ГБ)", "IOPS (БД)", "ВМ (серверів)" };
+        string[] headers = { "Середовище", "Користувачів", "Модулі (користувачів)", "CPU", "RAM (ГБ)", "Диски (ГБ)", "IOPS (БД)", "ВМ (серверів)" };
         WriteHeader(ws, headers);
 
         int row = 2;
@@ -407,12 +409,14 @@ public class ConfigExportService
         {
             ws.Cells[row, 1].Value = e.Name;
             ws.Cells[row, 2].Value = e.UserCount;
-            ws.Cells[row, 3].Value = e.Cpu;
-            ws.Cells[row, 4].Value = e.RamGb;
-            ws.Cells[row, 5].Value = e.StorageGb;
-            ws.Cells[row, 6].Value = e.Iops;
-            ws.Cells[row, 7].Value = e.Nodes;
-            ws.Cells[row, 2, row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 3].Value = e.ModulesInfo;
+            ws.Cells[row, 4].Value = e.Cpu;
+            ws.Cells[row, 5].Value = e.RamGb;
+            ws.Cells[row, 6].Value = e.StorageGb;
+            ws.Cells[row, 7].Value = e.Iops;
+            ws.Cells[row, 8].Value = e.Nodes;
+            ws.Cells[row, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 4, row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
         StyleTable(ws);
