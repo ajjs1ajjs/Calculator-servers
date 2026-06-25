@@ -138,10 +138,10 @@ public class ConfigExportService
     // Таблиця інфраструктури (ВМ) з призначенням, версією СУБД та підсумковим рядком.
     private static void AppendInfraTableHtml(System.Text.StringBuilder sb, ResourceRequirement req)
     {
-        sb.AppendLine("<table><tr><th>Сервер (ВМ)</th><th>Призначення</th><th>ОС</th><th>Версія СУБД</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>К-сть</th><th>Тип диску</th><th>Диск на 1 сервер</th><th>Диск разом</th><th>Page file</th><th>IOPS</th><th>Профіль IOPS</th><th>MiB/s</th><th>Затримка, мс</th><th>Примітки</th></tr>");
+        sb.AppendLine("<table><tr><th>Сервер (ВМ)</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>К-сть</th><th>Тип диску</th><th>Диск на 1 сервер</th><th>Диск разом</th><th>Page file</th><th>IOPS</th><th>Профіль IOPS</th><th>MiB/s</th><th>Затримка, мс</th><th>Призначення</th><th>ОС</th><th>Версія СУБД</th><th>Примітки</th></tr>");
         foreach (var i in req.Infrastructure.Where(n => n.NodeCount > 0))
-            sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{SanitizeHtml(NodeRole(i.Name))}</td><td>{SanitizeHtml(i.Os)}</td><td>{SanitizeHtml(string.IsNullOrEmpty(i.DbVersion) ? "—" : i.DbVersion)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{SanitizeHtml(i.StorageType)}</td><td>{i.DiskPerNodeGb} GB</td><td>{i.TotalStorageGb} GB</td><td>{(i.PageFileGb > 0 ? i.PageFileGb + " GB" : "—")}</td><td>{(i.Iops > 0 ? i.Iops.ToString() : "—")}</td><td>{SanitizeHtml(string.IsNullOrEmpty(i.IopsProfile) ? "—" : i.IopsProfile)}</td><td>{(i.ThroughputMiBs > 0 ? i.ThroughputMiBs.ToString() : "—")}</td><td>{(i.Latency > 0 ? Trim(i.Latency) : "—")}</td><td>{SanitizeHtml(i.Notes)}</td></tr>");
-        sb.AppendLine($"<tfoot><tr><td>Разом</td><td></td><td></td><td></td><td>{req.TotalCpu:F1}</td><td>{req.TotalRamGb:F1}</td><td>{req.Infrastructure.Sum(n => n.NodeCount)}</td><td></td><td></td><td>{req.TotalStorageGb} GB</td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
+            sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{SanitizeHtml(i.StorageType)}</td><td>{i.DiskPerNodeGb} GB</td><td>{i.TotalStorageGb} GB</td><td>{(i.PageFileGb > 0 ? i.PageFileGb + " GB" : "")}</td><td>{(i.Iops > 0 ? i.Iops.ToString() : "")}</td><td>{SanitizeHtml(i.IopsProfile)}</td><td>{(i.ThroughputMiBs > 0 ? i.ThroughputMiBs.ToString() : "")}</td><td>{(i.Latency > 0 ? Trim(i.Latency) : "")}</td><td>{SanitizeHtml(NodeRole(i.Name))}</td><td>{SanitizeHtml(i.Os)}</td><td>{SanitizeHtml(i.DbVersion)}</td><td>{SanitizeHtml(i.Notes)}</td></tr>");
+        sb.AppendLine($"<tfoot><tr><td>Разом</td><td>{req.TotalCpu:F1}</td><td>{req.TotalRamGb:F1}</td><td>{req.Infrastructure.Sum(n => n.NodeCount)}</td><td></td><td></td><td>{req.TotalStorageGb} GB</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
         sb.AppendLine("</table>");
     }
 
@@ -309,8 +309,9 @@ public class ConfigExportService
     private static void BuildEnvironmentVmsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
         var ws = pkg.Workbook.Worksheets.Add("ВМ по середовищах");
-        string[] headers = { "Середовище", "Сервер (ВМ)", "Призначення", "ОС", "Версія СУБД", "CPU (ядер)", "RAM (ГБ)", "К-сть",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)", "Примітки" };
+        string[] headers = { "Середовище", "Сервер (ВМ)", "CPU (ядер)", "RAM (ГБ)", "К-сть",
+            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
+            "Призначення", "ОС", "Версія СУБД", "Примітки" };
         WriteHeader(ws, headers);
         int row = 2;
         foreach (var e in environments)
@@ -319,24 +320,24 @@ public class ConfigExportService
             {
                 ws.Cells[row, 1].Value = e.Name;
                 ws.Cells[row, 2].Value = n.Name;
-                ws.Cells[row, 3].Value = NodeRole(n.Name);
-                ws.Cells[row, 4].Value = n.Os;
-                ws.Cells[row, 5].Value = string.IsNullOrEmpty(n.DbVersion) ? "—" : n.DbVersion;
-                ws.Cells[row, 6].Value = n.Cpu;
-                ws.Cells[row, 7].Value = n.RamGb;
-                ws.Cells[row, 8].Value = n.NodeCount;
-                ws.Cells[row, 9].Value = n.DiskPerNodeGb;
-                ws.Cells[row, 10].Value = n.TotalStorageGb;
-                ws.Cells[row, 11].Value = n.Iops > 0 ? n.Iops : (object)"—";
-                ws.Cells[row, 12].Value = string.IsNullOrEmpty(n.IopsProfile) ? "—" : n.IopsProfile;
-                ws.Cells[row, 13].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"—";
-                ws.Cells[row, 14].Value = n.Latency > 0 ? n.Latency : (object)"—";
+                ws.Cells[row, 3].Value = n.Cpu;
+                ws.Cells[row, 4].Value = n.RamGb;
+                ws.Cells[row, 5].Value = n.NodeCount;
+                ws.Cells[row, 6].Value = n.DiskPerNodeGb;
+                ws.Cells[row, 7].Value = n.TotalStorageGb;
+                ws.Cells[row, 8].Value = n.Iops > 0 ? n.Iops : (object)"";
+                ws.Cells[row, 9].Value = n.IopsProfile;
+                ws.Cells[row, 10].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+                ws.Cells[row, 11].Value = n.Latency > 0 ? n.Latency : (object)"";
+                ws.Cells[row, 12].Value = NodeRole(n.Name);
+                ws.Cells[row, 13].Value = n.Os;
+                ws.Cells[row, 14].Value = n.DbVersion;
                 ws.Cells[row, 15].Value = n.Notes;
-                ws.Cells[row, 6, row, 14].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                ws.Cells[row, 3, row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 row++;
             }
         }
-        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+        StyleTable(ws);
     }
 
     // Аркуш із компонентами (подами) по кожному середовищу.
@@ -351,7 +352,9 @@ public class ConfigExportService
         int row = 2;
         foreach (var e in environments)
         {
-            foreach (var c in e.Requirement.Components.Where(x => x.Cpu > 0))
+            var comps = e.Requirement.Components.Where(x => x.Cpu > 0).ToList();
+            if (comps.Count == 0) continue;
+            foreach (var c in comps)
             {
                 ws.Cells[row, 1].Value = e.Name;
                 ws.Cells[row, 2].Value = c.Name;
@@ -364,8 +367,19 @@ public class ConfigExportService
                 ws.Cells[row, 4, row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 row++;
             }
+            // Підсумковий рядок на середовище.
+            ws.Cells[row, 1].Value = e.Name;
+            ws.Cells[row, 2].Value = "Разом";
+            ws.Cells[row, 6].Value = comps.Sum(c => c.Replicas);
+            ws.Cells[row, 7].Value = Math.Round(comps.Sum(c => c.Cpu), 1);
+            ws.Cells[row, 8].Value = Math.Round(comps.Sum(c => c.RamGb), 1);
+            ws.Cells[row, 4, row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 1, row, 8].Style.Font.Bold = true;
+            ws.Cells[row, 1, row, 8].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            ws.Cells[row, 1, row, 8].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+            row++;
         }
-        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+        StyleTable(ws);
     }
 
     private static void BuildEnvironmentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
@@ -387,7 +401,7 @@ public class ConfigExportService
             ws.Cells[row, 2, row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
-        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+        StyleTable(ws);
     }
 
     private static void BuildSummarySheet(ExcelPackage pkg, ResourceRequirement req, ProjectConfig config)
@@ -471,44 +485,47 @@ public class ConfigExportService
         ws.Cells[1, 1].Style.Font.Size = 12;
         ws.Cells[1, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
 
-        string[] headers = { "Сервер (ВМ)", "Призначення", "ОС", "Версія СУБД", "CPU (ядер)", "RAM (ГБ)", "К-сть", "Тип диску",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "Page file (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)", "Примітки" };
+        // Порядок колонок: ідентифікатор + числові характеристики спершу, описові
+        // (Призначення/ОС/Версія СУБД) — у кінці перед примітками.
+        string[] headers = { "Сервер (ВМ)", "CPU (ядер)", "RAM (ГБ)", "К-сть", "Тип диску",
+            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "Page file (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
+            "Призначення", "ОС", "Версія СУБД", "Примітки" };
         WriteHeader(ws, headers, headerRow: 2);
 
         int row = 3;
         foreach (var n in req.Infrastructure.Where(x => x.NodeCount > 0))
         {
             ws.Cells[row, 1].Value = n.Name;
-            ws.Cells[row, 2].Value = NodeRole(n.Name);
-            ws.Cells[row, 3].Value = n.Os;
-            ws.Cells[row, 4].Value = string.IsNullOrEmpty(n.DbVersion) ? "—" : n.DbVersion;
-            ws.Cells[row, 5].Value = n.Cpu;
-            ws.Cells[row, 6].Value = n.RamGb;
-            ws.Cells[row, 7].Value = n.NodeCount;
-            ws.Cells[row, 8].Value = n.StorageType;
-            ws.Cells[row, 9].Value = n.DiskPerNodeGb;
-            ws.Cells[row, 10].Value = n.TotalStorageGb;
-            ws.Cells[row, 11].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"—";
-            ws.Cells[row, 12].Value = n.Iops > 0 ? n.Iops : (object)"—";
-            ws.Cells[row, 13].Value = string.IsNullOrEmpty(n.IopsProfile) ? "—" : n.IopsProfile;
-            ws.Cells[row, 14].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"—";
-            ws.Cells[row, 15].Value = n.Latency > 0 ? n.Latency : (object)"—";
+            ws.Cells[row, 2].Value = n.Cpu;
+            ws.Cells[row, 3].Value = n.RamGb;
+            ws.Cells[row, 4].Value = n.NodeCount;
+            ws.Cells[row, 5].Value = n.StorageType;
+            ws.Cells[row, 6].Value = n.DiskPerNodeGb;
+            ws.Cells[row, 7].Value = n.TotalStorageGb;
+            ws.Cells[row, 8].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
+            ws.Cells[row, 9].Value = n.Iops > 0 ? n.Iops : (object)"";
+            ws.Cells[row, 10].Value = n.IopsProfile;
+            ws.Cells[row, 11].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+            ws.Cells[row, 12].Value = n.Latency > 0 ? n.Latency : (object)"";
+            ws.Cells[row, 13].Value = NodeRole(n.Name);
+            ws.Cells[row, 14].Value = n.Os;
+            ws.Cells[row, 15].Value = n.DbVersion;
             ws.Cells[row, 16].Value = n.Notes;
-            ws.Cells[row, 5, row, 15].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 2, row, 12].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
         // Підсумковий рядок.
         ws.Cells[row, 1].Value = "Разом";
-        ws.Cells[row, 5].Value = Math.Round(req.TotalCpu, 1);
-        ws.Cells[row, 6].Value = Math.Round(req.TotalRamGb, 1);
-        ws.Cells[row, 7].Value = req.Infrastructure.Sum(n => n.NodeCount);
-        ws.Cells[row, 10].Value = req.TotalStorageGb;
-        ws.Cells[row, 5, row, 15].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        ws.Cells[row, 2].Value = Math.Round(req.TotalCpu, 1);
+        ws.Cells[row, 3].Value = Math.Round(req.TotalRamGb, 1);
+        ws.Cells[row, 4].Value = req.Infrastructure.Sum(n => n.NodeCount);
+        ws.Cells[row, 7].Value = req.TotalStorageGb;
+        ws.Cells[row, 2, row, 12].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
         ws.Cells[row, 1, row, 16].Style.Font.Bold = true;
         ws.Cells[row, 1, row, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
         ws.Cells[row, 1, row, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
 
-        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+        StyleTable(ws, headerRow: 2);
     }
 
     private static void BuildComponentsSheet(ExcelPackage pkg, ResourceRequirement req)
@@ -542,7 +559,20 @@ public class ConfigExportService
         ws.Cells[row, 1, row, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
         ws.Cells[row, 1, row, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
 
-        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+        StyleTable(ws);
+    }
+
+    // Тонкі рамки на всю таблицю + автоширина. Числа лишаються чорними (типовий колір).
+    private static void StyleTable(ExcelWorksheet ws, int headerRow = 1)
+    {
+        var dim = ws.Dimension;
+        if (dim == null) return;
+        var cells = ws.Cells[dim.Address];
+        cells.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+        cells.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+        cells.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+        cells.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+        cells.AutoFitColumns();
     }
 
     private static void WriteHeader(ExcelWorksheet ws, string[] headers, int headerRow = 1)

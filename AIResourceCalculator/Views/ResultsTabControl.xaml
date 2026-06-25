@@ -107,8 +107,6 @@
                                         <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
-                                                <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
-                                                <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
@@ -117,6 +115,8 @@
                                                 <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="140"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
@@ -135,6 +135,11 @@
                                                 <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
+                                        <!-- Підсумок компонентів середовища -->
+                                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,2,0,0"
+                                                   Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
+                                            <Run Text="Разом подів: "/><Run Text="{Binding ComponentsCpu, Mode=OneWay}"/><Run Text=" CPU · "/><Run Text="{Binding ComponentsRamGb, Mode=OneWay}"/><Run Text=" ГБ RAM"/>
+                                        </TextBlock>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -152,8 +157,6 @@
                               ItemsSource="{Binding ResultInfrastructure}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
-                            <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
-                            <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
                             <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
@@ -164,6 +167,8 @@
                             <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                            <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
                             <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
                         </DataGrid.Columns>
                     </DataGrid>
