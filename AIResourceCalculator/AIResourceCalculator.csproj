@@ -24,4 +24,13 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
   </ItemGroup>
 
+  <!-- Автопідпис опублікованого exe. Спрацьовує ЛИШЕ при `dotnet publish` (не при звичайному
+       build/run), тож майбутні зміни програми підписуються самі. Використовує наявний
+       самопідписаний 25-річний сертифікат «CN=IT-Enterprise AIResourceCalculator» через sign.ps1.
+       ContinueOnError: тимчасовий збій підпису (зайнятий файл / недоступний timestamp) не валить publish. -->
+  <Target Name="SignPublishedExe" AfterTargets="Publish">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\sign.ps1&quot; -ExePath &quot;$(PublishDir)$(AssemblyName).exe&quot;"
+          ContinueOnError="true" />
+  </Target>
+
 </Project>
