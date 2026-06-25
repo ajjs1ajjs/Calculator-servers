@@ -465,9 +465,22 @@ public class MainViewModel : INotifyPropertyChanged
             new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq, ModulesInfo = prodMods }
         };
 
-        if (s.IncludeDev) reports.Add(BuildEnv(DeployEnvironment.Dev, "DEV", s.DevUserCount));
-        if (s.IncludeTest) reports.Add(BuildEnv(DeployEnvironment.Test, "TEST", s.TestUserCount));
         if (s.IncludePredProd) reports.Add(BuildEnv(DeployEnvironment.PredProd, "PreProd", s.PredProdUserCount));
+        if (s.IncludeTest) reports.Add(BuildEnv(DeployEnvironment.Test, "TEST", s.TestUserCount));
+        if (s.IncludeDev) reports.Add(BuildEnv(DeployEnvironment.Dev, "DEV", s.DevUserCount));
+
+        // Порядок середовищ: PROD → PreProd → TEST → DEV (від робочого до найменш критичного).
+        // PROD завжди перший і розгорнутий (IsProd). Сортування захищає порядок незалежно від
+        // того, які середовища ввімкнені.
+        static int EnvOrder(DeployEnvironment e) => e switch
+        {
+            DeployEnvironment.Prod => 0,
+            DeployEnvironment.PredProd => 1,
+            DeployEnvironment.Test => 2,
+            DeployEnvironment.Dev => 3,
+            _ => 9
+        };
+        reports = reports.OrderBy(r => EnvOrder(r.Environment)).ToList();
 
         // Відновити стан рушія до PROD-конфігурації для подальших дій.
         _engine.SetModules(Modules.ToList());
