@@ -166,20 +166,10 @@ public class SizingEngine : ISizingEngine
         req.TotalIops = includeDatabase ? (sqlRange?.Iops ?? 500) : 0;
         req.TotalLatency = sqlRange?.Latency ?? 1;
 
-        // GPU node for video transcoding (LMS-Videoutilities)
-        var hasGpuComponent = req.Components.Any(c =>
-            c.Notes.Contains("GPU", StringComparison.OrdinalIgnoreCase));
-        if (hasGpuComponent)
-        {
-            var gpuCount = Math.Max(1, (int)Math.Ceiling((double)config.UserCount / UsersPerGpuNode));
-            req.Infrastructure.Add(new InfrastructureNode
-            {
-                Name = "GPU Node (T4/A10)", Os = "Ubuntu 24.04", Cpu = GpuNodeCpu, RamGb = GpuNodeRamGb,
-                NodeCount = gpuCount, StorageGb = GpuNodeStorageGb, StorageType = "SSD"
-            });
-        }
+        // Окремий GPU-вузол НЕ виділяється: вимог до GPU немає в документації, а LMS-Videoutilities
+        // обслуговується звичайним worker-вузлом (його под уже враховано в запиті подів вище).
 
-        // Підсумок = сума ФІЗИЧНИХ ресурсів усіх вузлів (SQL + Master + Worker [+ GPU]).
+        // Підсумок = сума ФІЗИЧНИХ ресурсів усіх вузлів (SQL + Master + Worker).
         req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
         req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
@@ -300,7 +290,7 @@ public class SizingEngine : ISizingEngine
         req.WorkerNodeCount = k8sReq.WorkerNodeCount + winReq.WorkerNodeCount;
         req.MasterNodeCount = k8sReq.MasterNodeCount + winReq.MasterNodeCount;
 
-        req.Infrastructure.AddRange(k8sReq.Infrastructure); // Master + Worker (+ GPU), без БД
+        req.Infrastructure.AddRange(k8sReq.Infrastructure); // Master + Worker, без БД
         req.Infrastructure.AddRange(winReq.Infrastructure); // App + Web (IIS) + БД
         req.Components.AddRange(k8sReq.Components);
 
@@ -420,12 +410,6 @@ public class SizingEngine : ISizingEngine
     private const string K8sIopsProfile = "30r/70w";
     private const int DefaultWorkerIops = 500;
     private const double DefaultWorkerLatency = 5;
-
-    // GPU node defaults for video transcoding (LMS-Videoutilities)
-    private const int UsersPerGpuNode = 100;
-    private const int GpuNodeCpu = 8;
-    private const int GpuNodeRamGb = 32;
-    private const int GpuNodeStorageGb = 200;
 
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 3, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
