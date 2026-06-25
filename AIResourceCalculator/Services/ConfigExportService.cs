@@ -340,45 +340,78 @@ public class ConfigExportService
         StyleTable(ws);
     }
 
-    // Аркуш із компонентами (подами) по кожному середовищу.
+    // Аркуш із компонентами (подами): ЗВЕДЕНИЙ вигляд — один рядок на компонент, а середовища
+    // йдуть СТОВПЦЯМИ зліва направо (Реплік/CPU/RAM на кожне), щоб зручно порівнювати по горизонталі.
     private static void BuildEnvironmentComponentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
-        bool anyComponents = environments.Any(e => e.Requirement.Components.Any(c => c.Cpu > 0));
-        if (!anyComponents) return;
+        var envs = environments.Where(e => e.Components.Any()).ToList();
+        if (envs.Count == 0) return;
         var ws = pkg.Workbook.Worksheets.Add("Компоненти по середовищах");
-        string[] headers = { "Середовище", "Назва", "Категорія", "CPU/репліку", "RAM/репліку (ГБ)",
-            "Реплік", "CPU разом", "RAM разом (ГБ)" };
-        WriteHeader(ws, headers);
-        int row = 2;
-        foreach (var e in environments)
+
+        // Унікальні компоненти в порядку першої появи (PROD першим).
+        var order = new List<(string Cat, string Name)>();
+        var seen = new HashSet<string>();
+        foreach (var e in envs)
+            foreach (var c in e.Components)
+                if (seen.Add(c.Category + "|" + c.Name)) order.Add((c.Category, c.Name));
+
+        // Дворядкова шапка: над кожним середовищем — його назва (об'єднано на 3 стовпці).
+        var blue = System.Drawing.Color.FromArgb(30, 102, 245);
+        void Head(ExcelRange cell, string text, bool merge = false)
         {
-            var comps = e.Requirement.Components.Where(x => x.Cpu > 0).ToList();
-            if (comps.Count == 0) continue;
-            foreach (var c in comps)
+            cell.Value = text;
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.Color.SetColor(System.Drawing.Color.White);
+            cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            cell.Style.Fill.BackgroundColor.SetColor(blue);
+            cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            if (merge) cell.Merge = true;
+        }
+        Head(ws.Cells[1, 1, 2, 1], "Назва", merge: true);
+        Head(ws.Cells[1, 2, 2, 2], "Категорія", merge: true);
+        for (int i = 0; i < envs.Count; i++)
+        {
+            int c0 = 3 + i * 3;
+            Head(ws.Cells[1, c0, 1, c0 + 2], envs[i].Name, merge: true);
+            Head(ws.Cells[2, c0], "Реплік");
+            Head(ws.Cells[2, c0 + 1], "CPU");
+            Head(ws.Cells[2, c0 + 2], "RAM");
+        }
+
+        int row = 3;
+        foreach (var (cat, name) in order)
+        {
+            ws.Cells[row, 1].Value = name;
+            ws.Cells[row, 2].Value = cat;
+            for (int i = 0; i < envs.Count; i++)
             {
-                ws.Cells[row, 1].Value = e.Name;
-                ws.Cells[row, 2].Value = c.Name;
-                ws.Cells[row, 3].Value = c.Category;
-                ws.Cells[row, 4].Value = Math.Round(c.CpuPerReplica, 2);
-                ws.Cells[row, 5].Value = Math.Round(c.RamPerReplicaGb, 2);
-                ws.Cells[row, 6].Value = c.Replicas;
-                ws.Cells[row, 7].Value = Math.Round(c.Cpu, 1);
-                ws.Cells[row, 8].Value = Math.Round(c.RamGb, 1);
-                ws.Cells[row, 4, row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                row++;
+                int c0 = 3 + i * 3;
+                var comp = envs[i].Components.FirstOrDefault(x => x.Category == cat && x.Name == name);
+                if (comp != null)
+                {
+                    ws.Cells[row, c0].Value = comp.Replicas;
+                    ws.Cells[row, c0 + 1].Value = Math.Round(comp.Cpu, 1);
+                    ws.Cells[row, c0 + 2].Value = Math.Round(comp.RamGb, 1);
+                }
+                ws.Cells[row, c0, row, c0 + 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             }
-            // Підсумковий рядок на середовище.
-            ws.Cells[row, 1].Value = e.Name;
-            ws.Cells[row, 2].Value = "Разом";
-            ws.Cells[row, 6].Value = comps.Sum(c => c.Replicas);
-            ws.Cells[row, 7].Value = Math.Round(comps.Sum(c => c.Cpu), 1);
-            ws.Cells[row, 8].Value = Math.Round(comps.Sum(c => c.RamGb), 1);
-            ws.Cells[row, 4, row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            ws.Cells[row, 1, row, 8].Style.Font.Bold = true;
-            ws.Cells[row, 1, row, 8].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            ws.Cells[row, 1, row, 8].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
             row++;
         }
+        // Підсумковий рядок «Разом» по кожному середовищу.
+        ws.Cells[row, 1].Value = "Разом";
+        for (int i = 0; i < envs.Count; i++)
+        {
+            int c0 = 3 + i * 3;
+            ws.Cells[row, c0].Value = envs[i].Components.Sum(c => c.Replicas);
+            ws.Cells[row, c0 + 1].Value = Math.Round(envs[i].Components.Sum(c => c.Cpu), 1);
+            ws.Cells[row, c0 + 2].Value = Math.Round(envs[i].Components.Sum(c => c.RamGb), 1);
+            ws.Cells[row, c0, row, c0 + 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        }
+        int lastCol = 2 + envs.Count * 3;
+        ws.Cells[row, 1, row, lastCol].Style.Font.Bold = true;
+        ws.Cells[row, 1, row, lastCol].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        ws.Cells[row, 1, row, lastCol].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+
         StyleTable(ws);
     }
 

@@ -77,6 +77,22 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
+    public void ExportExcel_WithEnvironments_ProducesWorkbook()
+    {
+        // Кілька середовищ → задіюються зведені аркуші (ВМ та Компоненти по середовищах).
+        var envs = new List<EnvironmentReport>
+        {
+            new() { Name = "PROD", UserCount = 100, Requirement = _req },
+            new() { Name = "DEV",  UserCount = 10,  Requirement = _req },
+            new() { Name = "TEST", UserCount = 25,  Requirement = _req },
+        };
+        var bytes = _svc.ExportExcel(_req, _config, envs);
+        Assert.True(bytes.Length > 0);
+        Assert.Equal((byte)'P', bytes[0]);
+        Assert.Equal((byte)'K', bytes[1]);
+    }
+
+    [Fact]
     public void ExportHtml_ContainsHtmlStructure()
     {
         var result = _svc.ExportHtml(_req, _config);
