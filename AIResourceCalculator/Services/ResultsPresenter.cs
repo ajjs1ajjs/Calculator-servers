@@ -23,18 +23,13 @@ public class ResultsPresenter
     public List<ValidationResult> ValidateProject(ProjectConfig config, ResourceRequirement calculated, List<InfrastructureNode> actual)
         => _validator.ValidateProject(config, calculated, actual);
 
-    public string ExportXml(ResourceRequirement req, ProjectConfig config,
-        IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
-        => _export.ExportXml(req, config, environments, matrixRanges);
-
-    public string ExportHtml(ResourceRequirement req, ProjectConfig config,
-        IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
-        => _export.ExportHtml(req, config, environments, matrixRanges);
-
     public byte[] ExportExcel(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
         IEnumerable<UserLoadRange>? matrixRanges = null)
         => _export.ExportExcel(req, config, environments, matrixRanges);
+
+    public byte[] ExportPdf(ResourceRequirement req, ProjectConfig config,
+        IReadOnlyList<EnvironmentReport>? environments = null,
+        IEnumerable<UserLoadRange>? matrixRanges = null)
+        => _export.ExportPdf(req, config, environments, matrixRanges);
 }

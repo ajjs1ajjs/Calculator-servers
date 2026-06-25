@@ -33,33 +33,86 @@
         </Setter>
     </Style>
 
-    <!-- Flat rounded buttons that honor their Background and dim on hover/press -->
+    <!-- Flat rounded buttons that honor their Background, with smooth hover/press animation -->
     <Style TargetType="Button">
         <Setter Property="Padding" Value="14,8"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Margin" Value="4"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6"
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                            Padding="{TemplateBinding Padding}">
+                            Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5"
+                            SnapsToDevicePixels="True">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="bscale" ScaleX="1" ScaleY="1"/>
+                        </Border.RenderTransform>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleX" To="1.035" Duration="0:0:0.12"/>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleY" To="1.035" Duration="0:0:0.12"/>
+                                        <DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="Opacity" To="0.92" Duration="0:0:0.12"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleX" To="1.0" Duration="0:0:0.14"/>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleY" To="1.0" Duration="0:0:0.14"/>
+                                        <DoubleAnimation Storyboard.TargetName="bd" Storyboard.TargetProperty="Opacity" To="1.0" Duration="0:0:0.14"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.72"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleX" To="0.97" Duration="0:0:0.07"/>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleY" To="0.97" Duration="0:0:0.07"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleX" To="1.035" Duration="0:0:0.07"/>
+                                        <DoubleAnimation Storyboard.TargetName="bscale" Storyboard.TargetProperty="ScaleY" To="1.035" Duration="0:0:0.07"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                            <Setter TargetName="bd" Property="Opacity" Value="0.8"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="bd" Property="Opacity" Value="0.45"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Велика акцентна кнопка експорту: біла напівжирна підпис, тінь, плавна анімація. -->
+    <Style x:Key="ExportButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Foreground" Value="{DynamicResource TextWhite}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Padding" Value="22,11"/>
+        <Setter Property="MinWidth" Value="150"/>
+        <Setter Property="Margin" Value="0,0,12,0"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="#1E66F5" BlurRadius="14" ShadowDepth="2" Opacity="0.28"/>
             </Setter.Value>
         </Setter>
     </Style>

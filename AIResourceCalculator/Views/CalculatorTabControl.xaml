@@ -12,18 +12,6 @@
             <Grid>
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
-                    <!-- Імпорт матриці даних з Excel (за потреби масово оновити вхідні дані). -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,7"
-                                Command="{Binding MatrixVM.ImportMatrixCommand}" ToolTip="{loc:Loc matrix.importHint}">
-                            <TextBlock Text="{loc:Loc setup.import}"/>
-                        </Button>
-                        <Button Padding="12,7" Command="{Binding MatrixVM.ResetMatrixCommand}" ToolTip="{loc:Loc matrix.resetHint}">
-                            <TextBlock Text="{loc:Loc matrix.reset}"/>
-                        </Button>
-                        <TextBlock Text="{loc:Loc matrix.importHint}" FontSize="11" FontStyle="Italic" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextPrimary}" Margin="10,0,0,0" TextWrapping="Wrap" MaxWidth="360"/>
-                    </StackPanel>
                     <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                         <StackPanel>
                             <Grid Margin="0,0,0,8">
@@ -70,6 +58,20 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Додаткові вузли" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"
+                                       ToolTip="Опціональні вузли — додаються до розрахунку лише коли увімкнені (типово вимкнені)"/>
+                            <WrapPanel>
+                                <CheckBox Content="Сервер звітів" IsChecked="{Binding IncludeReportingServer, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
+                                          ToolTip="Reporting Services, окремий вузол 2 ядра / 4 ГБ (Windows)"/>
+                                <CheckBox Content="SQL Secondary (Failover)" IsChecked="{Binding IncludeSqlFailover, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
+                                          ToolTip="Другий вузол БД для failover-кластера (копія первинного вузла БД)"/>
+                                <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold"
+                                          ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux)"/>
+                            </WrapPanel>
                         </StackPanel>
                     </Border>
                     <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
@@ -136,6 +138,20 @@
                                         </DataGrid>
                                     </StackPanel>
                                 </WrapPanel>
+                            </StackPanel>
+                            <!-- Додаткові вузли по середовищах: окремо вмикаються для DEV/TEST/PreProd -->
+                            <StackPanel Margin="0,8,0,0">
+                                <TextBlock Text="Додаткові вузли по середовищах (PROD — у блоці вище):" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                                <DataGrid ItemsSource="{Binding EnvNodeToggles}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                          CanUserAddRows="False" CanUserDeleteRows="False" MaxWidth="520" HorizontalAlignment="Left">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="Auto" MinWidth="180"/>
+                                        <DataGridCheckBoxColumn Header="DEV" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                                        <DataGridCheckBoxColumn Header="TEST" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                                        <DataGridCheckBoxColumn Header="PreProd" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
                             </StackPanel>
                         </StackPanel>
                     </Border>

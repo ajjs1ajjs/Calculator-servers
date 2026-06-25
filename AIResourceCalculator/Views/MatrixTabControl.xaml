@@ -8,10 +8,6 @@
                 <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
             </Border>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
-                        Command="{Binding MatrixVM.ImportMatrixCommand}">
-                    <TextBlock Text="{loc:Loc setup.import}"/>
-                </Button>
                 <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
                         Command="{Binding MatrixVM.SaveMatrixCommand}">
                     <TextBlock Text="{loc:Loc matrix.save}"/>

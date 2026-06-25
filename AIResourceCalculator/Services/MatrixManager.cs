@@ -19,14 +19,6 @@ public class MatrixManager
         CopyMatrix(saved, _matrix);
     }
 
-    public void Import(string filePath)
-    {
-        var importer = new ExcelImporter();
-        var imported = importer.Import(filePath);
-        CopyMatrix(imported, _matrix);
-        _dataService.SaveMatrix(_matrix);
-    }
-
     public void Save()
     {
         _dataService.SaveMatrix(_matrix);
@@ -62,6 +54,8 @@ public class MatrixManager
         target.DefaultWindowsSql = source.DefaultWindowsSql?.Clone();
         target.DefaultWindowsApp = source.DefaultWindowsApp?.Clone();
         target.DefaultWindowsWeb = source.DefaultWindowsWeb?.Clone();
+        target.DefaultReportingServer = source.DefaultReportingServer?.Clone();
+        target.DefaultHaProxy = source.DefaultHaProxy?.Clone();
 
         NormalizeModulePolicy(target);
     }

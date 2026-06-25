@@ -1,5 +1,7 @@
+using System.IO;
 using AIResourceCalculator.Models;
 using AIResourceCalculator.Services;
+using OfficeOpenXml;
 
 namespace AIResourceCalculator.Tests;
 
@@ -38,31 +40,31 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportXml_ContainsProjectAndTotals()
+    public void ExportPdf_ProducesNonEmptyPdf()
     {
-        var result = _svc.ExportXml(_req, _config);
-        Assert.Contains("TestProject", result);
-        Assert.Contains("<ResourceReport", result);
-        Assert.Contains("<Totals", result);
-        Assert.Contains("iopsDb=\"5000\"", result);
+        var bytes = _svc.ExportPdf(_req, _config);
+        Assert.NotNull(bytes);
+        Assert.True(bytes.Length > 0);
+        // PDF починається із сигнатури "%PDF".
+        Assert.Equal((byte)'%', bytes[0]);
+        Assert.Equal((byte)'P', bytes[1]);
+        Assert.Equal((byte)'D', bytes[2]);
+        Assert.Equal((byte)'F', bytes[3]);
     }
 
     [Fact]
-    public void ExportXml_IsCloudAgnostic()
+    public void ExportPdf_WithEnvironments_ProducesPdf()
     {
-        var result = _svc.ExportXml(_req, _config);
-        Assert.DoesNotContain("Azure", result);
-        Assert.DoesNotContain("Standard_", result);
-    }
-
-    [Fact]
-    public void ExportXml_EscapesMaliciousNodeName()
-    {
-        var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
-        req.Infrastructure.Add(new InfrastructureNode { Name = "<script>", Cpu = 4, RamGb = 16, NodeCount = 1, StorageGb = 100 });
-        var result = _svc.ExportXml(req, _config);
-        Assert.DoesNotContain("<script>", result);
-        Assert.Contains("&lt;script&gt;", result);
+        var envs = new List<EnvironmentReport>
+        {
+            new() { Name = "PROD", UserCount = 100, Requirement = _req },
+            new() { Name = "DEV",  UserCount = 10,  Requirement = _req },
+            new() { Name = "TEST", UserCount = 25,  Requirement = _req },
+        };
+        var bytes = _svc.ExportPdf(_req, _config, envs);
+        Assert.True(bytes.Length > 0);
+        Assert.Equal((byte)'%', bytes[0]);
+        Assert.Equal((byte)'P', bytes[1]);
     }
 
     [Fact]
@@ -92,49 +94,27 @@ public class ConfigExportServiceTests
         Assert.Equal((byte)'K', bytes[1]);
     }
 
+    // Регресія: аркуш «Інфраструктура» має містити ВСІ середовища (не лише PROD).
     [Fact]
-    public void ExportHtml_ContainsHtmlStructure()
+    public void ExportExcel_InfrastructureSheet_CoversAllEnvironments()
     {
-        var result = _svc.ExportHtml(_req, _config);
-        Assert.Contains("<html", result);
-        Assert.Contains("</html>", result);
-        Assert.Contains("CPU", result);
-        // Регресія: термін vCPU замінено на CPU.
-        Assert.DoesNotContain("vCPU", result);
+        var envs = new List<EnvironmentReport>
+        {
+            new() { Name = "PROD", UserCount = 100, Requirement = _req },
+            new() { Name = "DEV",  UserCount = 10,  Requirement = _req },
+            new() { Name = "TEST", UserCount = 25,  Requirement = _req },
+        };
+        var bytes = _svc.ExportExcel(_req, _config, envs);
+
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        using var pkg = new ExcelPackage(new MemoryStream(bytes));
+        var ws = pkg.Workbook.Worksheets["Інфраструктура"];
+        Assert.NotNull(ws);
+        var text = string.Join("\n", ws!.Cells[ws.Dimension.Address]
+            .Where(c => c.Value is string).Select(c => c.Text));
+        Assert.Contains("середовище PROD", text);
+        Assert.Contains("середовище DEV", text);
+        Assert.Contains("середовище TEST", text);
     }
 
-    [Fact]
-    public void ExportHtml_ShowsPerNodeDiskTotal()
-    {
-        // SQL-вузол: 300 + 150 = 450 GB на вузол.
-        var result = _svc.ExportHtml(_req, _config);
-        Assert.Contains("450", result);
-    }
-
-    [Fact]
-    public void ExportHtml_IsCloudAgnostic()
-    {
-        var result = _svc.ExportHtml(_req, _config);
-        Assert.DoesNotContain("Azure", result);
-        Assert.DoesNotContain("Standard_", result);
-    }
-
-    // Регресія: екранування XSS у HTML-звіті (назви з імпортованого Excel)
-    [Fact]
-    public void ExportHtml_EscapesMaliciousNodeName()
-    {
-        var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
-        req.Infrastructure.Add(new InfrastructureNode { Name = "<script>alert(1)</script>", Cpu = 4, RamGb = 16, NodeCount = 1, StorageGb = 100 });
-        var result = _svc.ExportHtml(req, _config);
-        Assert.DoesNotContain("<script>alert(1)</script>", result);
-        Assert.Contains("&lt;script&gt;", result);
-    }
-
-    [Fact]
-    public void SanitizeHtml_EscapesAngleBracketsAndQuotes()
-    {
-        Assert.Equal("&lt;b&gt;", ConfigExportService.SanitizeHtml("<b>"));
-        Assert.Equal("&quot;x&quot;", ConfigExportService.SanitizeHtml("\"x\""));
-        Assert.Equal("", ConfigExportService.SanitizeHtml(""));
-    }
 }

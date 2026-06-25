@@ -120,6 +120,14 @@ public class MainViewModel : INotifyPropertyChanged
     public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); } }
     public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); } }
     public bool IncludePredProd { get => _includePredProd; set { _includePredProd = value; OnPropertyChanged(); } }
+
+    // Опціональні вузли інфраструктури (типово вимкнені, як модулі LMS/HR Portal).
+    private bool _includeReportingServer;
+    private bool _includeSqlFailover;
+    private bool _includeHaProxy;
+    public bool IncludeReportingServer { get => _includeReportingServer; set { _includeReportingServer = value; OnPropertyChanged(); } }
+    public bool IncludeSqlFailover { get => _includeSqlFailover; set { _includeSqlFailover = value; OnPropertyChanged(); } }
+    public bool IncludeHaProxy { get => _includeHaProxy; set { _includeHaProxy = value; OnPropertyChanged(); } }
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
     public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
     public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
@@ -193,6 +201,9 @@ public class MainViewModel : INotifyPropertyChanged
     private List<EnvironmentReport> _environments = new();
     public ObservableCollection<EnvironmentReport> Environments { get; private set; } = new();
     public bool HasEnvironments => Environments.Count > 1;
+    // Окремий розділ «Інфраструктура (PROD)» показуємо ЛИШЕ коли немає розбивки по середовищах
+    // (інакше PROD дублювався б: і у «ВМ по середовищах», і тут).
+    public bool ShowProdInfraSection => !HasEnvironments;
 
     // Звірка розрахунку з вимогами документа D-AD-ADM-E (сервер БД, лише MS SQL).
     public ObservableCollection<DocComparisonItem> DocComparison { get; private set; } = new();
@@ -216,6 +227,15 @@ public class MainViewModel : INotifyPropertyChanged
     // К-сть користувачів опціональних модулів (LMS/HR/ForceBPM) ОКРЕМО для DEV/TEST/PreProd.
     public ObservableCollection<EnvModuleCount> EnvModuleCounts { get; private set; } = new();
     public bool HasEnvModuleCounts => EnvModuleCounts.Count > 0;
+
+    // Додаткові вузли (Сервер звітів / SQL Secondary / HAProxy) ОКРЕМО для DEV/TEST/PreProd.
+    // PROD керується верхніми прапорцями IncludeReportingServer/IncludeSqlFailover/IncludeHaProxy.
+    public ObservableCollection<EnvNodeToggle> EnvNodeToggles { get; private set; } = new()
+    {
+        new() { Key = "reporting", NodeName = "Сервер звітів" },
+        new() { Key = "failover",  NodeName = "SQL Secondary (Failover)" },
+        new() { Key = "haproxy",   NodeName = "HAProxy" },
+    };
 
     // Перебудова рядків к-сті модулів по середовищах зі збереженням раніше введених значень.
     private void RebuildEnvModuleCounts()
@@ -245,8 +265,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ICommand CalculateCommand { get; private set; } = null!;
     public ICommand ExportExcelCommand { get; private set; } = null!;
-    public ICommand ExportXmlCommand { get; private set; } = null!;
-    public ICommand ExportHtmlCommand { get; private set; } = null!;
+    public ICommand ExportPdfCommand { get; private set; } = null!;
     public ICommand LangSwitchCommand { get; private set; } = null!;
     public ICommand RecallHistoryCommand { get; private set; } = null!;
 
@@ -254,8 +273,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         CalculateCommand = new RelayCommand(_ => Calculate());
         ExportExcelCommand = new RelayCommand(_ => ExportExcel());
-        ExportXmlCommand = new RelayCommand(_ => ExportXml());
-        ExportHtmlCommand = new RelayCommand(_ => ExportHtml());
+        ExportPdfCommand = new RelayCommand(_ => ExportPdf());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
 
@@ -284,7 +302,10 @@ public class MainViewModel : INotifyPropertyChanged
             },
             ProductType = productType,
             LoadProfile = loadProfile,
-            DatabaseType = (DatabaseType)DatabaseIndex
+            DatabaseType = (DatabaseType)DatabaseIndex,
+            IncludeReportingServer = IncludeReportingServer,
+            IncludeSqlFailover = IncludeSqlFailover,
+            IncludeHaProxy = IncludeHaProxy
         };
     }
 
@@ -374,6 +395,10 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasDocComparison));
     }
 
+    // Чи увімкнено опціональний вузол для конкретного похідного середовища (перемикачі внизу).
+    private bool NodeEnabledFor(string key, DeployEnvironment env)
+        => EnvNodeToggles.FirstOrDefault(r => r.Key == key)?.EnabledFor(env) ?? false;
+
     private EnvironmentSettings GetEnvSettings()
     {
         if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
@@ -405,7 +430,11 @@ public class MainViewModel : INotifyPropertyChanged
                 ProjectName = config.ProjectName, UserCount = users,
                 DeploymentType = config.DeploymentType, ProductType = config.ProductType,
                 LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
-                Environment = env
+                Environment = env,
+                // Опціональні вузли — ОКРЕМО для кожного похідного середовища (перемикачі внизу).
+                IncludeReportingServer = NodeEnabledFor("reporting", env),
+                IncludeSqlFailover = NodeEnabledFor("failover", env),
+                IncludeHaProxy = NodeEnabledFor("haproxy", env)
             };
             // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
             // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).
@@ -447,6 +476,7 @@ public class MainViewModel : INotifyPropertyChanged
         Environments = new ObservableCollection<EnvironmentReport>(reports);
         OnPropertyChanged(nameof(Environments));
         OnPropertyChanged(nameof(HasEnvironments));
+        OnPropertyChanged(nameof(ShowProdInfraSection));
     }
 
     // Plain-language summary of what to provision, so the numbers read as understandable needs.
@@ -604,20 +634,6 @@ public class MainViewModel : INotifyPropertyChanged
         StatusText = string.Format(loc["status.deploymentChanged"], deployName);
     }
 
-    private void ExportXml()
-    {
-        if (_lastResult == null) return;
-        var cfg = GetConfig();
-        ExportConfig(_results.ExportXml(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile)), "xml");
-    }
-
-    private void ExportHtml()
-    {
-        if (_lastResult == null) return;
-        var cfg = GetConfig();
-        ExportConfig(_results.ExportHtml(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile)), "html");
-    }
-
     private void ExportExcel()
     {
         if (_lastResult == null) return;
@@ -635,21 +651,19 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void ExportConfig(string content, string extension)
+    private void ExportPdf()
     {
+        if (_lastResult == null) return;
         var saveDialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = extension switch
-            {
-                "xml" => "XML files (*.xml)|*.xml",
-                "html" => "HTML files (*.html)|*.html",
-                _ => $"*{extension}|*{extension}"
-            },
-            FileName = $"resources.{extension}"
+            Filter = "PDF files (*.pdf)|*.pdf",
+            FileName = "resources.pdf"
         };
         if (saveDialog.ShowDialog() == true)
         {
-            System.IO.File.WriteAllText(saveDialog.FileName, content);
+            var cfg = GetConfig();
+            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+            System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
             StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
     }

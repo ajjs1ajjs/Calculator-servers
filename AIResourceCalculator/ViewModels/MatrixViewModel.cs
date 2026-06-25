@@ -23,7 +23,6 @@ public class MatrixViewModel : INotifyPropertyChanged
     public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents { get; private set; } = new();
     public ObservableCollection<InfrastructureNode> InfraNodes { get; private set; } = new();
 
-    public ICommand ImportMatrixCommand { get; }
     public ICommand SaveMatrixCommand { get; }
     public ICommand ResetMatrixCommand { get; }
 
@@ -42,7 +41,6 @@ public class MatrixViewModel : INotifyPropertyChanged
         _matrixManager = matrixManager;
         _matrix = matrixManager.Matrix;
 
-        ImportMatrixCommand = new RelayCommand(_ => ImportMatrix());
         SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
     }
@@ -80,30 +78,6 @@ public class MatrixViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(K8sStandardComponents));
         OnPropertyChanged(nameof(K8sDocumentFlowComponents));
         OnPropertyChanged(nameof(InfraNodes));
-    }
-
-    private void ImportMatrix()
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Filter = "Excel files (*.xlsx)|*.xlsx",
-            Title = "Import Excel Calculator"
-        };
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                _matrixManager.Import(dialog.FileName);
-                _matrix = _matrixManager.Matrix;
-                LoadMatrixGrids();
-                MatrixChanged?.Invoke();
-            }
-            catch (System.Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Import error: {ex.Message}", "Error",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-            }
-        }
     }
 
     public void SyncGridsToMatrix()

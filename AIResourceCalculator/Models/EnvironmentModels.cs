@@ -48,6 +48,27 @@ public class EnvModuleCount
     };
 }
 
+// Рядок таблиці «Додаткові вузли по середовищах»: один опціональний вузол (Сервер звітів /
+// SQL Secondary / HAProxy) з окремими перемикачами для DEV/TEST/PreProd. PROD керується
+// верхнім блоком «Додаткові вузли». Типово вимкнені (як і самі вузли).
+public class EnvNodeToggle
+{
+    public string Key { get; set; } = "";       // reporting | failover | haproxy
+    public string NodeName { get; set; } = "";   // людська назва для UI
+
+    public bool DevEnabled { get; set; }
+    public bool TestEnabled { get; set; }
+    public bool PredProdEnabled { get; set; }
+
+    public bool EnabledFor(DeployEnvironment env) => env switch
+    {
+        DeployEnvironment.Dev => DevEnabled,
+        DeployEnvironment.Test => TestEnabled,
+        DeployEnvironment.PredProd => PredProdEnabled,
+        _ => false
+    };
+}
+
 // Один порахований звіт середовища (PROD/DEV/TEST/PredProd) + його людська назва.
 public class EnvironmentReport
 {
@@ -55,6 +76,10 @@ public class EnvironmentReport
     public string Name { get; set; } = "";
     public int UserCount { get; set; }
     public ResourceRequirement Requirement { get; set; } = new();
+
+    // PROD розгорнуте у результатах за замовчуванням, решта середовищ — згорнуті (користувач
+    // розгортає за потреби). Прив'язка IsExpanded блоку середовища.
+    public bool IsProd => Environment == DeployEnvironment.Prod;
 
     // К-сті опціональних модулів, з якими рахувалося середовище (для показу у звіті/UI),
     // напр. «LMS: 10 · HR Portal: 10 · ForceBPM: 10».
@@ -75,6 +100,6 @@ public class EnvironmentReport
     public IEnumerable<ServiceComponent> Components => Requirement.Components.Where(c => c.Cpu > 0);
     public bool HasComponents => Components.Any();
     // Підсумок ресурсів подів середовища.
-    public double ComponentsCpu => Math.Round(Components.Sum(c => c.Cpu), 1);
-    public double ComponentsRamGb => Math.Round(Components.Sum(c => c.RamGb), 1);
+    public double ComponentsCpu => Math.Round(Components.Sum(c => c.Cpu), 2);
+    public double ComponentsRamGb => Math.Round(Components.Sum(c => c.RamGb), 2);
 }

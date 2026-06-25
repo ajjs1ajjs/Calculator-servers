@@ -29,6 +29,12 @@
         "resolved": "10.0.9",
         "contentHash": "4Iw41e2h7I4t70SJcX2GCmbyKJIlA273Cfm9RJMM050/3VBejGAG1KcthP5Z2L6SQcbfbf6BhNWO26+ZG+GzMg=="
       },
+      "QuestPDF": {
+        "type": "Direct",
+        "requested": "[2026.6.1, )",
+        "resolved": "2026.6.1",
+        "contentHash": "EuGtkJcYNF/IV5Sd4WzshYJcqG5FNutBrRFPqzzlFxIEV9FOrN1pbPIYf38LVKEz9WCpHZN5SZjcISUefoHQvQ=="
+      },
       "EPPlus.Interfaces": {
         "type": "Transitive",
         "resolved": "7.5.0",
@@ -126,6 +132,13 @@
         "contentHash": "dMkqfy2el8A8/I76n2Hi1oBFEbG1SfxD2l5nhwXV3XjlnOmwxJlQbYpJH4W51odnU9sARCSAgv7S3CyAFMkpYg=="
       }
     },
-    "net10.0-windows7.0/win-x64": {}
+    "net10.0-windows7.0/win-x64": {
+      "QuestPDF": {
+        "type": "Direct",
+        "requested": "[2026.6.1, )",
+        "resolved": "2026.6.1",
+        "contentHash": "EuGtkJcYNF/IV5Sd4WzshYJcqG5FNutBrRFPqzzlFxIEV9FOrN1pbPIYf38LVKEz9WCpHZN5SZjcISUefoHQvQ=="
+      }
+    }
   }
 }

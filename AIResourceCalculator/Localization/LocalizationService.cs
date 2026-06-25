@@ -8,7 +8,7 @@ public class LocalizationService : ILocalizationService
 {
     private static readonly Dictionary<string, string> StringsUk = new()
     {
-        ["app.title"] = "Калькулятор ресурсів",
+        ["app.title"] = "IT-Enterprise Калькулятор ресурсів",
         ["app.subtitle"] = "Розрахунок інфраструктури · Вимоги",
         ["tab.matrixTitle"] = "База даних",
         ["tab.setupTitle"] = "1. Калькулятор",
@@ -185,7 +185,7 @@ public class LocalizationService : ILocalizationService
 
     private static readonly Dictionary<string, string> StringsEn = new()
     {
-        ["app.title"] = "Resource Calculator",
+        ["app.title"] = "IT-Enterprise Resource Calculator",
         ["app.subtitle"] = "Infrastructure sizing · Requirements",
         ["tab.matrixTitle"] = "Data Matrix",
         ["tab.setupTitle"] = "1. Calculator",

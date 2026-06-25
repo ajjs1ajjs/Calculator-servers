@@ -7,7 +7,9 @@ public class SizingMatrix
     // Версія структури збереженої матриці. Підвищуйте, коли змінюється модель так, що старі
     // matrix.json більше не сумісні (нові поля/правила). Несумісні збереження відкидаються.
     // v6: master-вузол 4 ядра/6 ГБ (як еталон). Старі збереження відкидаються.
-    public const int CurrentSchemaVersion = 6;
+    // v7: master-вузол 2 ядра/4 ГБ — як у всіх реальних розрахунках клієнтам (еталонний
+    //     шаблон давав ідеалізовані 4/6, на практиці використовують 2/4). Старі збереження відкидаються.
+    public const int CurrentSchemaVersion = 7;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
     // Значення узгоджені з документом D-AD-ADM-E, таблиця зведення конфігурацій (розділ 1.3):
@@ -305,10 +307,11 @@ public class SizingMatrix
         StorageType4 = "SATA", StorageGb4 = 200
     };
 
-    // Master-вузол: 4 ядра/6 ГБ — як в еталонному калькуляторі (вкладка «Стандарт»).
+    // Master-вузол: 2 ядра/4 ГБ — як у всіх реальних розрахунках клієнтам (10/15/20/30/50/150 ліц,
+    // postgres). Еталонний шаблон задавав 4/6, але на практиці master завжди 2/4.
     public InfrastructureNode? DefaultK8sMaster { get; set; } = new()
     {
-        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1,
+        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 100
     };
 
@@ -337,5 +340,20 @@ public class SizingMatrix
     {
         Name = "Веб сервери (IIS)", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 0,
         StorageType = "SSD", StorageGb = 150
+    };
+
+    // --- Опціональні вузли (додаються лише за перемикачем, як LMS/HR Portal) ---
+    // Значення з реальних розрахунків клієнтам (10/20/50/150 ліц): Сервер звітів 2/4,
+    // HAProxy 2/4. SQL Secondary — клон первинного вузла БД (failover-кластер), без окремого дефолта.
+    public InfrastructureNode? DefaultReportingServer { get; set; } = new()
+    {
+        Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, RamGb = 4, NodeCount = 1,
+        StorageType = "SSD", StorageGb = 150, Iops = 250, IopsProfile = "50r/50w", Latency = 10
+    };
+
+    public InfrastructureNode? DefaultHaProxy { get; set; } = new()
+    {
+        Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1,
+        StorageType = "SSD", StorageGb = 100
     };
 }

@@ -98,10 +98,12 @@
                     <!-- Розбивка ВМ та компонентів для кожного середовища (без внутрішньої прокрутки —
                          уся вкладка прокручується як одне ціле; довжину регулює згортання секцій). -->
                     <TextBlock Text="{loc:Loc env.vmsTitle}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,10,0,4"/>
+                    <TextBlock FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Text="Поди масштабуються блоками (на кожні 25/50/100 користувачів, мінімум 1 репліка), тож середовища з близькою к-стю користувачів можуть мати однакові компоненти — відмінності проявляються у вузлі БД."/>
                         <ItemsControl ItemsSource="{Binding Environments}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Expander IsExpanded="True" Margin="0,0,0,6">
+                                    <Expander IsExpanded="{Binding IsProd, Mode=OneWay}" Margin="0,0,0,6">
                                         <Expander.Header>
                                             <TextBlock FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AccentBg}">
                                                 <Run Text="Середовище "/><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
@@ -118,8 +120,10 @@
                                                 <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
@@ -140,8 +144,8 @@
                                                 <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="Auto" MinWidth="90"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
-                                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, StringFormat={}{0:0.##}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat={}{0:0.##}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <!-- Підсумок компонентів середовища -->
@@ -157,8 +161,10 @@
                 </StackPanel>
             </Expander>
 
-            <!-- Розділ: Інфраструктура (PROD) -->
-            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.infraProd}">
+            <!-- Розділ: Інфраструктура (PROD) — лише коли немає розбивки по середовищах
+                 (інакше PROD уже показано у «ВМ по середовищах» вище). -->
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.infraProd}"
+                      Visibility="{Binding ShowProdInfraSection, Converter={StaticResource VisibilityConverter}}">
                 <StackPanel Margin="0,6,0,0">
                     <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" Margin="0,0,0,6"/>
@@ -191,11 +197,28 @@
                            TextWrapping="Wrap" LineHeight="18" FontFamily="Consolas" Margin="4,6,0,0"/>
             </Expander>
 
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Command="{Binding ExportExcelCommand}" Content="Excel"/>
-                <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportXmlCommand}" Content="XML"/>
-                <Button Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextPrimary}" Command="{Binding ExportHtmlCommand}" Content="HTML"/>
-            </StackPanel>
+            <Border Background="{DynamicResource CardBg}" Padding="14" CornerRadius="10" Margin="0,10,0,0"
+                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="Експорт звіту" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource ExportButton}" Background="{DynamicResource SuccessBg}"
+                                Command="{Binding ExportExcelCommand}" ToolTip="Зберегти звіт у форматі Excel (.xlsx)">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ExportButton}" Background="{DynamicResource DangerBg}"
+                                Command="{Binding ExportPdfCommand}" ToolTip="Зберегти звіт у форматі PDF">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xEA90;" FontFamily="Segoe MDL2 Assets" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="PDF" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

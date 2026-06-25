@@ -170,6 +170,102 @@ public class SizingEngineTests
         var web = result.Infrastructure.First(n => n.Name.Contains("Веб") || n.Name.Contains("Web"));
         Assert.True(app.PageFileGb > 0);
         Assert.True(web.PageFileGb > 0);
+
+        // Page file = CEILING(RAM*4, 10) — формула еталонного аркуша Windows (Q7/Q8),
+        // підтверджена прикладами (app RAM 24 → 96, web RAM 8 → 32 тощо).
+        static int PageFile(double ram) => (int)(Math.Ceiling(ram * 4 / 10.0) * 10);
+        Assert.Equal(PageFile(app.RamGb), app.PageFileGb);
+        Assert.Equal(PageFile(web.RamGb), web.PageFileGb);
+    }
+
+    // --- Регресія: master-вузол K8s = 2 ядра / 4 ГБ (як у реальних розрахунках, не 4/6) ---
+    [Fact]
+    public void Calculate_K8s_MasterNodeIs2Cores4Gb()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        var master = result.Infrastructure.First(n => n.Name.Contains("Master"));
+        Assert.Equal(2, master.Cpu);
+        Assert.Equal(4, master.RamGb);
+    }
+
+    // --- Опціональні вузли: типово вимкнені, на розрахунок не впливають ---
+    [Fact]
+    public void Calculate_OptionalNodes_OffByDefault_NotAdded()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("звіт"));
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("Secondary"));
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("HAProxy"));
+    }
+
+    // --- Опціональний вузол «Сервер звітів» додається лише за перемикачем (+2 CPU/+4 ГБ) ---
+    [Fact]
+    public void Calculate_ReportingServer_WhenEnabled_AddsNodeAndResources()
+    {
+        ProjectConfig Cfg(bool reporting) => new()
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            IncludeReportingServer = reporting
+        };
+        var baseReq = _engine.Calculate(Cfg(false));
+        var withRep = _engine.Calculate(Cfg(true));
+
+        var node = withRep.Infrastructure.First(n => n.Name.Contains("звіт"));
+        Assert.Equal(2, node.Cpu);
+        Assert.Equal(4, node.RamGb);
+        Assert.Equal(baseReq.TotalCpu + 2, withRep.TotalCpu);
+        Assert.Equal(baseReq.TotalRamGb + 4, withRep.TotalRamGb);
+    }
+
+    // --- SQL Failover додає другий вузол БД (копію первинного) ---
+    [Fact]
+    public void Calculate_SqlFailover_WhenEnabled_AddsSecondaryDbNode()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            IncludeSqlFailover = true
+        });
+        var primary = result.Infrastructure.First(n => n.Name == "SQL Server");
+        var secondary = result.Infrastructure.First(n => n.Name.Contains("Secondary"));
+        Assert.Equal(primary.Cpu, secondary.Cpu);
+        Assert.Equal(primary.RamGb, secondary.RamGb);
+        Assert.Equal(1, secondary.NodeCount);
+    }
+
+    // --- HAProxy додається лише за перемикачем (Linux 2/4) ---
+    [Fact]
+    public void Calculate_HaProxy_WhenEnabled_AddsLinuxNode()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            IncludeHaProxy = true
+        });
+        var node = result.Infrastructure.First(n => n.Name.Contains("HAProxy"));
+        Assert.Equal(2, node.Cpu);
+        Assert.Equal(4, node.RamGb);
+        Assert.Contains("Ubuntu", node.Os);
+    }
+
+    // --- Гібрид: опціональні вузли НЕ дублюються (додаються один раз) ---
+    [Fact]
+    public void Calculate_Hybrid_OptionalNodes_NotDoubled()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic,
+            IncludeReportingServer = true, IncludeHaProxy = true
+        });
+        Assert.Equal(1, result.Infrastructure.Count(n => n.Name.Contains("звіт")));
+        Assert.Equal(1, result.Infrastructure.Count(n => n.Name.Contains("HAProxy")));
     }
 
     // --- Регресія: компоненти зберігають ресурси на 1 репліку та сумарні ---
@@ -592,6 +688,38 @@ public class SizingEngineTests
         Assert.Equal(3, Rep("ROBOT"));               // 1 + int(50/100) + int(2500/1000)
         Assert.Equal(7, Rep("WS (WebSocket)"));      // 1 + int(50/50) + int(2500/500)
         Assert.Equal(300, Rep("LMS-SmartID"));       // ceil(7500/25)
+    }
+
+    // --- Регресія: дрібний CPU модулів (HR Portal SmartID/GraphQL) не зникає ---
+    // Симптом, що пам'ятали: при малій к-сті HR Portal CPU SmartID (0.006) і GraphQL (0.01)
+    // показувались як 0 — через округлення підсумку компонента до 1 знака. Тепер 2 знаки.
+    [Fact]
+    public void Calculate_K8s_HrPortalSmallCount_SmartIdCpuNotLost()
+    {
+        var modules = _engine.Modules.ToClonedList();
+        var hr = modules.First(m => m.Name == "HR Portal");
+        hr.IsEnabled = true;
+        hr.UserCount = 100; // Per100 → рівно 1 репліка SmartID/GraphQL
+        _engine.SetModules(modules);
+
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        var smartId = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-SmartID"));
+        var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
+
+        // Рушій зберігає точні значення з матриці (1 репліка).
+        Assert.Equal(1, smartId.Replicas);
+        Assert.Equal(0.006, smartId.Cpu, 3);
+        Assert.Equal(0.01, graphql.Cpu, 3);
+
+        // Суть фікса: округлення до 2 знаків лишає значення видимим (>0),
+        // тоді як старе округлення до 1 знака давало 0.
+        Assert.True(Math.Round(smartId.Cpu, 2) > 0);
+        Assert.Equal(0, Math.Round(smartId.Cpu, 1)); // демонструє колишній баг
+        Assert.True(Math.Round(graphql.Cpu, 2) > 0);
     }
 
     // --- Відповідність еталону: профіль Документообіг (БД + сервери додатків), 200 ліцензій ---

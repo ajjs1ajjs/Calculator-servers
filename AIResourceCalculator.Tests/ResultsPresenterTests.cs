@@ -74,15 +74,6 @@ public class ResultsPresenterTests
     }
 
     [Fact]
-    public void ExportXml_ContainsProjectInfo()
-    {
-        var result = _presenter.ExportXml(_req, _config);
-        Assert.Contains("Test", result);
-        Assert.Contains("<ResourceReport", result);
-        Assert.Contains("<Totals", result);
-    }
-
-    [Fact]
     public void ExportExcel_ProducesWorkbookBytes()
     {
         var bytes = _presenter.ExportExcel(_req, _config);
@@ -91,12 +82,14 @@ public class ResultsPresenterTests
     }
 
     [Fact]
-    public void ExportHtml_ContainsHtmlStructure()
+    public void ExportPdf_ProducesPdfBytes()
     {
-        var result = _presenter.ExportHtml(_req, _config);
-        Assert.Contains("<html", result);
-        Assert.Contains("</html>", result);
-        Assert.Contains("CPU", result);
+        var bytes = _presenter.ExportPdf(_req, _config);
+        Assert.True(bytes.Length > 0);
+        Assert.Equal((byte)'%', bytes[0]);
+        Assert.Equal((byte)'P', bytes[1]);
+        Assert.Equal((byte)'D', bytes[2]);
+        Assert.Equal((byte)'F', bytes[3]);
     }
 
     [Fact]

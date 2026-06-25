@@ -49,7 +49,45 @@ public class SizingEngine : ISizingEngine
         else
             CalculateWindows(req, config);
 
+        AddOptionalNodes(req, config);
+
         return req;
+    }
+
+    // Опціональні вузли інфраструктури — додаються ЛИШЕ коли користувач їх увімкнув (типово
+    // вимкнені, як модулі LMS/HR Portal). Додаються один раз тут (а не всередині
+    // CalculateWindows/K8s), щоб у гібриді не було подвійного обліку. Підсумки CPU/RAM/диски
+    // перераховуються від інфраструктури (для Windows/K8s/гібриду це тотожно базовому значенню,
+    // коли нічого не додано, тож поведінка без перемикачів не змінюється).
+    private void AddOptionalNodes(ResourceRequirement req, ProjectConfig config)
+    {
+        if (!config.IncludeSqlFailover && !config.IncludeReportingServer && !config.IncludeHaProxy)
+            return;
+
+        // SQL Failover: другий ідентичний вузол БД (failover-кластер) — клон первинного вузла БД.
+        if (config.IncludeSqlFailover)
+        {
+            var primary = req.Infrastructure.FirstOrDefault(n => !string.IsNullOrEmpty(n.DbVersion))
+                ?? req.Infrastructure.FirstOrDefault(n =>
+                    n.Name.Contains("SQL") || n.Name.Contains("PostgreSQL") || n.Name.Contains("Oracle"));
+            if (primary != null)
+            {
+                var secondary = primary.Clone();
+                secondary.Name = $"{primary.Name} (Secondary)";
+                secondary.NodeCount = 1;
+                req.Infrastructure.Add(secondary);
+            }
+        }
+
+        if (config.IncludeReportingServer)
+            req.Infrastructure.Add((_matrix.DefaultReportingServer ?? _defaultReporting).Clone());
+
+        if (config.IncludeHaProxy)
+            req.Infrastructure.Add((_matrix.DefaultHaProxy ?? _defaultHaProxy).Clone());
+
+        req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
+        req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
+        req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
     }
 
     // includeDatabase=false і excludeModules використовуються в гібриді: БД та app/web
@@ -240,8 +278,9 @@ public class SizingEngine : ISizingEngine
             StorageType2 = appNode?.StorageType2 ?? "", StorageGb2 = appNode?.StorageGb2 ?? 0,
             StorageType3 = appNode?.StorageType3 ?? "", StorageGb3 = appNode?.StorageGb3 ?? 0,
             StorageType4 = appNode?.StorageType4 ?? "", StorageGb4 = appNode?.StorageGb4 ?? 0,
-            // Файл підкачки app-сервера: з матриці або, якщо не задано, = RAM вузла.
-            PageFileGb = appNode?.PageFileGb > 0 ? appNode.PageFileGb : (int)Math.Ceiling(appRam),
+            // Файл підкачки app-сервера: з матриці або, якщо не задано, = CEILING(RAM×4, 10)
+            // (формула еталонного аркуша Windows Q7=CEILING(E7*4,10); підтверджено прикладами).
+            PageFileGb = appNode?.PageFileGb > 0 ? appNode.PageFileGb : PageFileFor(appRam),
             PageFileType = string.IsNullOrEmpty(appNode?.PageFileType) ? "SSD" : appNode.PageFileType,
             // IOPS сервера додатків — з діапазону (за документом 250→500, профіль 30r/70w).
             Iops = appRange?.Iops ?? appNode?.Iops ?? 0,
@@ -256,8 +295,9 @@ public class SizingEngine : ISizingEngine
             StorageType2 = webNode?.StorageType2 ?? "", StorageGb2 = webNode?.StorageGb2 ?? 0,
             StorageType3 = webNode?.StorageType3 ?? "", StorageGb3 = webNode?.StorageGb3 ?? 0,
             StorageType4 = webNode?.StorageType4 ?? "", StorageGb4 = webNode?.StorageGb4 ?? 0,
-            // Файл підкачки IIS/web-сервера: з матриці або, якщо не задано, = RAM вузла.
-            PageFileGb = webNode?.PageFileGb > 0 ? webNode.PageFileGb : (int)Math.Ceiling(webRam),
+            // Файл підкачки IIS/web-сервера: з матриці або, якщо не задано, = CEILING(RAM×4, 10)
+            // (формула еталонного аркуша Windows Q8=CEILING(E8*4,10); підтверджено прикладами).
+            PageFileGb = webNode?.PageFileGb > 0 ? webNode.PageFileGb : PageFileFor(webRam),
             PageFileType = string.IsNullOrEmpty(webNode?.PageFileType) ? "SSD" : webNode.PageFileType,
             // IOPS веб-сервера — з діапазону (за документом 200, профіль 70r/30w).
             Iops = webRange?.Iops ?? webNode?.Iops ?? 0,
@@ -334,6 +374,10 @@ public class SizingEngine : ISizingEngine
     // Не оцінюємо з IOPS: документ задає MiB/s окремою таблицею, тож вигаданий розрахунок
     // давав би хибні числа. Якщо у діапазоні не задано (напр. PostgreSQL/Oracle) — 0 (не показуємо).
     private static int ThroughputFor(UserLoadRange? range) => range?.ThroughputMiBs ?? 0;
+
+    // Файл підкачки Windows-сервера додатків/веб = RAM × 4, округлено вгору до кратного 10
+    // (формула еталонного аркуша Windows: CEILING(RAM*4, 10)).
+    private static int PageFileFor(double ramGb) => (int)(Math.Ceiling(ramGb * 4 / 10.0) * 10);
 
     private static string GetDatabaseNodeName(DatabaseType dbType) => dbType switch
     {
@@ -414,6 +458,8 @@ public class SizingEngine : ISizingEngine
     private const double DefaultWorkerLatency = 5;
 
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker Node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultReporting = new() { Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 150, StorageType = "SSD", Iops = 250, IopsProfile = "50r/50w", Latency = 10 };
+    private static readonly InfrastructureNode _defaultHaProxy = new() { Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
 }
