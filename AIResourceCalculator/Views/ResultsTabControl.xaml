@@ -21,7 +21,8 @@
     </UserControl.Resources>
     <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   CanContentScroll="False" PreviewMouseWheel="RootScroll_PreviewMouseWheel">
-        <StackPanel Margin="15">
+        <!-- Вміст обмежено по ширині й розміщено по центру вікна. -->
+        <StackPanel Margin="15" MaxWidth="1180" HorizontalAlignment="Center">
             <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
 
             <!-- KPI-картки (завжди видимі) -->

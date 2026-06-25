@@ -458,8 +458,12 @@ public class MainViewModel : INotifyPropertyChanged
             if (!string.IsNullOrEmpty(n.DbVersion)) line += $" · {n.DbVersion}";
             sb.AppendLine(line);
         }
+        var dbMib = req.Infrastructure
+            .FirstOrDefault(n => n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("Oracle", StringComparison.OrdinalIgnoreCase))?.ThroughputMiBs ?? 0;
         sb.AppendLine(string.Format(_loc["results.summaryTotals"],
-            req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"), req.TotalStorageGb, req.TotalIops));
+            req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"), req.TotalStorageGb, req.TotalIops, dbMib));
 
         // Розподіл подів по worker-вузлах (а не лише перелік реплік).
         var pods = req.Components.Where(c => c.Cpu > 0).Sum(c => c.Replicas);

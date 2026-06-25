@@ -564,6 +564,35 @@ public class SizingEngineTests
         Assert.Equal(240, db.ThroughputMiBs);
     }
 
+    // --- Відповідність еталонному Excel: 50 ліцензій, ForceBPM 25, LMS 7500, HR 2500 ---
+    // Очікувано (вкладка «Стандарт k8s»): запит подів = 48.15 CPU / 191.95 ГБ RAM.
+    // ROBOT і WS залежать від к-сті HR (ROBOT=3, WS=7); модулі рахуються за власною к-стю.
+    [Fact]
+    public void Calculate_K8s_MatchesReferenceExcel_PodTotals()
+    {
+        var modules = _engine.Modules.ToClonedList();
+        foreach (var m in modules)
+        {
+            m.IsEnabled = m.Name is "App Server" or "ROBOT" or "Web" or "ForceBPM" or "LMS" or "HR Portal";
+            m.UserCount = m.Name switch { "ForceBPM" => 25, "LMS" => 7500, "HR Portal" => 2500, _ => 0 };
+        }
+        _engine.SetModules(modules);
+
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 50, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        Assert.Equal(48.15, result.PodCpu, 2);
+        Assert.Equal(191.95, result.PodRamGb, 2);
+
+        int Rep(string canonical) => result.Components
+            .First(c => c.Name == ComponentDisplayName.Localize(canonical)).Replicas;
+        Assert.Equal(3, Rep("ROBOT"));               // 1 + int(50/100) + int(2500/1000)
+        Assert.Equal(7, Rep("WS (WebSocket)"));      // 1 + int(50/50) + int(2500/500)
+        Assert.Equal(300, Rep("LMS-SmartID"));       // ceil(7500/25)
+    }
+
     // --- Регресія: IOPS та профілі серверів додатків і веб-серверів НЕ порожні (Windows) ---
     [Fact]
     public void Calculate_Windows_AppAndWebNodes_HaveIopsAndProfiles()
@@ -595,14 +624,18 @@ public class SizingEngineTests
 
     // --- Кількість користувачів модуля: модуль масштабується за СВОЇМ числом ---
     [Fact]
-    public void EffectiveUsers_CapsAtProjectUsers()
+    public void EffectiveUsers_OwnCount_UncappedByDefault_CappedOnDemand()
     {
         var m = new ProjectModule();
-        Assert.Equal(100, m.EffectiveUsers(100));   // 0 = загальна
+        Assert.Equal(100, m.EffectiveUsers(100));        // 0 = загальна
         m.UserCount = 30;
-        Assert.Equal(30, m.EffectiveUsers(100));    // власна
+        Assert.Equal(30, m.EffectiveUsers(100));         // власна
         m.UserCount = 200;
-        Assert.Equal(100, m.EffectiveUsers(100));   // не понад загальну
+        // PROD (cap=false, як у Excel): власна к-сть незалежна, понад загальну.
+        Assert.Equal(200, m.EffectiveUsers(100));
+        Assert.Equal(200, m.EffectiveUsers(100, cap: false));
+        // Похідні середовища (cap=true): обмежується к-стю середовища.
+        Assert.Equal(100, m.EffectiveUsers(100, cap: true));
     }
 
     [Fact]

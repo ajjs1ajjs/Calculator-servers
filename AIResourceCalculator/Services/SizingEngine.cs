@@ -67,19 +67,24 @@ public class SizingEngine : ISizingEngine
             && !m.Name.Contains("Windows")
             && (excludeModules == null || !excludeModules.Contains(m.Name))).ToList();
 
+        // PROD рахує модулі за ВЛАСНОЮ (необмеженою) к-стю користувачів — як у Excel
+        // (напр. LMS 7500 при 50 ліцензіях). Похідні середовища обмежують к-стю середовища.
+        bool capModules = config.Environment != DeployEnvironment.Prod;
+        // За Excel ROBOT і WS масштабуються ще й від к-сті користувачів HR Portal (A40).
+        int hrUsers = enabledModules.FirstOrDefault(m => m.Name == "HR Portal")
+            ?.EffectiveUsers(config.UserCount, capModules) ?? 0;
+
         foreach (var module in enabledModules)
         {
-            // Модуль масштабується за СВОЄЮ кількістю користувачів (LMS/HR Portal використовує
-            // не вся компанія); 0 = загальна, понад загальну не піднімається.
-            var moduleUsers = module.EffectiveUsers(config.UserCount);
-            var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, config.LoadProfile);
+            var moduleUsers = module.EffectiveUsers(config.UserCount, capModules);
+            var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, config.LoadProfile, hrUsers);
             totalCpu += modCpu;
             totalRam += modRam;
 
             var isPerf = config.LoadProfile == LoadProfile.Performance;
             foreach (var comp in module.Components ?? new())
             {
-                int rep = CalcReplicas(comp, moduleUsers);
+                int rep = CalcReplicas(comp, moduleUsers, hrUsers);
                 if (rep == 0) rep = 1;
 
                 var cpu = isPerf && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
@@ -322,8 +327,8 @@ public class SizingEngine : ISizingEngine
                ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }
 
-    private static int CalcReplicas(ModuleComponent comp, int userCount)
-        => ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount);
+    private static int CalcReplicas(ModuleComponent comp, int userCount, int auxUsers = -1)
+        => ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount, auxUsers);
 
     // Пропускна здатність диска БД (MiB/s) — з матриці (значення документа D-AD-ADM-E).
     // Не оцінюємо з IOPS: документ задає MiB/s окремою таблицею, тож вигаданий розрахунок

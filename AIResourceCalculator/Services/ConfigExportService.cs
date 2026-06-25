@@ -436,6 +436,11 @@ public class ConfigExportService
         Kv("Всього RAM (оперативної пам'яті), ГБ", Math.Round(req.TotalRamGb, 1));
         Kv("Всього диски, ГБ", req.TotalStorageGb);
         Kv("IOPS сервера БД (швидкодія диска)", req.TotalIops);
+        var dbMib = req.Infrastructure.FirstOrDefault(n =>
+            n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)
+            || n.Name.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)
+            || n.Name.Contains("Oracle", StringComparison.OrdinalIgnoreCase))?.ThroughputMiBs ?? 0;
+        Kv("Пропускна здатність БД, MiB/s", dbMib);
         Kv("Всього серверів (ВМ)", req.Infrastructure.Sum(n => n.NodeCount));
         if (req.PodCpu > 0)
         {

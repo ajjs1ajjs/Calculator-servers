@@ -12,19 +12,26 @@ public enum ReplicaFormula
 }
 
 // Єдине джерело правди для розрахунку кількості реплік за формулою.
+// auxUsers — допоміжна к-сть користувачів для формул із перехресним зв'язком (за Excel
+// ROBOT і WS масштабуються ще й від к-сті користувачів HR Portal): у Per100Plus1000 та
+// Per50Plus500 «великі» доданки (/1000, /500) рахуються від auxUsers. Якщо auxUsers < 0 —
+// використовується userCount (зворотна сумісність).
 public static class ReplicaMath
 {
-    public static int Resolve(ReplicaFormula formula, int fixedReplicas, int userCount)
+    public static int Resolve(ReplicaFormula formula, int fixedReplicas, int userCount, int auxUsers = -1)
     {
         if (userCount < 0) userCount = 0;
+        if (auxUsers < 0) auxUsers = userCount;
         return formula switch
         {
             ReplicaFormula.Fixed => fixedReplicas,
             ReplicaFormula.Per25Users => (int)Math.Ceiling(userCount / 25.0),
             ReplicaFormula.Per100Users => (int)Math.Ceiling(userCount / 100.0),
             ReplicaFormula.Per50Users => (int)Math.Ceiling(userCount / 50.0),
-            ReplicaFormula.Per100Plus1000 => 1 + (int)(userCount / 100.0) + (int)(userCount / 1000.0),
-            ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(userCount / 500.0),
+            // ROBOT: 1 + int(ліцензій/100) + int(HR/1000)
+            ReplicaFormula.Per100Plus1000 => 1 + (int)(userCount / 100.0) + (int)(auxUsers / 1000.0),
+            // WS: 1 + int(ліцензій/50) + int(HR/500)
+            ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(auxUsers / 500.0),
             ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
             _ => Math.Max(1, fixedReplicas)
         };
@@ -65,9 +72,12 @@ public class ProjectModule
     public int UserCount { get; set; }
     public List<ModuleComponent> Components { get; set; } = new();
 
-    // Ефективна кількість користувачів модуля: власна (якщо задана), але не більша за загальну.
-    public int EffectiveUsers(int projectUsers)
-        => UserCount > 0 ? Math.Min(UserCount, projectUsers) : projectUsers;
+    // Ефективна кількість користувачів модуля: власна (якщо задана), інакше загальна.
+    // cap=true (для похідних середовищ) обмежує власну к-сть загальною кількістю середовища;
+    // cap=false (PROD, як у Excel) — модуль масштабується за власною к-стю незалежно (напр.
+    // LMS 7500 при 50 ліцензіях головної системи).
+    public int EffectiveUsers(int projectUsers, bool cap = false)
+        => UserCount > 0 ? (cap ? Math.Min(UserCount, projectUsers) : UserCount) : projectUsers;
 
     public ProjectModule Clone() => new()
     {
@@ -76,14 +86,14 @@ public class ProjectModule
         Components = Components.Select(c => c.Clone()).ToList()
     };
 
-    public (double cpu, double ram) CalculateReplicas(int userCount, LoadProfile profile = LoadProfile.Basic)
+    public (double cpu, double ram) CalculateReplicas(int userCount, LoadProfile profile = LoadProfile.Basic, int auxUsers = -1)
     {
         if (userCount < 0) userCount = 0;
         double totalCpu = 0, totalRam = 0;
 
         foreach (var comp in Components)
         {
-            int replicas = ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount);
+            int replicas = ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount, auxUsers);
             if (replicas == 0) replicas = 1;
 
             var cpu = profile == LoadProfile.Performance && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
