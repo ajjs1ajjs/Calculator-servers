@@ -28,7 +28,7 @@
                         <StackPanel>
                             <Grid Margin="0,0,0,8">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="180"/><ColumnDefinition Width="*"/>
@@ -47,8 +47,6 @@
                                 <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.database}">
                                     <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="Oracle 19c"/>
                                 </ComboBox>
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc env.dbData}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.dbData}"/>
-                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DbDataSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14" ToolTip="{loc:Loc tooltip.dbData}"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -94,10 +92,6 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
                                     <TextBlock Text="{loc:Loc env.predprodUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
                                     <TextBox Width="55" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.predprodUsers}" IsEnabled="{Binding IncludePredProd}"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
-                                    <TextBlock Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.backupDays}"/>
-                                    <TextBox Width="50" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.backupDays}"/>
                                 </StackPanel>
                             </WrapPanel>
                             <!-- Окремі к-сті користувачів опціональних модулів по середовищах -->

@@ -138,7 +138,7 @@ public class SizingEngine : ISizingEngine
                 IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
                 ThroughputMiBs = ThroughputFor(sqlRange)
             };
-            ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, dbRam, config.Environment);
+            ApplyDbDisks(dbNode, config.DatabaseType, dbRam, config.Environment);
             req.Infrastructure.Add(dbNode);
         }
         req.Infrastructure.Add(new InfrastructureNode
@@ -230,7 +230,7 @@ public class SizingEngine : ISizingEngine
             IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
             ThroughputMiBs = ThroughputFor(sqlRange)
         };
-        ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, sqlRam, config.Environment);
+        ApplyDbDisks(dbNode, config.DatabaseType, sqlRam, config.Environment);
         req.Infrastructure.Add(dbNode);
         req.Infrastructure.Add(new InfrastructureNode
         {
@@ -347,18 +347,15 @@ public class SizingEngine : ISizingEngine
     // розумним мінімумом. У non-prod середовищах (DEV/TEST/PreProd) окреме сховище нереляційного
     // Content не виділяється (потрібне лише у PROD) і OS-диск зменшується.
     private const int NonProdOsDiskGb = 100;
-    private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, int dbDataGb, double dbRamGb,
+    private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, double dbRamGb,
         DeployEnvironment environment)
     {
-        dbDataGb = Math.Max(1, dbDataGb);
-        // Logs + TempDB ≈ обсяг даних (tempdb може сягати розміру БД); мінімум 50 ГБ.
-        db.StorageGb2 = Math.Max(50, (int)Math.Ceiling(dbDataGb * 1.0));
-        if (string.IsNullOrWhiteSpace(db.StorageType2)) db.StorageType2 = "SSD";
-        // MainData: дані + індекси + запас на зростання (×2); мінімум 100 ГБ (стартова конфігурація).
-        db.StorageGb3 = Math.Max(100, (int)Math.Ceiling(dbDataGb * 2.0));
-        if (string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
+        // Диски беремо ФІКСОВАНІ з матриці/еталона (OS / Logs+TempDB / MainData / Content) —
+        // обсяг даних наперед невідомий, тож не масштабуємо вручну. Гарантуємо типи за замовчуванням.
+        if (db.StorageGb2 > 0 && string.IsNullOrWhiteSpace(db.StorageType2)) db.StorageType2 = "SSD";
+        if (db.StorageGb3 > 0 && string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
 
-        // non-prod: прибираємо диск Content (нереляційний контент) і зменшуємо OS-диск.
+        // non-prod: прибираємо диск Content (холодні/бекап дані не потрібні) і зменшуємо OS-диск.
         if (environment != DeployEnvironment.Prod)
         {
             db.StorageGb4 = 0;

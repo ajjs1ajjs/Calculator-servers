@@ -477,28 +477,29 @@ public class SizingEngineTests
         Assert.Equal(expected, result.TotalStorageGb);
     }
 
-    // --- Диски вузла БД масштабуються за обсягом даних: мала БД → малі диски Data/Logs ---
+    // --- Диски вузла БД ФІКСОВАНІ з матриці (як еталон); non-prod без диска Content ---
     [Fact]
-    public void Calculate_SmallDbData_ProducesSmallDbDisks()
+    public void Calculate_DbDisks_FixedFromMatrix_NonProdDropsContent()
     {
-        var small = _engine.Calculate(new ProjectConfig
+        var prod = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic, DbDataSizeGb = 10
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            Environment = DeployEnvironment.Prod
         });
-        var big = _engine.Calculate(new ProjectConfig
+        var dev = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic, DbDataSizeGb = 1000
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            Environment = DeployEnvironment.Dev
         });
+        var dbProd = prod.Infrastructure.First(n => n.Name.Contains("SQL"));
+        var dbDev = dev.Infrastructure.First(n => n.Name.Contains("SQL"));
 
-        var dbSmall = small.Infrastructure.First(n => n.Name.Contains("SQL"));
-        var dbBig = big.Infrastructure.First(n => n.Name.Contains("SQL"));
-
-        // Мала БД (10 ГБ): Logs ≥ 50 (мінімум), MainData ≥ 100 (мінімум) — без терабайтів.
-        Assert.True(dbSmall.StorageGb3 <= 100);
-        Assert.True(dbSmall.StorageGb2 <= 50);
-        // Велика БД (1000 ГБ): диски значно більші (data ×2 = 2000).
-        Assert.True(dbBig.StorageGb3 > dbSmall.StorageGb3);
-        Assert.Equal(2000, dbBig.StorageGb3);
+        // PROD: фіксовані диски з матриці (MainData 300, Content 200) — не масштабуються.
+        Assert.Equal(300, dbProd.StorageGb3);
+        Assert.Equal(200, dbProd.StorageGb4);
+        // non-prod: диск Content прибрано, OS зменшено.
+        Assert.Equal(0, dbDev.StorageGb4);
+        Assert.True(dbDev.StorageGb <= 100);
     }
 
     // --- IOPS не сумуються між вузлами: підсумок = IOPS вузла БД ---

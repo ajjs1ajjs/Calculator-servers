@@ -67,7 +67,7 @@ public class ConfigExportService
             $"<b>{config.UserCount}</b> користувачів. Продукт: <b>{ProductName(config.ProductType)}</b>, " +
             $"тип розгортання: <b>{SanitizeHtml(DeployName(config.DeploymentType))}</b>, " +
             $"профіль навантаження: <b>{ProfileName(config.LoadProfile)}</b>, " +
-            $"база даних: <b>{DbName(config.DatabaseType)}</b>, очікуваний обсяг даних: <b>{config.DbDataSizeGb} ГБ</b>. " +
+            $"база даних: <b>{DbName(config.DatabaseType)}</b>. " +
             "Нижче — підсумкові потреби, перелік серверів (віртуальних машин) з поясненням їхнього призначення, вимоги до дисків та звірка з офіційними вимогами.</p>");
         sb.AppendLine("<div class='kpi'>");
         sb.AppendLine($"<div class='kpi-box' style='background:#1e66f5'><h3>CPU</h3><span class='v'>{req.TotalCpu:F1}</span><small>ядер процесора всього</small></div>");
@@ -109,7 +109,6 @@ public class ConfigExportService
             AppendInfraTableHtml(sb, req);
         }
 
-        AppendBackupNoteHtml(sb, req, config);
         AppendGlossaryHtml(sb);
 
         // Компоненти PROD показуємо лише коли НЕ розбивали по середовищах (інакше вони вже вище).
@@ -143,23 +142,6 @@ public class ConfigExportService
             sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{SanitizeHtml(i.StorageType)}</td><td>{i.DiskPerNodeGb} GB</td><td>{i.TotalStorageGb} GB</td><td>{(i.PageFileGb > 0 ? i.PageFileGb + " GB" : "")}</td><td>{(i.Iops > 0 ? i.Iops.ToString() : "")}</td><td>{SanitizeHtml(i.IopsProfile)}</td><td>{(i.ThroughputMiBs > 0 ? i.ThroughputMiBs.ToString() : "")}</td><td>{(i.Latency > 0 ? Trim(i.Latency) : "")}</td><td>{SanitizeHtml(NodeRole(i.Name))}</td><td>{SanitizeHtml(i.Os)}</td><td>{SanitizeHtml(i.DbVersion)}</td><td>{SanitizeHtml(i.Notes)}</td></tr>");
         sb.AppendLine($"<tfoot><tr><td>Разом</td><td>{req.TotalCpu:F1}</td><td>{req.TotalRamGb:F1}</td><td>{req.Infrastructure.Sum(n => n.NodeCount)}</td><td></td><td></td><td>{req.TotalStorageGb} GB</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
         sb.AppendLine("</table>");
-    }
-
-    // Пояснення, звідки береться резерв диска під бекап (мовою бізнес-користувача).
-    private static void AppendBackupNoteHtml(System.Text.StringBuilder sb, ResourceRequirement req, ProjectConfig config)
-    {
-        var db = req.Infrastructure.FirstOrDefault(n =>
-            n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)
-            || n.Name.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)
-            || n.Name.Contains("Oracle", StringComparison.OrdinalIgnoreCase));
-        if (db == null) return;
-        var scope = config.DeploymentType == DeploymentType.Kubernetes
-            ? "лише бази даних"
-            : "бази даних, веб-папок, клієнтських та мережевих даних";
-        sb.AppendLine("<div class='note'><b>Про резерв під резервні копії (бекап).</b> " +
-            $"На сервері бази даних передбачено окремий диск під резервні копії {scope}. " +
-            $"Його розмір залежить від обсягу даних ({config.DbDataSizeGb} ГБ) та кількості днів зберігання копій — " +
-            "тому він зростатиме разом із базою. Це не вимагає терабайтів для невеликої бази.</div>");
     }
 
     // Глосарій основних термінів — щоб звіт був зрозумілий без ІТ-фаху.
@@ -262,7 +244,6 @@ public class ConfigExportService
                 new XAttribute("deployment", config.DeploymentType.ToString()),
                 new XAttribute("profile", config.LoadProfile.ToString()),
                 new XAttribute("database", DbName(config.DatabaseType)),
-                new XAttribute("dbDataSizeGb", config.DbDataSizeGb),
                 new XElement("Totals",
                     D("cpu", req.TotalCpu),
                     D("ramGb", req.TotalRamGb),
@@ -476,7 +457,6 @@ public class ConfigExportService
         Kv("Тип розгортання", DeployName(config.DeploymentType));
         Kv("Профіль навантаження", ProfileName(config.LoadProfile));
         Kv("База даних (СКБД)", DbName(config.DatabaseType));
-        Kv("Обсяг даних БД (ГБ)", config.DbDataSizeGb);
         r++;
         Section("Підсумкові потреби (середовище PROD)");
         Kv("Всього CPU (ядер процесора)", Math.Round(req.TotalCpu, 1));

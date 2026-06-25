@@ -14,11 +14,6 @@ public class EnvironmentSettings
     public int TestUserCount { get; set; } = 25;
     public int PredProdUserCount { get; set; } = 50;
 
-    // Бекап-резерв: retention днів × (1 − стиснення) × обсяг даних БД.
-    public int BackupRetentionDays { get; set; } = 7;
-    // Частка стиснення бекапу (0.5 = стиснення на 50%, тобто бекап = 50% від БД).
-    public double BackupCompression { get; set; } = 0.5;
-
     public bool AnyDerived => IncludeDev || IncludeTest || IncludePredProd;
 }
 

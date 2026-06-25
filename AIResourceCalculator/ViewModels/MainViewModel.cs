@@ -116,12 +116,6 @@ public class MainViewModel : INotifyPropertyChanged
     private string _devUserCount = "10";
     private string _testUserCount = "25";
     private string _predProdUserCount = "50";
-    private string _backupDays = "7";
-    private string _dbDataSizeGb = "20";
-
-    // Припущення про стиснення бекапу. На практиці точний коефіцієнт наперед невідомий, тож його
-    // не виносимо в UI — беремо типове для стисненого бекапу СУБД значення (50%).
-    private const double DefaultBackupCompression = 0.5;
 
     public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); } }
     public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); } }
@@ -129,9 +123,6 @@ public class MainViewModel : INotifyPropertyChanged
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
     public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
     public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
-    public string BackupDays { get => _backupDays; set { _backupDays = value; OnPropertyChanged(); } }
-    // Обсяг реляційних даних БД (ГБ) — визначає диски Data/Logs та резерв під бекап.
-    public string DbDataSizeGb { get => _dbDataSizeGb; set { _dbDataSizeGb = value; OnPropertyChanged(); } }
 
     public string StatusText
     {
@@ -281,12 +272,10 @@ public class MainViewModel : INotifyPropertyChanged
         uc = Math.Clamp(uc, 1, 5000);
         var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
         var loadProfile = productType == ProductType.DocumentFlow ? LoadProfile.Performance : LoadProfile.Basic;
-        if (!int.TryParse(DbDataSizeGb, out var dbData) || dbData < 0) dbData = 20;
         return new ProjectConfig
         {
             ProjectName = "Project",
             UserCount = userCountOverride ?? uc,
-            DbDataSizeGb = Math.Clamp(dbData, 0, 1_000_000),
             DeploymentType = DeploymentIndex switch
             {
                 0 => DeploymentType.Kubernetes,
@@ -390,7 +379,6 @@ public class MainViewModel : INotifyPropertyChanged
         if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
         if (!int.TryParse(TestUserCount, out var test) || test < 1) test = 25;
         if (!int.TryParse(PredProdUserCount, out var pp) || pp < 1) pp = 50;
-        if (!int.TryParse(BackupDays, out var days) || days < 1) days = 7;
         return new EnvironmentSettings
         {
             IncludeDev = IncludeDev,
@@ -398,24 +386,17 @@ public class MainViewModel : INotifyPropertyChanged
             IncludePredProd = IncludePredProd,
             DevUserCount = Math.Clamp(dev, 1, 5000),
             TestUserCount = Math.Clamp(test, 1, 5000),
-            PredProdUserCount = Math.Clamp(pp, 1, 5000),
-            BackupRetentionDays = Math.Clamp(days, 1, 365),
-            BackupCompression = DefaultBackupCompression
+            PredProdUserCount = Math.Clamp(pp, 1, 5000)
         };
     }
 
     // PROD завжди; DEV/TEST/PreProd додаються за вибором. КОЖНЕ середовище рахується рушієм
     // ОКРЕМО за власною кількістю користувачів (з урахуванням к-сті користувачів по модулях) —
-    // як у Excel-табличці, а не масштабуванням PROD. Бекап-резерв (від обсягу даних БД)
-    // додається до кожного середовища, включно з PROD. Редакцію СУБД визначає Environment
-    // (non-prod → Developer Edition).
+    // як у Excel-табличці, а не масштабуванням PROD. Редакцію СУБД визначає Environment
+    // (non-prod → Developer Edition). Диски — фіксовані з матриці.
     private void BuildEnvironments(ProjectConfig config, ResourceRequirement prodReq)
     {
         var s = GetEnvSettings();
-        int reserve = EnvironmentScaler.BackupReserveGb(config.DbDataSizeGb, s);
-
-        // PROD отримує бекап-резерв так само, як решта середовищ.
-        EnvironmentScaler.AddBackupReserve(prodReq, reserve);
 
         EnvironmentReport BuildEnv(DeployEnvironment env, string name, int users)
         {
@@ -424,7 +405,7 @@ public class MainViewModel : INotifyPropertyChanged
                 ProjectName = config.ProjectName, UserCount = users,
                 DeploymentType = config.DeploymentType, ProductType = config.ProductType,
                 LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
-                DbDataSizeGb = config.DbDataSizeGb, Environment = env
+                Environment = env
             };
             // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
             // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).
@@ -440,7 +421,6 @@ public class MainViewModel : INotifyPropertyChanged
             }
             _engine.SetModules(envModules);
             var req = _engine.Calculate(envConfig);
-            EnvironmentScaler.AddBackupReserve(req, reserve);
             return new EnvironmentReport { Environment = env, Name = name, UserCount = users, Requirement = req };
         }
 
