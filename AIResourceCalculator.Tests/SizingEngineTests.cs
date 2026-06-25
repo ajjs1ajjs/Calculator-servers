@@ -559,7 +559,24 @@ public class SizingEngineTests
         });
         var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
         Assert.Equal("50r/50w", db.IopsProfile);
-        Assert.True(db.ThroughputMiBs > 0);
+        // MiB/s — значення документа (51-100 → 240), а не вигаданий розрахунок із IOPS.
+        Assert.Equal(240, db.ThroughputMiBs);
+    }
+
+    // --- Регресія: IOPS та профілі серверів додатків і веб-серверів НЕ порожні (Windows) ---
+    [Fact]
+    public void Calculate_Windows_AppAndWebNodes_HaveIopsAndProfiles()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        var app = result.Infrastructure.First(n => n.Name.Contains("App") || n.Name.Contains("додатк"));
+        var web = result.Infrastructure.First(n => n.Name.Contains("Web") || n.Name.Contains("еб"));
+        Assert.True(app.Iops > 0);
+        Assert.Equal("30r/70w", app.IopsProfile);
+        Assert.True(web.Iops > 0);
+        Assert.Equal("70r/30w", web.IopsProfile);
     }
 
     [Fact]

@@ -80,8 +80,6 @@ public class ConfigExportService
         if (dist.Length > 0)
             sb.AppendLine($"<p><i>{SanitizeHtml(dist)}</i></p>");
 
-        AppendDocComparisonHtml(sb, req, config, matrixRanges);
-
         if (environments != null && environments.Count > 1)
         {
             sb.AppendLine("<h2>Інфраструктура за середовищами</h2>");
@@ -201,27 +199,6 @@ public class ConfigExportService
         return "—";
     }
 
-    // Звірка розрахунку з вимогами документа D-AD-ADM-E (лише для MS SQL Server).
-    private static void AppendDocComparisonHtml(System.Text.StringBuilder sb, ResourceRequirement req, ProjectConfig config,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
-    {
-        var items = Data.DocumentRequirements.Compare(req, config, matrixRanges);
-        if (items.Count == 0) return;
-        sb.AppendLine($"<h2>Звірка з вимогами ({SanitizeHtml(Data.DocumentRequirements.Source)})</h2>");
-        sb.AppendLine("<p class='intro'>Порівняння сервера бази даних. <b>«За документом»</b> — незмінний еталон із " +
-            "документа D-AD-ADM-E (не залежить від ваших правок матриці). <b>«За матрицею»</b> — поточні значення з " +
-            "редагованої таблиці на вкладці «База даних» (якщо їх змінити — зміниться й розрахунок). " +
-            "<b>«Розрахунок»</b> — фінальні значення вузла БД. «Відповідає» означає, що ресурсу достатньо відносно " +
-            "документа; «Нижче вимог» — варто збільшити перед впровадженням.</p>");
-        sb.AppendLine("<table><tr><th>Показник (сервер БД)</th><th>За документом</th><th>За матрицею</th><th>Розрахунок</th><th>Статус</th></tr>");
-        foreach (var it in items)
-        {
-            var color = it.Status == "Відповідає" ? "#40a02b" : "#d20f39";
-            sb.AppendLine($"<tr><td>{SanitizeHtml(it.Metric)}</td><td>{SanitizeHtml(it.Document)}</td><td>{SanitizeHtml(it.Matrix)}</td><td>{SanitizeHtml(it.Calculated)}</td><td style='color:{color};font-weight:bold'>{SanitizeHtml(it.Status)}</td></tr>");
-        }
-        sb.AppendLine("</table>");
-    }
-
     // ───────────────────────────── XML ─────────────────────────────
     public string ExportXml(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
@@ -277,16 +254,6 @@ public class ConfigExportService
                         e.Requirement.Infrastructure.Where(n => n.NodeCount > 0).Select(Node)))));
         }
 
-        var docItems = Data.DocumentRequirements.Compare(req, config, matrixRanges);
-        XElement? docCompare = docItems.Count == 0 ? null : new XElement("DocumentComparison",
-            new XAttribute("source", Data.DocumentRequirements.Source),
-            docItems.Select(it => new XElement("Item",
-                new XAttribute("metric", it.Metric),
-                new XAttribute("document", it.Document),
-                new XAttribute("matrix", it.Matrix),
-                new XAttribute("calculated", it.Calculated),
-                new XAttribute("status", it.Status))));
-
         var doc = new XDocument(
             new XDeclaration("1.0", "UTF-8", null),
             new XElement("ResourceReport",
@@ -308,7 +275,6 @@ public class ConfigExportService
                     D("ramGb", req.PodRamGb),
                     new XAttribute("totalPods", TotalPods(req)),
                     new XAttribute("workerNodes", WorkerNodes(req))),
-                docCompare,
                 envs,
                 infra,
                 comps));
@@ -325,7 +291,6 @@ public class ConfigExportService
         using var pkg = new ExcelPackage();
 
         BuildSummarySheet(pkg, req, config);
-        BuildDocComparisonSheet(pkg, req, config, matrixRanges);
         bool multiEnv = environments != null && environments.Count > 1;
         if (multiEnv)
         {
@@ -338,45 +303,6 @@ public class ConfigExportService
         if (!multiEnv) BuildComponentsSheet(pkg, req);
 
         return pkg.GetAsByteArray();
-    }
-
-    // Окремий аркуш зі звіркою розрахунку з вимогами документа (лише для MS SQL Server).
-    private static void BuildDocComparisonSheet(ExcelPackage pkg, ResourceRequirement req, ProjectConfig config,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
-    {
-        var items = Data.DocumentRequirements.Compare(req, config, matrixRanges);
-        if (items.Count == 0) return;
-        var ws = pkg.Workbook.Worksheets.Add("Звірка з вимогами");
-        ws.Cells[1, 1].Value = Data.DocumentRequirements.Source
-            + " · «За документом» — незмінний еталон; «За матрицею» — поточні редаговані значення.";
-        ws.Cells[1, 1, 1, 5].Merge = true;
-        ws.Cells[1, 1].Style.Font.Bold = true;
-        ws.Cells[1, 1].Style.WrapText = true;
-        string[] headers = { "Показник (сервер БД)", "За документом", "За матрицею", "Розрахунок", "Статус" };
-        for (int c = 0; c < headers.Length; c++)
-        {
-            var cell = ws.Cells[2, c + 1];
-            cell.Value = headers[c];
-            cell.Style.Font.Bold = true;
-            cell.Style.Font.Color.SetColor(System.Drawing.Color.White);
-            cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
-        }
-        int row = 3;
-        foreach (var it in items)
-        {
-            ws.Cells[row, 1].Value = it.Metric;
-            ws.Cells[row, 2].Value = it.Document;
-            ws.Cells[row, 3].Value = it.Matrix;
-            ws.Cells[row, 4].Value = it.Calculated;
-            ws.Cells[row, 5].Value = it.Status;
-            ws.Cells[row, 5].Style.Font.Color.SetColor(it.Status == "Відповідає"
-                ? System.Drawing.Color.FromArgb(64, 160, 43)
-                : System.Drawing.Color.FromArgb(210, 15, 57));
-            ws.Cells[row, 2, row, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            row++;
-        }
-        ws.Cells[ws.Dimension.Address].AutoFitColumns();
     }
 
     // Аркуш із розбивкою ВМ для кожного середовища (PROD/DEV/TEST/PreProd).

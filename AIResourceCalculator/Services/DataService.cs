@@ -40,8 +40,22 @@ public class DataService : IDataService
         try
         {
             var json = File.ReadAllText(MatrixPath);
+
+            // Явна перевірка ПРИСУТНОСТІ поля SchemaVersion: старі збереження без цього поля
+            // через ініціалізатор властивості (= CurrentSchemaVersion) інакше виглядали б як
+            // поточна версія і не відкидалися б, перебиваючи дефолти коду (звідси хибні MiB/s тощо).
+            using (var probe = JsonDocument.Parse(json))
+            {
+                bool hasVersion = probe.RootElement.TryGetProperty(nameof(SizingMatrix.SchemaVersion), out var sv)
+                    && sv.ValueKind == JsonValueKind.Number;
+                if (!hasVersion || sv.GetInt32() < SizingMatrix.CurrentSchemaVersion)
+                {
+                    ClearMatrix();
+                    return new SizingMatrix();
+                }
+            }
+
             var loaded = JsonSerializer.Deserialize<SizingMatrix>(json);
-            // Несумісна (стара) матриця — відкидаємо й видаляємо, щоб не перебивала дефолти коду.
             if (loaded == null || loaded.SchemaVersion < SizingMatrix.CurrentSchemaVersion)
             {
                 ClearMatrix();

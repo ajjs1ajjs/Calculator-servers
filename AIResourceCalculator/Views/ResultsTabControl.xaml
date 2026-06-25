@@ -148,20 +148,6 @@
                     <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
                 </DataGrid.Columns>
             </DataGrid>
-            <StackPanel Visibility="{Binding HasDocComparison, Converter={StaticResource VisibilityConverter}}" Margin="0,0,0,12">
-                <TextBlock Text="{loc:Loc doc.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2"/>
-                <TextBlock Text="{loc:Loc doc.compareHint}" FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextPrimary}"
-                           TextWrapping="Wrap" Margin="0,0,0,5"/>
-                <DataGrid ItemsSource="{Binding DocComparison}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.metric}" Binding="{Binding Metric}" Width="*"/>
-                        <DataGridTextColumn Header="{loc:Loc col.docValue}" Binding="{Binding Document}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.matrixValue}" Binding="{Binding Matrix}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.calcValue}" Binding="{Binding Calculated}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
-                        <DataGridTextColumn Header="{loc:Loc col.status}" Binding="{Binding Status}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </StackPanel>
             <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,8"
                     Visibility="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
                 <StackPanel>

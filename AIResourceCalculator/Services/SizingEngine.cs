@@ -155,9 +155,9 @@ public class SizingEngine : ISizingEngine
             StorageType3 = workerNode.StorageType3, StorageGb3 = workerNode.StorageGb3,
             StorageType4 = workerNode.StorageType4, StorageGb4 = workerNode.StorageGb4,
             PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType,
-            // Вимоги до дисків worker-вузлів (за документом): профіль 50r/50w, ~500 IOPS.
+            // Вимоги до дисків worker-вузлів (за документом): профіль 30r/70w, від 500 IOPS.
             Iops = workerNode.Iops > 0 ? workerNode.Iops : DefaultWorkerIops,
-            IopsProfile = string.IsNullOrWhiteSpace(workerNode.IopsProfile) ? DefaultIopsProfile : workerNode.IopsProfile,
+            IopsProfile = string.IsNullOrWhiteSpace(workerNode.IopsProfile) ? K8sIopsProfile : workerNode.IopsProfile,
             Latency = workerNode.Latency > 0 ? workerNode.Latency : DefaultWorkerLatency
         });
 
@@ -248,7 +248,9 @@ public class SizingEngine : ISizingEngine
             // Файл підкачки app-сервера: з матриці або, якщо не задано, = RAM вузла.
             PageFileGb = appNode?.PageFileGb > 0 ? appNode.PageFileGb : (int)Math.Ceiling(appRam),
             PageFileType = string.IsNullOrEmpty(appNode?.PageFileType) ? "SSD" : appNode.PageFileType,
-            Iops = appNode?.Iops ?? 0, IopsProfile = appNode?.IopsProfile ?? "",
+            // IOPS сервера додатків — з діапазону (за документом 250→500, профіль 30r/70w).
+            Iops = appRange?.Iops ?? appNode?.Iops ?? 0,
+            IopsProfile = string.IsNullOrEmpty(appNode?.IopsProfile) ? AppServerIopsProfile : appNode.IopsProfile,
             Latency = appNode?.Latency ?? 0
         });
         req.Infrastructure.Add(new InfrastructureNode
@@ -262,7 +264,9 @@ public class SizingEngine : ISizingEngine
             // Файл підкачки IIS/web-сервера: з матриці або, якщо не задано, = RAM вузла.
             PageFileGb = webNode?.PageFileGb > 0 ? webNode.PageFileGb : (int)Math.Ceiling(webRam),
             PageFileType = string.IsNullOrEmpty(webNode?.PageFileType) ? "SSD" : webNode.PageFileType,
-            Iops = webNode?.Iops ?? 0, IopsProfile = webNode?.IopsProfile ?? "",
+            // IOPS веб-сервера — з діапазону (за документом 200, профіль 70r/30w).
+            Iops = webRange?.Iops ?? webNode?.Iops ?? 0,
+            IopsProfile = string.IsNullOrEmpty(webNode?.IopsProfile) ? WebServerIopsProfile : webNode.IopsProfile,
             Latency = webNode?.Latency ?? 0
         });
 
@@ -331,15 +335,10 @@ public class SizingEngine : ISizingEngine
     private static int CalcReplicas(ModuleComponent comp, int userCount)
         => ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount);
 
-    // Пропускна здатність диска БД (MiB/s). Береться з матриці, якщо задана; інакше оцінюється
-    // з IOPS за типовим для SQL Server розміром операції 64 КіБ (MiB/s = IOPS × 64 / 1024).
-    private const int SqlIoBlockKiB = 64;
-    private static int ThroughputFor(UserLoadRange? range)
-    {
-        if (range == null) return 0;
-        if (range.ThroughputMiBs > 0) return range.ThroughputMiBs;
-        return (int)Math.Ceiling(range.Iops * (double)SqlIoBlockKiB / 1024.0);
-    }
+    // Пропускна здатність диска БД (MiB/s) — з матриці (значення документа D-AD-ADM-E).
+    // Не оцінюємо з IOPS: документ задає MiB/s окремою таблицею, тож вигаданий розрахунок
+    // давав би хибні числа. Якщо у діапазоні не задано (напр. PostgreSQL/Oracle) — 0 (не показуємо).
+    private static int ThroughputFor(UserLoadRange? range) => range?.ThroughputMiBs ?? 0;
 
     private static string GetDatabaseNodeName(DatabaseType dbType) => dbType switch
     {
@@ -402,8 +401,13 @@ public class SizingEngine : ISizingEngine
     private const double DefaultWorkerCpu = 8;
     private const double DefaultWorkerRamGb = 32;
 
-    // Типові вимоги до дисків (за документом D-AD-ADM-E): профіль читання/запису та worker IOPS/латенсі.
-    private const string DefaultIopsProfile = "50r/50w";
+    // Профілі читання/запису дисків за документом D-AD-ADM-E:
+    //  • сервер БД — 50r/50w; сервери додатків — 30r/70w; веб-сервери — 70r/30w;
+    //  • вузли Kubernetes (master/worker) — 30r/70w.
+    private const string DefaultIopsProfile = "50r/50w";        // сервер БД
+    private const string AppServerIopsProfile = "30r/70w";
+    private const string WebServerIopsProfile = "70r/30w";
+    private const string K8sIopsProfile = "30r/70w";
     private const int DefaultWorkerIops = 500;
     private const double DefaultWorkerLatency = 5;
 
