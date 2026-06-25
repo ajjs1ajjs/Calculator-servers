@@ -593,6 +593,24 @@ public class SizingEngineTests
         Assert.Equal(300, Rep("LMS-SmartID"));       // ceil(7500/25)
     }
 
+    // --- Відповідність еталону: профіль Документообіг (БД + сервери додатків), 200 ліцензій ---
+    [Fact]
+    public void Calculate_DocumentFlow_Windows_MatchesReferenceRanges()
+    {
+        _engine.SetProductType(ProductType.DocumentFlow);
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 200, DeploymentType = DeploymentType.Windows,
+            ProductType = ProductType.DocumentFlow, LoadProfile = LoadProfile.Performance
+        });
+        var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Equal(6, db.Cpu);        // MSSQL Документообіг 101-200 → 6 ядер
+        Assert.Equal(64, db.RamGb);     // RAM rec 64
+        var app = result.Infrastructure.First(n => n.Name.Contains("додатк"));
+        Assert.Equal(3, app.NodeCount); // AppServers Документообіг 101-200 → 3 ВМ
+        Assert.Equal(32, app.RamGb);    // RAM rec 32
+    }
+
     // --- Регресія: IOPS та профілі серверів додатків і веб-серверів НЕ порожні (Windows) ---
     [Fact]
     public void Calculate_Windows_AppAndWebNodes_HaveIopsAndProfiles()
