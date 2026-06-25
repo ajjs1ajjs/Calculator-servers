@@ -213,17 +213,9 @@ public class SizingMatrix
                 new() { Name = "WebAppModeler", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
                 new() { Name = "CommonAppPlayer", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true }
             }
-        },
-        new()
-        {
-            Name = "Windows Infrastructure", Description = "Windows App Servers and Web Servers",
-            IsEnabled = true,
-            Components = new List<ModuleComponent>
-            {
-                new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 16, PerfCpu = 4.0, PerfRamGb = 16, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" },
-                new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, PerfCpu = 4.0, PerfRamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
-            }
         }
+        // Примітка: окремого модуля «Windows Infrastructure» немає — Windows-сервери додатків/веб
+        // визначаються діапазонами (AppServerRanges/WebServerRanges), а не модулем.
     };
 
     public List<ProjectModule> DocumentFlowModules { get; set; } = new()
@@ -300,17 +292,8 @@ public class SizingMatrix
                 new() { Name = "WebAppModeler", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
                 new() { Name = "CommonAppPlayer", Cpu = 0.5, RamGb = 2, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true }
             }
-        },
-        new()
-        {
-            Name = "Windows Infrastructure", Description = "Windows App Servers and Web Servers (DocumentFlow)",
-            IsEnabled = true,
-            Components = new List<ModuleComponent>
-            {
-                new() { Name = "Windows App Server", Cpu = 4.0, RamGb = 24, PerfCpu = 4.0, PerfRamGb = 24, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM (DocumentFlow)" },
-                new() { Name = "Windows Web Server", Cpu = 4.0, RamGb = 8, PerfCpu = 4.0, PerfRamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, Notes = "Per Windows deployment VM" }
-            }
         }
+        // Примітка: окремого модуля «Windows Infrastructure» немає (див. StandardModules).
     };
 
     public InfrastructureNode? DefaultK8sSql { get; set; } = new()
