@@ -100,9 +100,17 @@
                         <ItemsControl ItemsSource="{Binding Environments}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="0,0,0,12">
-                                        <TextBlock FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2">
-                                            <Run Text="Середовище "/><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
+                                    <Expander IsExpanded="True" Margin="0,0,0,6">
+                                        <Expander.Header>
+                                            <TextBlock FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AccentBg}">
+                                                <Run Text="Середовище "/><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </Expander.Header>
+                                    <StackPanel Margin="0,4,0,8">
+                                        <!-- К-сті модулів, з якими рахувалося середовище -->
+                                        <TextBlock FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"
+                                                   TextWrapping="Wrap" Visibility="{Binding HasModulesInfo, Converter={StaticResource VisibilityConverter}}">
+                                            <Run Text="Модулі: "/><Run Text="{Binding ModulesInfo, Mode=OneWay}"/>
                                         </TextBlock>
                                         <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal">
                                             <DataGrid.Columns>
@@ -141,6 +149,7 @@
                                             <Run Text="Разом подів: "/><Run Text="{Binding ComponentsCpu, Mode=OneWay}"/><Run Text=" CPU · "/><Run Text="{Binding ComponentsRamGb, Mode=OneWay}"/><Run Text=" ГБ RAM"/>
                                         </TextBlock>
                                     </StackPanel>
+                                    </Expander>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

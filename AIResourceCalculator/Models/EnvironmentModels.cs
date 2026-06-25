@@ -56,6 +56,11 @@ public class EnvironmentReport
     public int UserCount { get; set; }
     public ResourceRequirement Requirement { get; set; } = new();
 
+    // К-сті опціональних модулів, з якими рахувалося середовище (для показу у звіті/UI),
+    // напр. «LMS: 10 · HR Portal: 10 · ForceBPM: 10».
+    public string ModulesInfo { get; set; } = "";
+    public bool HasModulesInfo => !string.IsNullOrEmpty(ModulesInfo);
+
     // Плоскі властивості для прив'язки в порівняльній таблиці.
     public double Cpu => Math.Round(Requirement.TotalCpu, 1);
     public double RamGb => Math.Round(Requirement.TotalRamGb, 1);

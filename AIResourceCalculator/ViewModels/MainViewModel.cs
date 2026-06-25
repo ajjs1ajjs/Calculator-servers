@@ -421,12 +421,19 @@ public class MainViewModel : INotifyPropertyChanged
             }
             _engine.SetModules(envModules);
             var req = _engine.Calculate(envConfig);
-            return new EnvironmentReport { Environment = env, Name = name, UserCount = users, Requirement = req };
+            // Інфо про к-сті опціональних модулів цього середовища (увімкнені).
+            var mods = string.Join(" · ", EnvModuleCounts
+                .Where(r => r.EnabledFor(env) && r.CountFor(env) > 0)
+                .Select(r => $"{r.ModuleName}: {r.CountFor(env)}"));
+            return new EnvironmentReport { Environment = env, Name = name, UserCount = users, Requirement = req, ModulesInfo = mods };
         }
 
+        // PROD: к-сті опціональних модулів — з полів модулів угорі (0/порожньо = усі користувачі).
+        var prodMods = string.Join(" · ", Modules.Where(m => !m.IsMandatory && m.IsEnabled)
+            .Select(m => $"{m.Name}: {(m.UserCount > 0 ? m.UserCount.ToString() : "усі")}"));
         var reports = new List<EnvironmentReport>
         {
-            new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq }
+            new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq, ModulesInfo = prodMods }
         };
 
         if (s.IncludeDev) reports.Add(BuildEnv(DeployEnvironment.Dev, "DEV", s.DevUserCount));
