@@ -49,9 +49,6 @@
 
         <TabControl Grid.Row="1" Name="MainTabControl" Background="{DynamicResource WindowBg}"
                     SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
-            <TabItem Header="{Binding TabMatrixHeader}">
-                <views:MatrixTabControl/>
-            </TabItem>
             <TabItem Header="{Binding TabSetupHeader}">
                 <views:CalculatorTabControl/>
             </TabItem>

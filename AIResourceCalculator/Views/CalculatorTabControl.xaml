@@ -12,6 +12,18 @@
             <Grid>
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
+                    <!-- Імпорт матриці даних з Excel (за потреби масово оновити вхідні дані). -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="14,7"
+                                Command="{Binding MatrixVM.ImportMatrixCommand}" ToolTip="{loc:Loc matrix.importHint}">
+                            <TextBlock Text="{loc:Loc setup.import}"/>
+                        </Button>
+                        <Button Padding="12,7" Command="{Binding MatrixVM.ResetMatrixCommand}" ToolTip="{loc:Loc matrix.resetHint}">
+                            <TextBlock Text="{loc:Loc matrix.reset}"/>
+                        </Button>
+                        <TextBlock Text="{loc:Loc matrix.importHint}" FontSize="11" FontStyle="Italic" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextPrimary}" Margin="10,0,0,0" TextWrapping="Wrap" MaxWidth="360"/>
+                    </StackPanel>
                     <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                         <StackPanel>
                             <Grid Margin="0,0,0,8">

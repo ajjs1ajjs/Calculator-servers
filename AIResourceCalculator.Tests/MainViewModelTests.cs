@@ -55,7 +55,7 @@ public class MainViewModelTests
         vm.CalculateCommand.Execute(null);
 
         Assert.NotEqual("0", vm.TotalCpu);
-        Assert.Equal(2, vm.SelectedTabIndex);          // вкладка "Результати"
+        Assert.Equal(1, vm.SelectedTabIndex);          // вкладка "Результати" (лишилось 2 вкладки)
         Assert.NotEmpty(vm.ResultInfrastructure);
     }
 
