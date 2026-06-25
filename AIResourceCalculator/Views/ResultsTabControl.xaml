@@ -95,9 +95,9 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <!-- Розбивка ВМ та компонентів для кожного середовища — з прокруткою в межах розділу -->
+                    <!-- Розбивка ВМ та компонентів для кожного середовища (без внутрішньої прокрутки —
+                         уся вкладка прокручується як одне ціле; довжину регулює згортання секцій). -->
                     <TextBlock Text="{loc:Loc env.vmsTitle}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,10,0,4"/>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="460" CanContentScroll="False">
                         <ItemsControl ItemsSource="{Binding Environments}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -134,7 +134,7 @@
                                                    Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,2"
                                                    Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}"/>
                                         <DataGrid ItemsSource="{Binding Components}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
-                                                  MaxHeight="200" FontWeight="Normal"
+                                                  FontWeight="Normal"
                                                   Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
@@ -154,7 +154,6 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </ScrollViewer>
                 </StackPanel>
             </Expander>
 
@@ -163,7 +162,7 @@
                 <StackPanel Margin="0,6,0,0">
                     <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" Margin="0,0,0,6"/>
-                    <DataGrid x:Name="GridInfrastructure" MinHeight="120" MaxHeight="320" AutoGenerateColumns="False" IsReadOnly="True" FontWeight="Normal"
+                    <DataGrid x:Name="GridInfrastructure" AutoGenerateColumns="False" IsReadOnly="True" FontWeight="Normal"
                               ItemsSource="{Binding ResultInfrastructure}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
