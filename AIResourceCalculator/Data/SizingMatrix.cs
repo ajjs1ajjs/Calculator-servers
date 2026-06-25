@@ -6,9 +6,8 @@ public class SizingMatrix
 {
     // Версія структури збереженої матриці. Підвищуйте, коли змінюється модель так, що старі
     // matrix.json більше не сумісні (нові поля/правила). Несумісні збереження відкидаються.
-    // v5: профіль Документообіг (MSSQL + AppServers) вирівняно до еталонного калькулятора
-    // (важчі значення); pod-формули ROBOT/WS залежать від HR. Старі збереження відкидаються.
-    public const int CurrentSchemaVersion = 5;
+    // v6: master-вузол 4 ядра/6 ГБ (як еталон). Старі збереження відкидаються.
+    public const int CurrentSchemaVersion = 6;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
     // Значення узгоджені з документом D-AD-ADM-E, таблиця зведення конфігурацій (розділ 1.3):
@@ -306,10 +305,10 @@ public class SizingMatrix
         StorageType4 = "SATA", StorageGb4 = 200
     };
 
-    // Master-вузол: мінімум 2 ядра/4 ГБ (D-AD-ADM-E 3.6); 3 ядра/6 ГБ — з достатнім запасом.
+    // Master-вузол: 4 ядра/6 ГБ — як в еталонному калькуляторі (вкладка «Стандарт»).
     public InfrastructureNode? DefaultK8sMaster { get; set; } = new()
     {
-        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 3, RamGb = 6, NodeCount = 1,
+        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1,
         StorageType = "SSD", StorageGb = 100
     };
 
