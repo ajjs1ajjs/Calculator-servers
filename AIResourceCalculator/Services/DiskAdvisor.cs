@@ -59,11 +59,12 @@ public static class DiskAdvisor
             if (!isSql && n.PageFileGb > 0)
                 lines.Add(string.Format(loc["disk.pagefileLine"], Nz(n.PageFileType), n.PageFileGb));
 
-            // IOPS profile + latency target.
+            // IOPS profile + throughput (MiB/s) + latency target.
             if (n.Iops > 0 || n.Latency > 0)
             {
                 var profile = string.IsNullOrWhiteSpace(n.IopsProfile) ? "" : $" {n.IopsProfile}";
-                lines.Add(string.Format(loc["disk.perfLine"], n.Iops, profile, Trim(n.Latency)));
+                var mib = n.ThroughputMiBs > 0 ? n.ThroughputMiBs.ToString() : "—";
+                lines.Add(string.Format(loc["disk.perfLine"], n.Iops, profile, mib, Trim(n.Latency)));
             }
 
             if (lines.Count == 0) continue;

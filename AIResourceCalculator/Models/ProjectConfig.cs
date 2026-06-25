@@ -11,6 +11,10 @@ public class ProjectConfig
     public bool HaEnabled { get; set; } = true;
     public List<string> SelectedModules { get; set; } = new();
 
+    // Середовище, для якого виконується розрахунок. Визначає редакцію СУБД:
+    // non-prod (DEV/TEST/PreProd) → Developer Edition; PROD → Standard/Enterprise.
+    public DeployEnvironment Environment { get; set; } = DeployEnvironment.Prod;
+
     // Обсяг РЕЛЯЦІЙНИХ даних БД, ГБ (без неструктурованого контенту/вкладень).
     // При постачанні база невелика (≈4-6 ГБ основна + 4 ГБ системна) і зростає згодом.
     // Визначає розмір дисків Data/Logs БД та обсяг резерву під бекап.

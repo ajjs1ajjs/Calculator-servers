@@ -70,16 +70,24 @@
                                 <CheckBox Content="{loc:Loc env.test}" IsChecked="{Binding IncludeTest, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
                                 <CheckBox Content="{loc:Loc env.predprod}" IsChecked="{Binding IncludePredProd, Mode=TwoWay}" FontWeight="SemiBold"/>
                             </StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="60"/>
-                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="50"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.devUsers}"/>
-                                <TextBox Grid.Column="1" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}"/>
-                                <TextBlock Grid.Column="2" Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="12,0,4,0" ToolTip="{loc:Loc tooltip.backupDays}"/>
-                                <TextBox Grid.Column="3" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.backupDays}"/>
-                            </Grid>
+                            <WrapPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
+                                    <TextBlock Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.devUsers}"/>
+                                    <TextBox Width="55" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}" IsEnabled="{Binding IncludeDev}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
+                                    <TextBlock Text="{loc:Loc env.testUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.testUsers}"/>
+                                    <TextBox Width="55" Text="{Binding TestUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.testUsers}" IsEnabled="{Binding IncludeTest}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
+                                    <TextBlock Text="{loc:Loc env.predprodUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
+                                    <TextBox Width="55" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.predprodUsers}" IsEnabled="{Binding IncludePredProd}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
+                                    <TextBlock Text="{loc:Loc env.backupDays}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.backupDays}"/>
+                                    <TextBox Width="50" Text="{Binding BackupDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.backupDays}"/>
+                                </StackPanel>
+                            </WrapPanel>
                         </StackPanel>
                     </Border>
                     <StackPanel Orientation="Horizontal" Margin="0,15,0,0">

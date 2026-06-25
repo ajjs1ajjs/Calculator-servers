@@ -34,12 +34,43 @@ public class DocumentRequirementsTests
     public void Compare_PassesWhenMeetsRequirement()
     {
         var req = new ResourceRequirement { UserCount = 100 };
-        req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, Iops = 500, Latency = 5 });
+        req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, Iops = 500, ThroughputMiBs = 240, Latency = 5 });
         var config = new ProjectConfig { UserCount = 100, DatabaseType = DatabaseType.MsSql };
 
         var items = DocumentRequirements.Compare(req, config);
 
         Assert.All(items, i => Assert.Equal("Відповідає", i.Status));
+    }
+
+    [Fact]
+    public void Compare_FillsMatrixColumn_FromEditableRanges()
+    {
+        var req = new ResourceRequirement { UserCount = 100 };
+        req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, Iops = 500, Latency = 5 });
+        var config = new ProjectConfig { UserCount = 100, DatabaseType = DatabaseType.MsSql };
+        var matrix = new List<UserLoadRange>
+        {
+            new() { MinUsers = 51, MaxUsers = 100, Cpu = 8, RamRec = 48, Iops = 500, Latency = 4 }
+        };
+
+        var items = DocumentRequirements.Compare(req, config, matrix);
+
+        var cpu = items.First(i => i.Metric.StartsWith("CPU"));
+        Assert.Equal("8", cpu.Matrix);          // значення з матриці
+        var iops = items.First(i => i.Metric.StartsWith("IOPS"));
+        Assert.Equal("500", iops.Matrix);
+    }
+
+    [Fact]
+    public void Compare_WithoutMatrix_MatrixColumnIsDash()
+    {
+        var req = new ResourceRequirement { UserCount = 100 };
+        req.Infrastructure.Add(new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 48, NodeCount = 1, Iops = 500, Latency = 5 });
+        var config = new ProjectConfig { UserCount = 100, DatabaseType = DatabaseType.MsSql };
+
+        var items = DocumentRequirements.Compare(req, config);
+
+        Assert.All(items, i => Assert.Equal("—", i.Matrix));
     }
 
     [Fact]

@@ -129,9 +129,11 @@ public class SizingEngine : ISizingEngine
                 StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
                 StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
                 PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
-                Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
+                Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1,
+                IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
+                ThroughputMiBs = ThroughputFor(sqlRange)
             };
-            ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, dbRam);
+            ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, dbRam, config.Environment);
             req.Infrastructure.Add(dbNode);
         }
         req.Infrastructure.Add(new InfrastructureNode
@@ -152,7 +154,11 @@ public class SizingEngine : ISizingEngine
             StorageType2 = workerNode.StorageType2, StorageGb2 = workerNode.StorageGb2,
             StorageType3 = workerNode.StorageType3, StorageGb3 = workerNode.StorageGb3,
             StorageType4 = workerNode.StorageType4, StorageGb4 = workerNode.StorageGb4,
-            PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType
+            PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType,
+            // Вимоги до дисків worker-вузлів (за документом): профіль 50r/50w, ~500 IOPS.
+            Iops = workerNode.Iops > 0 ? workerNode.Iops : DefaultWorkerIops,
+            IopsProfile = string.IsNullOrWhiteSpace(workerNode.IopsProfile) ? DefaultIopsProfile : workerNode.IopsProfile,
+            Latency = workerNode.Latency > 0 ? workerNode.Latency : DefaultWorkerLatency
         });
 
         // IOPS/latency атрибутуються БД-вузлу. У гібриді (includeDatabase=false) БД на Windows,
@@ -225,9 +231,11 @@ public class SizingEngine : ISizingEngine
             StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
             PageFileGb = sqlNode.PageFileGb > 0 ? sqlNode.PageFileGb : (int)Math.Ceiling(sqlRam * 1.0),
             PageFileType = sqlNode.PageFileType ?? "Auto",
-            Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1
+            Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1,
+            IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
+            ThroughputMiBs = ThroughputFor(sqlRange)
         };
-        ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, sqlRam);
+        ApplyDbDisks(dbNode, config.DatabaseType, config.DbDataSizeGb, sqlRam, config.Environment);
         req.Infrastructure.Add(dbNode);
         req.Infrastructure.Add(new InfrastructureNode
         {
@@ -323,6 +331,16 @@ public class SizingEngine : ISizingEngine
     private static int CalcReplicas(ModuleComponent comp, int userCount)
         => ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount);
 
+    // Пропускна здатність диска БД (MiB/s). Береться з матриці, якщо задана; інакше оцінюється
+    // з IOPS за типовим для SQL Server розміром операції 64 КіБ (MiB/s = IOPS × 64 / 1024).
+    private const int SqlIoBlockKiB = 64;
+    private static int ThroughputFor(UserLoadRange? range)
+    {
+        if (range == null) return 0;
+        if (range.ThroughputMiBs > 0) return range.ThroughputMiBs;
+        return (int)Math.Ceiling(range.Iops * (double)SqlIoBlockKiB / 1024.0);
+    }
+
     private static string GetDatabaseNodeName(DatabaseType dbType) => dbType switch
     {
         DatabaseType.PostgreSQL => "PostgreSQL",
@@ -333,7 +351,8 @@ public class SizingEngine : ISizingEngine
     // Диски вузла БД масштабуються за ОБСЯГОМ ДАНИХ (а не фіксовано): немає сенсу тримати
     // терабайтні диски під базу в 10-20 ГБ. OS-диск та Content (холодні/неструктуровані дані)
     // лишаються як у матриці; Data та Logs/TempDB рахуються від обсягу даних із розумним мінімумом.
-    private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, int dbDataGb, double dbRamGb)
+    private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, int dbDataGb, double dbRamGb,
+        DeployEnvironment environment)
     {
         dbDataGb = Math.Max(1, dbDataGb);
         // Logs + TempDB ≈ обсяг даних (tempdb може сягати розміру БД); мінімум 50 ГБ.
@@ -343,27 +362,50 @@ public class SizingEngine : ISizingEngine
         db.StorageGb3 = Math.Max(100, (int)Math.Ceiling(dbDataGb * 2.0));
         if (string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
 
-        db.DbVersion = DbVersionLabel(dbType, dbRamGb);
-        if (dbType == DatabaseType.MsSql && dbRamGb > MsSqlStandardMaxRamGb)
+        db.DbVersion = DbVersionLabel(dbType, dbRamGb, db.Cpu, environment);
+        // Для робочих середовищ Enterprise потрібна, якщо перевищено ліміти Standard (RAM або ядра).
+        if (dbType == DatabaseType.MsSql && environment == DeployEnvironment.Prod
+            && (dbRamGb > MsSqlStandardMaxRamGb || db.Cpu > MsSqlStandardMaxCores))
         {
-            var note = $"RAM {dbRamGb:0} ГБ > {MsSqlStandardMaxRamGb:0} ГБ — потрібна редакція Enterprise (ліміт пам'яті Standard)";
+            var reason = dbRamGb > MsSqlStandardMaxRamGb && db.Cpu > MsSqlStandardMaxCores
+                ? $"RAM {dbRamGb:0} ГБ > {MsSqlStandardMaxRamGb:0} ГБ і {db.Cpu:0} ядер > {MsSqlStandardMaxCores} ядер"
+                : dbRamGb > MsSqlStandardMaxRamGb
+                    ? $"RAM {dbRamGb:0} ГБ > {MsSqlStandardMaxRamGb:0} ГБ"
+                    : $"{db.Cpu:0} ядер > {MsSqlStandardMaxCores} ядер";
+            var note = $"{reason} — потрібна редакція Enterprise (ліміти Standard)";
             db.Notes = string.IsNullOrWhiteSpace(db.Notes) ? note : $"{db.Notes}; {note}";
         }
     }
 
     // SQL Server мінімальна підтримувана версія — 2022 (за вимогами D-AD-ADM-E).
-    // Редакція Standard обмежена 128 ГБ ОЗП на екземпляр БД → понад це потрібна Enterprise.
+    // Редакція Standard обмежена 128 ГБ ОЗП та 24 ядрами на екземпляр БД → понад це потрібна Enterprise.
+    // Non-prod (DEV/TEST/PreProd) використовує безкоштовну Developer Edition (не для робочого навантаження).
     private const double MsSqlStandardMaxRamGb = 128;
-    public static string DbVersionLabel(DatabaseType dbType, double dbRamGb) => dbType switch
-    {
-        DatabaseType.PostgreSQL => "PostgreSQL 17+",
-        DatabaseType.Oracle => "Oracle Database 19c Enterprise Edition",
-        _ => $"MS SQL Server 2022 {(dbRamGb > MsSqlStandardMaxRamGb ? "Enterprise" : "Standard")}"
-    };
+    private const double MsSqlStandardMaxCores = 24;
+
+    // Зворотно-сумісне перевантаження (PROD, без урахування ядер).
+    public static string DbVersionLabel(DatabaseType dbType, double dbRamGb)
+        => DbVersionLabel(dbType, dbRamGb, 0, DeployEnvironment.Prod);
+
+    public static string DbVersionLabel(DatabaseType dbType, double dbRamGb, double dbCpu, DeployEnvironment environment)
+        => dbType switch
+        {
+            DatabaseType.PostgreSQL => "PostgreSQL 17+",
+            DatabaseType.Oracle => "Oracle Database 19c Enterprise Edition",
+            // MS SQL: Developer для non-prod; для PROD — Standard/Enterprise за лімітами ядер і RAM.
+            _ => environment != DeployEnvironment.Prod
+                ? "MS SQL Server 2022 Developer Edition"
+                : $"MS SQL Server 2022 {(dbRamGb > MsSqlStandardMaxRamGb || dbCpu > MsSqlStandardMaxCores ? "Enterprise" : "Standard")}"
+        };
 
     // Fallback worker capacity when matrix node specs are missing
     private const double DefaultWorkerCpu = 8;
     private const double DefaultWorkerRamGb = 32;
+
+    // Типові вимоги до дисків (за документом D-AD-ADM-E): профіль читання/запису та worker IOPS/латенсі.
+    private const string DefaultIopsProfile = "50r/50w";
+    private const int DefaultWorkerIops = 500;
+    private const double DefaultWorkerLatency = 5;
 
     // GPU node defaults for video transcoding (LMS-Videoutilities)
     private const int UsersPerGpuNode = 100;
@@ -372,6 +414,6 @@ public class SizingEngine : ISizingEngine
     private const int GpuNodeStorageGb = 200;
 
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 4, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 3, RamGb = 6, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker Node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
 }

@@ -55,7 +55,8 @@ public class ConfigExportService
 
     // ───────────────────────────── HTML ─────────────────────────────
     public string ExportHtml(ResourceRequirement req, ProjectConfig config,
-        IReadOnlyList<EnvironmentReport>? environments = null)
+        IReadOnlyList<EnvironmentReport>? environments = null,
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
@@ -79,47 +80,58 @@ public class ConfigExportService
         if (dist.Length > 0)
             sb.AppendLine($"<p><i>{SanitizeHtml(dist)}</i></p>");
 
-        AppendDocComparisonHtml(sb, req, config);
+        AppendDocComparisonHtml(sb, req, config, matrixRanges);
 
         if (environments != null && environments.Count > 1)
         {
-            sb.AppendLine("<h2>Середовища</h2>");
-            sb.AppendLine("<p class='intro'>Система може мати кілька середовищ: <b>PROD</b> — робоче (для всіх користувачів), " +
+            sb.AppendLine("<h2>Інфраструктура за середовищами</h2>");
+            sb.AppendLine("<p class='intro'>Інфраструктура — це перелік серверів (віртуальних машин), які потрібно " +
+                "підготувати. Система може мати кілька середовищ: <b>PROD</b> — робоче (для всіх користувачів), " +
                 "<b>DEV</b> — для розробки, <b>TEST</b> — для тестування, <b>PreProd</b> — попередній прогін перед випуском. " +
-                "Нижче — зведення, а далі — перелік серверів для кожного середовища окремо.</p>");
+                "Кожне середовище рахується окремо за власною кількістю користувачів. " +
+                "Нижче — зведення, а далі — перелік серверів і компонентів для кожного середовища окремо.</p>");
             sb.AppendLine("<table><tr><th>Середовище</th><th>Користувачів</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>Диски, ГБ</th><th>IOPS (БД)</th><th>Серверів (ВМ)</th></tr>");
             foreach (var e in environments)
                 sb.AppendLine($"<tr><td>{SanitizeHtml(e.Name)}</td><td>{e.UserCount}</td><td>{e.Cpu:F1}</td><td>{e.RamGb:F1}</td><td>{e.StorageGb}</td><td>{e.Iops}</td><td>{e.Nodes}</td></tr>");
             sb.AppendLine("</table>");
 
-            // Розбивка ВМ для кожного середовища.
+            // Розбивка ВМ та компонентів для кожного середовища.
             foreach (var e in environments)
             {
-                sb.AppendLine($"<h3>Сервери середовища {SanitizeHtml(e.Name)} (користувачів: {e.UserCount})</h3>");
+                sb.AppendLine($"<h3>Середовище {SanitizeHtml(e.Name)} — сервери (користувачів: {e.UserCount})</h3>");
                 AppendInfraTableHtml(sb, e.Requirement);
+                AppendComponentsTableHtml(sb, e.Requirement, $"Компоненти (поди) середовища {e.Name}");
             }
         }
         else
         {
-            sb.AppendLine("<h2>Сервери (віртуальні машини)</h2>");
-            sb.AppendLine("<p class='intro'>Перелік серверів, які потрібно підготувати, із їхнім призначенням і ресурсами.</p>");
+            sb.AppendLine("<h2>Інфраструктура — сервери (віртуальні машини)</h2>");
+            sb.AppendLine("<p class='intro'>Інфраструктура — це перелік серверів (віртуальних машин), які потрібно " +
+                "підготувати, із їхнім призначенням і ресурсами (середовище PROD).</p>");
             AppendInfraTableHtml(sb, req);
         }
 
         AppendBackupNoteHtml(sb, req, config);
         AppendGlossaryHtml(sb);
 
-        var comps = req.Components.Where(c => c.Cpu > 0).ToList();
-        if (comps.Count > 0)
-        {
-            sb.AppendLine("<h2>Компоненти (поди)</h2><table><tr><th>Назва</th><th>Категорія</th><th>CPU/репліку</th><th>RAM/репліку</th><th>Реплік</th><th>CPU разом</th><th>RAM разом</th></tr>");
-            foreach (var c in comps)
-                sb.AppendLine($"<tr><td>{SanitizeHtml(c.Name)}</td><td>{SanitizeHtml(c.Category)}</td><td>{c.CpuPerReplica:F2}</td><td>{c.RamPerReplicaGb:F2} GB</td><td>{c.Replicas}</td><td>{c.Cpu:F1}</td><td>{c.RamGb:F1} GB</td></tr>");
-            sb.AppendLine($"<tfoot><tr><td>Разом</td><td></td><td></td><td></td><td>{comps.Sum(c => c.Replicas)}</td><td>{comps.Sum(c => c.Cpu):F1}</td><td>{comps.Sum(c => c.RamGb):F1} GB</td></tr></tfoot>");
-            sb.AppendLine("</table>");
-        }
+        // Компоненти PROD показуємо лише коли НЕ розбивали по середовищах (інакше вони вже вище).
+        if (environments == null || environments.Count <= 1)
+            AppendComponentsTableHtml(sb, req, "Компоненти (поди)");
+
         sb.AppendLine("</body></html>");
         return sb.ToString();
+    }
+
+    // Таблиця компонентів (подів) одного середовища. Нічого не виводить, якщо подів немає.
+    private static void AppendComponentsTableHtml(System.Text.StringBuilder sb, ResourceRequirement req, string title)
+    {
+        var comps = req.Components.Where(c => c.Cpu > 0).ToList();
+        if (comps.Count == 0) return;
+        sb.AppendLine($"<h3>{SanitizeHtml(title)}</h3><table><tr><th>Назва</th><th>Категорія</th><th>CPU/репліку</th><th>RAM/репліку</th><th>Реплік</th><th>CPU разом</th><th>RAM разом</th></tr>");
+        foreach (var c in comps)
+            sb.AppendLine($"<tr><td>{SanitizeHtml(c.Name)}</td><td>{SanitizeHtml(c.Category)}</td><td>{c.CpuPerReplica:F2}</td><td>{c.RamPerReplicaGb:F2} GB</td><td>{c.Replicas}</td><td>{c.Cpu:F1}</td><td>{c.RamGb:F1} GB</td></tr>");
+        sb.AppendLine($"<tfoot><tr><td>Разом</td><td></td><td></td><td></td><td>{comps.Sum(c => c.Replicas)}</td><td>{comps.Sum(c => c.Cpu):F1}</td><td>{comps.Sum(c => c.RamGb):F1} GB</td></tr></tfoot>");
+        sb.AppendLine("</table>");
     }
 
     private static string ReportTitle(ProjectConfig config)
@@ -128,10 +140,10 @@ public class ConfigExportService
     // Таблиця інфраструктури (ВМ) з призначенням, версією СУБД та підсумковим рядком.
     private static void AppendInfraTableHtml(System.Text.StringBuilder sb, ResourceRequirement req)
     {
-        sb.AppendLine("<table><tr><th>Сервер (ВМ)</th><th>Призначення</th><th>ОС</th><th>Версія СУБД</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>К-сть</th><th>Тип диску</th><th>Диск на 1 сервер</th><th>Диск разом</th><th>Page file</th><th>IOPS</th><th>Затримка, мс</th><th>Примітки</th></tr>");
+        sb.AppendLine("<table><tr><th>Сервер (ВМ)</th><th>Призначення</th><th>ОС</th><th>Версія СУБД</th><th>CPU (ядер)</th><th>RAM, ГБ</th><th>К-сть</th><th>Тип диску</th><th>Диск на 1 сервер</th><th>Диск разом</th><th>Page file</th><th>IOPS</th><th>Профіль IOPS</th><th>MiB/s</th><th>Затримка, мс</th><th>Примітки</th></tr>");
         foreach (var i in req.Infrastructure.Where(n => n.NodeCount > 0))
-            sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{SanitizeHtml(NodeRole(i.Name))}</td><td>{SanitizeHtml(i.Os)}</td><td>{SanitizeHtml(string.IsNullOrEmpty(i.DbVersion) ? "—" : i.DbVersion)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{SanitizeHtml(i.StorageType)}</td><td>{i.DiskPerNodeGb} GB</td><td>{i.TotalStorageGb} GB</td><td>{(i.PageFileGb > 0 ? i.PageFileGb + " GB" : "—")}</td><td>{(i.Iops > 0 ? i.Iops.ToString() : "—")}</td><td>{(i.Latency > 0 ? Trim(i.Latency) : "—")}</td><td>{SanitizeHtml(i.Notes)}</td></tr>");
-        sb.AppendLine($"<tfoot><tr><td>Разом</td><td></td><td></td><td></td><td>{req.TotalCpu:F1}</td><td>{req.TotalRamGb:F1}</td><td>{req.Infrastructure.Sum(n => n.NodeCount)}</td><td></td><td></td><td>{req.TotalStorageGb} GB</td><td></td><td></td><td></td><td></td></tr></tfoot>");
+            sb.AppendLine($"<tr><td>{SanitizeHtml(i.Name)}</td><td>{SanitizeHtml(NodeRole(i.Name))}</td><td>{SanitizeHtml(i.Os)}</td><td>{SanitizeHtml(string.IsNullOrEmpty(i.DbVersion) ? "—" : i.DbVersion)}</td><td>{i.Cpu}</td><td>{i.RamGb}</td><td>{i.NodeCount}</td><td>{SanitizeHtml(i.StorageType)}</td><td>{i.DiskPerNodeGb} GB</td><td>{i.TotalStorageGb} GB</td><td>{(i.PageFileGb > 0 ? i.PageFileGb + " GB" : "—")}</td><td>{(i.Iops > 0 ? i.Iops.ToString() : "—")}</td><td>{SanitizeHtml(string.IsNullOrEmpty(i.IopsProfile) ? "—" : i.IopsProfile)}</td><td>{(i.ThroughputMiBs > 0 ? i.ThroughputMiBs.ToString() : "—")}</td><td>{(i.Latency > 0 ? Trim(i.Latency) : "—")}</td><td>{SanitizeHtml(i.Notes)}</td></tr>");
+        sb.AppendLine($"<tfoot><tr><td>Разом</td><td></td><td></td><td></td><td>{req.TotalCpu:F1}</td><td>{req.TotalRamGb:F1}</td><td>{req.Infrastructure.Sum(n => n.NodeCount)}</td><td></td><td></td><td>{req.TotalStorageGb} GB</td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
         sb.AppendLine("</table>");
     }
 
@@ -162,6 +174,8 @@ public class ConfigExportService
         sb.AppendLine("<li><b>Диски</b> — обсяг сховища (у ГБ) під операційну систему, дані, журнали та резервні копії.</li>");
         sb.AppendLine("<li><b>IOPS</b> — швидкодія диска (операцій за секунду). Вказується для сервера БД як найвибагливішого; " +
             "значення різних дисків не додаються між собою.</li>");
+        sb.AppendLine("<li><b>Профіль IOPS</b> — співвідношення операцій читання/запису (напр. «50r/50w» — порівну).</li>");
+        sb.AppendLine("<li><b>MiB/s</b> — пропускна здатність диска (мегабайти за секунду, послідовні операції).</li>");
         sb.AppendLine("<li><b>Затримка</b> — час відповіді диска в мілісекундах; що менше, то краще.</li>");
         sb.AppendLine("<li><b>Page file</b> — файл підкачки (резерв пам'яті на диску) для серверів застосунків/веб.</li>");
         sb.AppendLine("<li><b>ВМ (сервер)</b> — окрема віртуальна машина, яку треба створити.</li>");
@@ -188,25 +202,30 @@ public class ConfigExportService
     }
 
     // Звірка розрахунку з вимогами документа D-AD-ADM-E (лише для MS SQL Server).
-    private static void AppendDocComparisonHtml(System.Text.StringBuilder sb, ResourceRequirement req, ProjectConfig config)
+    private static void AppendDocComparisonHtml(System.Text.StringBuilder sb, ResourceRequirement req, ProjectConfig config,
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
-        var items = Data.DocumentRequirements.Compare(req, config);
+        var items = Data.DocumentRequirements.Compare(req, config, matrixRanges);
         if (items.Count == 0) return;
         sb.AppendLine($"<h2>Звірка з вимогами ({SanitizeHtml(Data.DocumentRequirements.Source)})</h2>");
-        sb.AppendLine("<p class='intro'>Порівняння розрахованого сервера бази даних із офіційними вимогами документа. " +
-            "«Відповідає» означає, що ресурсу достатньо; «Нижче вимог» — варто збільшити перед впровадженням.</p>");
-        sb.AppendLine("<table><tr><th>Показник (сервер БД)</th><th>За документом</th><th>Розрахунок</th><th>Статус</th></tr>");
+        sb.AppendLine("<p class='intro'>Порівняння сервера бази даних. <b>«За документом»</b> — незмінний еталон із " +
+            "документа D-AD-ADM-E (не залежить від ваших правок матриці). <b>«За матрицею»</b> — поточні значення з " +
+            "редагованої таблиці на вкладці «База даних» (якщо їх змінити — зміниться й розрахунок). " +
+            "<b>«Розрахунок»</b> — фінальні значення вузла БД. «Відповідає» означає, що ресурсу достатньо відносно " +
+            "документа; «Нижче вимог» — варто збільшити перед впровадженням.</p>");
+        sb.AppendLine("<table><tr><th>Показник (сервер БД)</th><th>За документом</th><th>За матрицею</th><th>Розрахунок</th><th>Статус</th></tr>");
         foreach (var it in items)
         {
             var color = it.Status == "Відповідає" ? "#40a02b" : "#d20f39";
-            sb.AppendLine($"<tr><td>{SanitizeHtml(it.Metric)}</td><td>{SanitizeHtml(it.Document)}</td><td>{SanitizeHtml(it.Calculated)}</td><td style='color:{color};font-weight:bold'>{SanitizeHtml(it.Status)}</td></tr>");
+            sb.AppendLine($"<tr><td>{SanitizeHtml(it.Metric)}</td><td>{SanitizeHtml(it.Document)}</td><td>{SanitizeHtml(it.Matrix)}</td><td>{SanitizeHtml(it.Calculated)}</td><td style='color:{color};font-weight:bold'>{SanitizeHtml(it.Status)}</td></tr>");
         }
         sb.AppendLine("</table>");
     }
 
     // ───────────────────────────── XML ─────────────────────────────
     public string ExportXml(ResourceRequirement req, ProjectConfig config,
-        IReadOnlyList<EnvironmentReport>? environments = null)
+        IReadOnlyList<EnvironmentReport>? environments = null,
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
         static XAttribute D(string name, double v) => new(name, v.ToString("0.##", CultureInfo.InvariantCulture));
 
@@ -223,6 +242,8 @@ public class ConfigExportService
             new XAttribute("pageFileGb", n.PageFileGb),
             new XAttribute("pageFileType", n.PageFileType),
             new XAttribute("iops", n.Iops),
+            new XAttribute("iopsProfile", n.IopsProfile),
+            new XAttribute("throughputMiBs", n.ThroughputMiBs),
             D("latencyMs", n.Latency),
             new XAttribute("notes", n.Notes));
 
@@ -256,12 +277,13 @@ public class ConfigExportService
                         e.Requirement.Infrastructure.Where(n => n.NodeCount > 0).Select(Node)))));
         }
 
-        var docItems = Data.DocumentRequirements.Compare(req, config);
+        var docItems = Data.DocumentRequirements.Compare(req, config, matrixRanges);
         XElement? docCompare = docItems.Count == 0 ? null : new XElement("DocumentComparison",
             new XAttribute("source", Data.DocumentRequirements.Source),
             docItems.Select(it => new XElement("Item",
                 new XAttribute("metric", it.Metric),
                 new XAttribute("document", it.Document),
+                new XAttribute("matrix", it.Matrix),
                 new XAttribute("calculated", it.Calculated),
                 new XAttribute("status", it.Status))));
 
@@ -296,34 +318,41 @@ public class ConfigExportService
 
     // ───────────────────────────── Excel ─────────────────────────────
     public byte[] ExportExcel(ResourceRequirement req, ProjectConfig config,
-        IReadOnlyList<EnvironmentReport>? environments = null)
+        IReadOnlyList<EnvironmentReport>? environments = null,
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         using var pkg = new ExcelPackage();
 
         BuildSummarySheet(pkg, req, config);
-        BuildDocComparisonSheet(pkg, req, config);
-        if (environments != null && environments.Count > 1)
+        BuildDocComparisonSheet(pkg, req, config, matrixRanges);
+        bool multiEnv = environments != null && environments.Count > 1;
+        if (multiEnv)
         {
-            BuildEnvironmentsSheet(pkg, environments);
-            BuildEnvironmentVmsSheet(pkg, environments);
+            BuildEnvironmentsSheet(pkg, environments!);
+            BuildEnvironmentVmsSheet(pkg, environments!);
+            BuildEnvironmentComponentsSheet(pkg, environments!);
         }
         BuildInfrastructureSheet(pkg, req);
-        BuildComponentsSheet(pkg, req);
+        // Компоненти PROD окремо лише коли не було розбивки по середовищах.
+        if (!multiEnv) BuildComponentsSheet(pkg, req);
 
         return pkg.GetAsByteArray();
     }
 
     // Окремий аркуш зі звіркою розрахунку з вимогами документа (лише для MS SQL Server).
-    private static void BuildDocComparisonSheet(ExcelPackage pkg, ResourceRequirement req, ProjectConfig config)
+    private static void BuildDocComparisonSheet(ExcelPackage pkg, ResourceRequirement req, ProjectConfig config,
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
-        var items = Data.DocumentRequirements.Compare(req, config);
+        var items = Data.DocumentRequirements.Compare(req, config, matrixRanges);
         if (items.Count == 0) return;
         var ws = pkg.Workbook.Worksheets.Add("Звірка з вимогами");
-        ws.Cells[1, 1].Value = Data.DocumentRequirements.Source;
-        ws.Cells[1, 1, 1, 4].Merge = true;
+        ws.Cells[1, 1].Value = Data.DocumentRequirements.Source
+            + " · «За документом» — незмінний еталон; «За матрицею» — поточні редаговані значення.";
+        ws.Cells[1, 1, 1, 5].Merge = true;
         ws.Cells[1, 1].Style.Font.Bold = true;
-        string[] headers = { "Показник (сервер БД)", "За документом", "Розрахунок", "Статус" };
+        ws.Cells[1, 1].Style.WrapText = true;
+        string[] headers = { "Показник (сервер БД)", "За документом", "За матрицею", "Розрахунок", "Статус" };
         for (int c = 0; c < headers.Length; c++)
         {
             var cell = ws.Cells[2, c + 1];
@@ -338,11 +367,13 @@ public class ConfigExportService
         {
             ws.Cells[row, 1].Value = it.Metric;
             ws.Cells[row, 2].Value = it.Document;
-            ws.Cells[row, 3].Value = it.Calculated;
-            ws.Cells[row, 4].Value = it.Status;
-            ws.Cells[row, 4].Style.Font.Color.SetColor(it.Status == "Відповідає"
+            ws.Cells[row, 3].Value = it.Matrix;
+            ws.Cells[row, 4].Value = it.Calculated;
+            ws.Cells[row, 5].Value = it.Status;
+            ws.Cells[row, 5].Style.Font.Color.SetColor(it.Status == "Відповідає"
                 ? System.Drawing.Color.FromArgb(64, 160, 43)
                 : System.Drawing.Color.FromArgb(210, 15, 57));
+            ws.Cells[row, 2, row, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
@@ -353,7 +384,7 @@ public class ConfigExportService
     {
         var ws = pkg.Workbook.Worksheets.Add("ВМ по середовищах");
         string[] headers = { "Середовище", "Сервер (ВМ)", "Призначення", "ОС", "Версія СУБД", "CPU (ядер)", "RAM (ГБ)", "К-сть",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Примітки" };
+            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)", "Примітки" };
         WriteHeader(ws, headers);
         int row = 2;
         foreach (var e in environments)
@@ -371,7 +402,40 @@ public class ConfigExportService
                 ws.Cells[row, 9].Value = n.DiskPerNodeGb;
                 ws.Cells[row, 10].Value = n.TotalStorageGb;
                 ws.Cells[row, 11].Value = n.Iops > 0 ? n.Iops : (object)"—";
-                ws.Cells[row, 12].Value = n.Notes;
+                ws.Cells[row, 12].Value = string.IsNullOrEmpty(n.IopsProfile) ? "—" : n.IopsProfile;
+                ws.Cells[row, 13].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"—";
+                ws.Cells[row, 14].Value = n.Latency > 0 ? n.Latency : (object)"—";
+                ws.Cells[row, 15].Value = n.Notes;
+                ws.Cells[row, 6, row, 14].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                row++;
+            }
+        }
+        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+    }
+
+    // Аркуш із компонентами (подами) по кожному середовищу.
+    private static void BuildEnvironmentComponentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
+    {
+        bool anyComponents = environments.Any(e => e.Requirement.Components.Any(c => c.Cpu > 0));
+        if (!anyComponents) return;
+        var ws = pkg.Workbook.Worksheets.Add("Компоненти по середовищах");
+        string[] headers = { "Середовище", "Назва", "Категорія", "CPU/репліку", "RAM/репліку (ГБ)",
+            "Реплік", "CPU разом", "RAM разом (ГБ)" };
+        WriteHeader(ws, headers);
+        int row = 2;
+        foreach (var e in environments)
+        {
+            foreach (var c in e.Requirement.Components.Where(x => x.Cpu > 0))
+            {
+                ws.Cells[row, 1].Value = e.Name;
+                ws.Cells[row, 2].Value = c.Name;
+                ws.Cells[row, 3].Value = c.Category;
+                ws.Cells[row, 4].Value = Math.Round(c.CpuPerReplica, 2);
+                ws.Cells[row, 5].Value = Math.Round(c.RamPerReplicaGb, 2);
+                ws.Cells[row, 6].Value = c.Replicas;
+                ws.Cells[row, 7].Value = Math.Round(c.Cpu, 1);
+                ws.Cells[row, 8].Value = Math.Round(c.RamGb, 1);
+                ws.Cells[row, 4, row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 row++;
             }
         }
@@ -394,6 +458,7 @@ public class ConfigExportService
             ws.Cells[row, 5].Value = e.StorageGb;
             ws.Cells[row, 6].Value = e.Iops;
             ws.Cells[row, 7].Value = e.Nodes;
+            ws.Cells[row, 2, row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
@@ -440,7 +505,7 @@ public class ConfigExportService
         Kv("База даних (СКБД)", DbName(config.DatabaseType));
         Kv("Обсяг даних БД (ГБ)", config.DbDataSizeGb);
         r++;
-        Section("Підсумкові потреби (на все рішення)");
+        Section("Підсумкові потреби (середовище PROD)");
         Kv("Всього CPU (ядер процесора)", Math.Round(req.TotalCpu, 1));
         Kv("Всього RAM (оперативної пам'яті), ГБ", Math.Round(req.TotalRamGb, 1));
         Kv("Всього диски, ГБ", req.TotalStorageGb);
@@ -468,11 +533,18 @@ public class ConfigExportService
     private static void BuildInfrastructureSheet(ExcelPackage pkg, ResourceRequirement req)
     {
         var ws = pkg.Workbook.Worksheets.Add("Інфраструктура");
-        string[] headers = { "Сервер (ВМ)", "Призначення", "ОС", "Версія СУБД", "CPU (ядер)", "RAM (ГБ)", "К-сть", "Тип диску",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "Page file (ГБ)", "IOPS", "Затримка (мс)", "Примітки" };
-        WriteHeader(ws, headers);
+        // Підпис: ця таблиця — середовище PROD (перелік серверів/ВМ для розгортання).
+        ws.Cells[1, 1].Value = "Інфраструктура (сервери/ВМ) — середовище PROD";
+        ws.Cells[1, 1, 1, 16].Merge = true;
+        ws.Cells[1, 1].Style.Font.Bold = true;
+        ws.Cells[1, 1].Style.Font.Size = 12;
+        ws.Cells[1, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
 
-        int row = 2;
+        string[] headers = { "Сервер (ВМ)", "Призначення", "ОС", "Версія СУБД", "CPU (ядер)", "RAM (ГБ)", "К-сть", "Тип диску",
+            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "Page file (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)", "Примітки" };
+        WriteHeader(ws, headers, headerRow: 2);
+
+        int row = 3;
         foreach (var n in req.Infrastructure.Where(x => x.NodeCount > 0))
         {
             ws.Cells[row, 1].Value = n.Name;
@@ -487,8 +559,11 @@ public class ConfigExportService
             ws.Cells[row, 10].Value = n.TotalStorageGb;
             ws.Cells[row, 11].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"—";
             ws.Cells[row, 12].Value = n.Iops > 0 ? n.Iops : (object)"—";
-            ws.Cells[row, 13].Value = n.Latency > 0 ? n.Latency : (object)"—";
-            ws.Cells[row, 14].Value = n.Notes;
+            ws.Cells[row, 13].Value = string.IsNullOrEmpty(n.IopsProfile) ? "—" : n.IopsProfile;
+            ws.Cells[row, 14].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"—";
+            ws.Cells[row, 15].Value = n.Latency > 0 ? n.Latency : (object)"—";
+            ws.Cells[row, 16].Value = n.Notes;
+            ws.Cells[row, 5, row, 15].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
         // Підсумковий рядок.
@@ -497,9 +572,10 @@ public class ConfigExportService
         ws.Cells[row, 6].Value = Math.Round(req.TotalRamGb, 1);
         ws.Cells[row, 7].Value = req.Infrastructure.Sum(n => n.NodeCount);
         ws.Cells[row, 10].Value = req.TotalStorageGb;
-        ws.Cells[row, 1, row, 14].Style.Font.Bold = true;
-        ws.Cells[row, 1, row, 14].Style.Fill.PatternType = ExcelFillStyle.Solid;
-        ws.Cells[row, 1, row, 14].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+        ws.Cells[row, 5, row, 15].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        ws.Cells[row, 1, row, 16].Style.Font.Bold = true;
+        ws.Cells[row, 1, row, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        ws.Cells[row, 1, row, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
 
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
     }
@@ -524,6 +600,7 @@ public class ConfigExportService
             ws.Cells[row, 5].Value = c.Replicas;
             ws.Cells[row, 6].Value = Math.Round(c.Cpu, 1);
             ws.Cells[row, 7].Value = Math.Round(c.RamGb, 1);
+            ws.Cells[row, 3, row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
         }
         ws.Cells[row, 1].Value = "Разом";
@@ -537,11 +614,11 @@ public class ConfigExportService
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
     }
 
-    private static void WriteHeader(ExcelWorksheet ws, string[] headers)
+    private static void WriteHeader(ExcelWorksheet ws, string[] headers, int headerRow = 1)
     {
         for (int c = 0; c < headers.Length; c++)
         {
-            var cell = ws.Cells[1, c + 1];
+            var cell = ws.Cells[headerRow, c + 1];
             cell.Value = headers[c];
             cell.Style.Font.Bold = true;
             cell.Style.Font.Color.SetColor(System.Drawing.Color.White);

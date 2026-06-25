@@ -5,6 +5,11 @@
              xmlns:loc="clr-namespace:AIResourceCalculator.Localization">
     <UserControl.Resources>
         <conv:VisibilityConverter x:Key="VisibilityConverter"/>
+        <!-- Центрування числових клітинок у таблицях результатів. -->
+        <Style x:Key="CenterCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
     </UserControl.Resources>
     <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   PreviewMouseWheel="RootScroll_PreviewMouseWheel">
@@ -67,12 +72,12 @@
                 <DataGrid ItemsSource="{Binding Environments}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.env}" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="{loc:Loc col.users}" Binding="{Binding UserCount}" Width="80"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80"/>
-                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat={}{0} GB}" Width="100"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="80"/>
-                        <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="90"/>
+                        <DataGridTextColumn Header="{loc:Loc col.users}" Binding="{Binding UserCount}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="70" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat={}{0} GB}" Width="100" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="80" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="90" ElementStyle="{StaticResource CenterCell}"/>
                     </DataGrid.Columns>
                 </DataGrid>
 
@@ -81,21 +86,39 @@
                 <ItemsControl ItemsSource="{Binding Environments}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="0,0,0,8">
-                                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2">
-                                    <Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
+                            <StackPanel Margin="0,0,0,12">
+                                <TextBlock FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2">
+                                    <Run Text="Середовище "/><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount, Mode=OneWay}"/>
                                 </TextBlock>
                                 <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
                                         <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
                                         <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75"/>
-                                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                         <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="140"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <!-- Компоненти (поди) цього середовища -->
+                                <TextBlock Text="{loc:Loc results.envComponents}" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,2"
+                                           Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}"/>
+                                <DataGrid ItemsSource="{Binding Components}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                                          MaxHeight="200"
+                                          Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="Auto" MinWidth="90"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat={}{0:F1}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </StackPanel>
@@ -103,32 +126,39 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
-            <TextBlock Text="{loc:Loc results.infra}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
+            <TextBlock Text="{loc:Loc results.infraProd}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2"/>
+            <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextPrimary}"
+                       TextWrapping="Wrap" Margin="0,0,0,6"/>
             <DataGrid x:Name="GridInfrastructure" MinHeight="140" MaxHeight="300" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12"
                       ItemsSource="{Binding ResultInfrastructure}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
                     <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
                     <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
-                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45"/>
-                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45"/>
+                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                     <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
-                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45"/>
-                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75"/>
-                    <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto"/>
-                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55"/>
-                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto"/>
+                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat={}{0} GB}" Width="Auto" MinWidth="75" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
+                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" ElementStyle="{StaticResource CenterCell}"/>
                     <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
                 </DataGrid.Columns>
             </DataGrid>
             <StackPanel Visibility="{Binding HasDocComparison, Converter={StaticResource VisibilityConverter}}" Margin="0,0,0,12">
-                <TextBlock Text="{loc:Loc doc.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,5"/>
+                <TextBlock Text="{loc:Loc doc.compareTitle}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,2"/>
+                <TextBlock Text="{loc:Loc doc.compareHint}" FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" Margin="0,0,0,5"/>
                 <DataGrid ItemsSource="{Binding DocComparison}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.metric}" Binding="{Binding Metric}" Width="*"/>
-                        <DataGridTextColumn Header="{loc:Loc col.docValue}" Binding="{Binding Document}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.calcValue}" Binding="{Binding Calculated}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.status}" Binding="{Binding Status}" Width="140"/>
+                        <DataGridTextColumn Header="{loc:Loc col.docValue}" Binding="{Binding Document}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.matrixValue}" Binding="{Binding Matrix}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.calcValue}" Binding="{Binding Calculated}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
+                        <DataGridTextColumn Header="{loc:Loc col.status}" Binding="{Binding Status}" Width="130" ElementStyle="{StaticResource CenterCell}"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </StackPanel>

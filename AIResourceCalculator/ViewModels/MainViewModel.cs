@@ -113,6 +113,8 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _includeTest;
     private bool _includePredProd;
     private string _devUserCount = "10";
+    private string _testUserCount = "25";
+    private string _predProdUserCount = "50";
     private string _backupDays = "7";
     private string _dbDataSizeGb = "20";
 
@@ -124,6 +126,8 @@ public class MainViewModel : INotifyPropertyChanged
     public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); } }
     public bool IncludePredProd { get => _includePredProd; set { _includePredProd = value; OnPropertyChanged(); } }
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
+    public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
+    public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
     public string BackupDays { get => _backupDays; set { _backupDays = value; OnPropertyChanged(); } }
     // Обсяг реляційних даних БД (ГБ) — визначає диски Data/Logs та резерв під бекап.
     public string DbDataSizeGb { get => _dbDataSizeGb; set { _dbDataSizeGb = value; OnPropertyChanged(); } }
@@ -356,7 +360,8 @@ public class MainViewModel : INotifyPropertyChanged
         ResultComponents = new ObservableCollection<ServiceComponent>(req.Components);
         OnPropertyChanged(nameof(ResultComponents));
 
-        DocComparison = new ObservableCollection<DocComparisonItem>(DocumentRequirements.Compare(req, config));
+        DocComparison = new ObservableCollection<DocComparisonItem>(
+            DocumentRequirements.Compare(req, config, MatrixRangesForProfile(config.LoadProfile)));
         OnPropertyChanged(nameof(DocComparison));
         OnPropertyChanged(nameof(HasDocComparison));
     }
@@ -364,6 +369,8 @@ public class MainViewModel : INotifyPropertyChanged
     private EnvironmentSettings GetEnvSettings()
     {
         if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
+        if (!int.TryParse(TestUserCount, out var test) || test < 1) test = 25;
+        if (!int.TryParse(PredProdUserCount, out var pp) || pp < 1) pp = 50;
         if (!int.TryParse(BackupDays, out var days) || days < 1) days = 7;
         return new EnvironmentSettings
         {
@@ -371,60 +378,52 @@ public class MainViewModel : INotifyPropertyChanged
             IncludeTest = IncludeTest,
             IncludePredProd = IncludePredProd,
             DevUserCount = Math.Clamp(dev, 1, 5000),
+            TestUserCount = Math.Clamp(test, 1, 5000),
+            PredProdUserCount = Math.Clamp(pp, 1, 5000),
             BackupRetentionDays = Math.Clamp(days, 1, 365),
             BackupCompression = DefaultBackupCompression
         };
     }
 
-    // PROD завжди; DEV/TEST/PredProd додаються за вибором. TEST/PredProd — масштабування PROD,
-    // DEV — окремий розрахунок рушієм на меншій к-сті ліцензій.
-    // Бекап-резерв (від обсягу даних БД) додається до КОЖНОГО середовища, включно з PROD.
+    // PROD завжди; DEV/TEST/PreProd додаються за вибором. КОЖНЕ середовище рахується рушієм
+    // ОКРЕМО за власною кількістю користувачів (з урахуванням к-сті користувачів по модулях) —
+    // як у Excel-табличці, а не масштабуванням PROD. Бекап-резерв (від обсягу даних БД)
+    // додається до кожного середовища, включно з PROD. Редакцію СУБД визначає Environment
+    // (non-prod → Developer Edition).
     private void BuildEnvironments(ProjectConfig config, ResourceRequirement prodReq)
     {
         var s = GetEnvSettings();
         int reserve = EnvironmentScaler.BackupReserveGb(config.DbDataSizeGb, s);
 
-        // Знімок PROD ДО бекап-резерву — основа для масштабування TEST/PreProd (щоб не подвоїти резерв).
-        var prodBase = prodReq.DeepClone();
-
         // PROD отримує бекап-резерв так само, як решта середовищ.
         EnvironmentScaler.AddBackupReserve(prodReq, reserve);
+
+        EnvironmentReport BuildEnv(DeployEnvironment env, string name, int users)
+        {
+            var envConfig = new ProjectConfig
+            {
+                ProjectName = config.ProjectName, UserCount = users,
+                DeploymentType = config.DeploymentType, ProductType = config.ProductType,
+                LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
+                DbDataSizeGb = config.DbDataSizeGb, Environment = env
+            };
+            _engine.SetModules(Modules.ToList());
+            var req = _engine.Calculate(envConfig);
+            EnvironmentScaler.AddBackupReserve(req, reserve);
+            return new EnvironmentReport { Environment = env, Name = name, UserCount = users, Requirement = req };
+        }
 
         var reports = new List<EnvironmentReport>
         {
             new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq }
         };
 
-        if (s.IncludeDev)
-        {
-            var devConfig = new ProjectConfig
-            {
-                ProjectName = config.ProjectName, UserCount = s.DevUserCount,
-                DeploymentType = config.DeploymentType, ProductType = config.ProductType,
-                LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
-                DbDataSizeGb = config.DbDataSizeGb
-            };
-            _engine.SetModules(Modules.ToList());
-            var devReq = _engine.Calculate(devConfig);
-            EnvironmentScaler.AddBackupReserve(devReq, reserve);
-            reports.Add(new() { Environment = DeployEnvironment.Dev, Name = "DEV", UserCount = s.DevUserCount, Requirement = devReq });
-        }
-        if (s.IncludeTest)
-        {
-            var test = EnvironmentScaler.ScaleFromProd(prodBase, s.TestScaleFactor);
-            EnvironmentScaler.AddBackupReserve(test, reserve);
-            // Кількість користувачів TEST — масштабована від PROD (узгоджено з урізаною потужністю).
-            var testUsers = Math.Max(1, (int)Math.Round(config.UserCount * s.TestScaleFactor));
-            reports.Add(new() { Environment = DeployEnvironment.Test, Name = "TEST", UserCount = testUsers, Requirement = test });
-        }
-        if (s.IncludePredProd)
-        {
-            var pp = EnvironmentScaler.ScaleFromProd(prodBase, s.TestScaleFactor * s.PredProdMultiplier);
-            EnvironmentScaler.AddBackupReserve(pp, reserve);
-            var ppUsers = Math.Min(config.UserCount,
-                Math.Max(1, (int)Math.Round(config.UserCount * s.TestScaleFactor * s.PredProdMultiplier)));
-            reports.Add(new() { Environment = DeployEnvironment.PredProd, Name = "PreProd", UserCount = ppUsers, Requirement = pp });
-        }
+        if (s.IncludeDev) reports.Add(BuildEnv(DeployEnvironment.Dev, "DEV", s.DevUserCount));
+        if (s.IncludeTest) reports.Add(BuildEnv(DeployEnvironment.Test, "TEST", s.TestUserCount));
+        if (s.IncludePredProd) reports.Add(BuildEnv(DeployEnvironment.PredProd, "PreProd", s.PredProdUserCount));
+
+        // Відновити стан рушія до PROD-конфігурації для подальших дій.
+        _engine.SetModules(Modules.ToList());
 
         _environments = reports;
         Environments = new ObservableCollection<EnvironmentReport>(reports);
@@ -477,6 +476,11 @@ public class MainViewModel : INotifyPropertyChanged
 
     private string BuildDiskRecommendations(ResourceRequirement req, ProjectConfig config)
         => DiskAdvisor.Build(req, config, _loc);
+
+    // Поточні (редаговані) діапазони MS SQL з матриці для активного профілю навантаження —
+    // використовуються у звірці для стовпця «За матрицею».
+    private IEnumerable<UserLoadRange> MatrixRangesForProfile(LoadProfile profile)
+        => profile == LoadProfile.Performance ? MatrixVM.MsSqlPerformanceRanges : MatrixVM.MsSqlRanges;
 
     private void LoadHistory()
     {
@@ -579,13 +583,15 @@ public class MainViewModel : INotifyPropertyChanged
     private void ExportXml()
     {
         if (_lastResult == null) return;
-        ExportConfig(_results.ExportXml(_lastResult, GetConfig(), _environments), "xml");
+        var cfg = GetConfig();
+        ExportConfig(_results.ExportXml(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile)), "xml");
     }
 
     private void ExportHtml()
     {
         if (_lastResult == null) return;
-        ExportConfig(_results.ExportHtml(_lastResult, GetConfig(), _environments), "html");
+        var cfg = GetConfig();
+        ExportConfig(_results.ExportHtml(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile)), "html");
     }
 
     private void ExportExcel()
@@ -598,7 +604,8 @@ public class MainViewModel : INotifyPropertyChanged
         };
         if (saveDialog.ShowDialog() == true)
         {
-            var bytes = _results.ExportExcel(_lastResult, GetConfig(), _environments);
+            var cfg = GetConfig();
+            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
             System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
             StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }

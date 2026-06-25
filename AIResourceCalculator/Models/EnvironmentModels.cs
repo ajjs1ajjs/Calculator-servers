@@ -1,23 +1,20 @@
 namespace AIResourceCalculator.Models;
 
-// Налаштування похідних середовищ. PROD — база; решта виводяться з нього.
-//  • DEV  — окрема (менша) кількість ліцензій, рахується рушієм заново;
-//  • TEST — творчо зменшений PROD (TestScaleFactor потужності), але диск ≥ PROD + бекап-резерв;
-//  • PredProd — як TEST, але × PredProdMultiplier (на 20% потужніший за замовчуванням).
+// Налаштування похідних середовищ. PROD — база; кожне додаткове середовище рахується
+// рушієм ОКРЕМО за власною кількістю користувачів (як у Excel-табличці), а не масштабуванням
+// PROD. Це дає правильні мінімальні DEV/TEST та незалежний контроль PreProd.
 public class EnvironmentSettings
 {
     public bool IncludeDev { get; set; }
     public bool IncludeTest { get; set; }
     public bool IncludePredProd { get; set; }
 
+    // Власна кількість користувачів (ліцензій) кожного похідного середовища.
     public int DevUserCount { get; set; } = 10;
+    public int TestUserCount { get; set; } = 25;
+    public int PredProdUserCount { get; set; } = 50;
 
-    // Частка потужності TEST відносно PROD (0.5 = 50%).
-    public double TestScaleFactor { get; set; } = 0.5;
-    // Множник PredProd відносно TEST (1.2 = +20%).
-    public double PredProdMultiplier { get; set; } = 1.2;
-
-    // Бекап-резерв на не-prod середовищах: retention днів × (1 − стиснення) × обсяг даних БД ПРОДу.
+    // Бекап-резерв: retention днів × (1 − стиснення) × обсяг даних БД.
     public int BackupRetentionDays { get; set; } = 7;
     // Частка стиснення бекапу (0.5 = стиснення на 50%, тобто бекап = 50% від БД).
     public double BackupCompression { get; set; } = 0.5;
@@ -42,4 +39,8 @@ public class EnvironmentReport
 
     // Перелік ВМ середовища (для розбивки у звіті/UI).
     public IEnumerable<InfrastructureNode> Vms => Requirement.Infrastructure.Where(n => n.NodeCount > 0);
+
+    // Компоненти (поди) середовища — для окремої розбивки DEV/TEST/PreProd у звіті/UI.
+    public IEnumerable<ServiceComponent> Components => Requirement.Components.Where(c => c.Cpu > 0);
+    public bool HasComponents => Components.Any();
 }

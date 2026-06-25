@@ -18,6 +18,8 @@ public class InfrastructureNode
     public double MinVersion { get; set; }
     public int Iops { get; set; }
     public string IopsProfile { get; set; } = "";
+    // Пропускна здатність диска, MiB/s (послідовні операції). 0 = не показувати.
+    public int ThroughputMiBs { get; set; }
     public double Latency { get; set; }
     public int PageFileGb { get; set; }
     public string PageFileType { get; set; } = "";

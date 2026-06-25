@@ -57,12 +57,14 @@ public class SizingEngineTests
         var basic = _engine.Calculate(basicConfig);
         var perf = _engine.Calculate(perfConfig);
 
-        // Підсумок тепер = ФІЗИЧНІ ресурси вузлів. Профіль "Продуктивний" не зменшує робоче
-        // навантаження: к-сть worker-вузлів і RAM не нижчі за базовий профіль.
-        // (CPU вузла БД для перф-профілю у матриці навмисно НИЖЧИЙ — 6 проти 8 на 51-100,
-        //  тому пряме порівняння TotalCpu тут некоректне.)
+        // Порівнюємо РОБОЧЕ НАВАНТАЖЕННЯ (запит подів): модулі Документообігу важчі за под,
+        // тож запит CPU/RAM подів не нижчий за базовий профіль.
+        // Загальний TotalRam/TotalCpu тут порівнювати некоректно: вузол БД у профілі Документообіг
+        // (варіант Standard, D-AD-ADM-E 3.11.1) навмисно легший за загальну базову конфігурацію
+        // (напр., 24 проти 48 ГБ ОЗП на 51-100 ліцензій).
         Assert.True(perf.WorkerNodeCount >= basic.WorkerNodeCount);
-        Assert.True(perf.TotalRamGb >= basic.TotalRamGb);
+        Assert.True(perf.PodRamGb >= basic.PodRamGb);
+        Assert.True(perf.PodCpu >= basic.PodCpu);
     }
 
     [Fact]
@@ -522,6 +524,42 @@ public class SizingEngineTests
         Assert.Equal("MS SQL Server 2022 Enterprise", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 240));
         Assert.Contains("PostgreSQL 17", SizingEngine.DbVersionLabel(DatabaseType.PostgreSQL, 64));
         Assert.Contains("Oracle Database 19c", SizingEngine.DbVersionLabel(DatabaseType.Oracle, 64));
+    }
+
+    // --- Редакція SQL за середовищем і порогами (Developer для non-prod; Standard ≤24 ядер і ≤128 ГБ) ---
+    [Fact]
+    public void DbVersionLabel_Sql_DeveloperForNonProd()
+    {
+        Assert.Equal("MS SQL Server 2022 Developer Edition",
+            SizingEngine.DbVersionLabel(DatabaseType.MsSql, 240, 32, DeployEnvironment.Dev));
+        Assert.Equal("MS SQL Server 2022 Developer Edition",
+            SizingEngine.DbVersionLabel(DatabaseType.MsSql, 16, 4, DeployEnvironment.Test));
+        Assert.Equal("MS SQL Server 2022 Developer Edition",
+            SizingEngine.DbVersionLabel(DatabaseType.MsSql, 64, 8, DeployEnvironment.PredProd));
+    }
+
+    [Fact]
+    public void DbVersionLabel_Sql_Prod_EnterpriseWhenCoresExceedStandardLimit()
+    {
+        // RAM у межах Standard (96 ≤ 128), але ядер 28 > 24 → Enterprise.
+        Assert.Equal("MS SQL Server 2022 Enterprise",
+            SizingEngine.DbVersionLabel(DatabaseType.MsSql, 96, 28, DeployEnvironment.Prod));
+        // У межах обох лімітів → Standard.
+        Assert.Equal("MS SQL Server 2022 Standard",
+            SizingEngine.DbVersionLabel(DatabaseType.MsSql, 96, 24, DeployEnvironment.Prod));
+    }
+
+    // --- Профіль IOPS та пропускна здатність (MiB/s) проставляються на вузлі БД ---
+    [Fact]
+    public void Calculate_SqlNode_HasIopsProfileAndThroughput()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+        var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Equal("50r/50w", db.IopsProfile);
+        Assert.True(db.ThroughputMiBs > 0);
     }
 
     [Fact]
