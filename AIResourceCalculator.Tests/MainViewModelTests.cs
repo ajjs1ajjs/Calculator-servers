@@ -55,14 +55,14 @@ public class MainViewModelTests
         foreach (var m in vm.Modules) if (m.Name == "LMS") m.IsEnabled = true;
         vm.IncludeDev = true;
         var lmsRow = vm.EnvModuleCounts.First(r => r.ModuleName == "LMS");
-        lmsRow.DevUsers = 500;     // DEV LMS = 500 → LMS-SmartID = ceil(500/25) = 20
+        lmsRow.DevUsers = 500;     // DEV LMS = 500 → LMS-GraphQL = ceil(500/25) = 20
 
         vm.CalculateCommand.Execute(null);
 
         var dev = vm.Environments.First(e => e.Name == "DEV");
-        var smartId = dev.Requirement.Components.First(c =>
-            c.Category == "LMS" && c.Name == ComponentDisplayName.Localize("LMS-SmartID"));
-        Assert.Equal(20, smartId.Replicas);
+        var lmsComp = dev.Requirement.Components.First(c =>
+            c.Category == "LMS" && c.Name == ComponentDisplayName.Localize("LMS-GraphQL"));
+        Assert.Equal(20, lmsComp.Replicas);
     }
 
     [Fact]

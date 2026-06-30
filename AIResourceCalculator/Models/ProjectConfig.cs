@@ -17,6 +17,11 @@ public class ProjectConfig
     public bool IncludeHaProxy { get; set; }           // Балансувальник HAProxy (Linux), 2/4
     public bool HaProxyHa { get; set; }                // HAProxy у режимі HA → 2 вузли (active/passive, VRRP)
 
+    // Розміщення центрального SmartID (SSO) у ГІБРИДІ: true = под у Kubernetes, false = на
+    // веб-серверах (IIS) — без окремої ВМ (IIS у нас і є веб-сервер). У чистому K8s SmartID
+    // завжди под; у чистому Windows — завжди на веб-серверах (IIS). Поза гібридом поле ігнорується.
+    public bool SmartIdOnKubernetes { get; set; } = true;
+
     // Середовище, для якого виконується розрахунок. Визначає редакцію СУБД:
     // non-prod (DEV/TEST/PreProd) → Developer Edition; PROD → Standard/Enterprise.
     public DeployEnvironment Environment { get; set; } = DeployEnvironment.Prod;

@@ -88,9 +88,17 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _deploymentIndex = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsHybrid));
             OnDeploymentTypeChanged();
         }
     }
+
+    // Гібрид обрано (індекс 2) — лише тоді показуємо вибір розміщення SmartID (Kuber/Windows).
+    public bool IsHybrid => _deploymentIndex == 2;
+
+    // Розміщення центрального SmartID у гібриді: true = Kubernetes (под), false = веб-сервери (IIS).
+    private bool _smartIdOnKubernetes = true;
+    public bool SmartIdOnKubernetes { get => _smartIdOnKubernetes; set { _smartIdOnKubernetes = value; OnPropertyChanged(); } }
 
     public int ProductIndex
     {
@@ -318,7 +326,8 @@ public class MainViewModel : INotifyPropertyChanged
             IncludeReportingServer = IncludeReportingServer,
             IncludeSqlFailover = IncludeSqlFailover,
             IncludeHaProxy = IncludeHaProxy,
-            HaProxyHa = HaProxyHa
+            HaProxyHa = HaProxyHa,
+            SmartIdOnKubernetes = SmartIdOnKubernetes
         };
     }
 
@@ -448,7 +457,8 @@ public class MainViewModel : INotifyPropertyChanged
                 IncludeReportingServer = NodeEnabledFor("reporting", env),
                 IncludeSqlFailover = NodeEnabledFor("failover", env),
                 IncludeHaProxy = NodeEnabledFor("haproxy", env),
-                HaProxyHa = NodeEnabledFor("haproxy-ha", env)
+                HaProxyHa = NodeEnabledFor("haproxy-ha", env),
+                SmartIdOnKubernetes = config.SmartIdOnKubernetes
             };
             // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
             // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).

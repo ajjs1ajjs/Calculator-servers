@@ -36,6 +36,16 @@
                                     <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="Oracle 19c"/>
                                 </ComboBox>
                             </Grid>
+                            <!-- Розміщення центрального SmartID — лише в гібриді (у чистому K8s завжди под,
+                                 у чистому Windows завжди на веб-серверах IIS). На Windows SmartID
+                                 розгортається на веб-серверах (IIS), без окремої ВМ. -->
+                            <StackPanel Orientation="Horizontal" Margin="3,4,0,0"
+                                        Visibility="{Binding IsHybrid, Converter={StaticResource VisibilityConverter}}">
+                                <TextBlock Text="SmartID:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                                <CheckBox Content="у Kubernetes (інакше — на веб-серверах IIS)" VerticalAlignment="Center"
+                                          IsChecked="{Binding SmartIdOnKubernetes, Mode=TwoWay}"
+                                          ToolTip="Гібрид: де розгортати центральний сервіс єдиного входу SmartID. Увімкнено — под у Kubernetes; вимкнено — на веб-серверах (IIS), без окремої ВМ."/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">

@@ -104,7 +104,7 @@ public class SizingEngine : ISizingEngine
     // includeDatabase=false і excludeModules використовуються в гібриді: БД та app/web
     // частина живуть на Windows, тому K8s їх не додає (інакше — подвійний облік).
     private void CalculateK8s(ResourceRequirement req, ProjectConfig config,
-        bool includeDatabase = true, HashSet<string>? excludeModules = null)
+        bool includeDatabase = true, HashSet<string>? excludeModules = null, bool includeSmartId = true)
     {
         var sqlRange = FindDatabaseRange(config.UserCount, config.LoadProfile, config.DatabaseType);
         var masterNode = _matrix.DefaultK8sMaster ?? _defaultMaster;
@@ -154,6 +154,22 @@ public class SizingEngine : ISizingEngine
                     Notes = comp.Notes
                 });
             }
+        }
+
+        // Центральний SmartID (SSO) — ОДИН на всю систему, масштабується від загальної к-сті
+        // користувачів. У гібриді може йти на веб-сервери IIS (includeSmartId=false) — тоді окрема ВМ
+        // не додається (IIS і є веб-сервер). У чистому Windows SmartID теж на IIS (поди не рахуються).
+        if (includeSmartId)
+        {
+            int rep = Math.Max(1, (int)Math.Ceiling(config.UserCount / 25.0));
+            totalCpu += SmartIdCpuPerReplica * rep;
+            totalRam += SmartIdRamPerReplicaGb * rep;
+            req.Components.Add(new ServiceComponent
+            {
+                Name = "SmartID", Cpu = SmartIdCpuPerReplica * rep, RamGb = SmartIdRamPerReplicaGb * rep,
+                CpuPerReplica = SmartIdCpuPerReplica, RamPerReplicaGb = SmartIdRamPerReplicaGb,
+                Replicas = rep, Formula = ReplicaFormula.Per25Users, Category = "SmartID"
+            });
         }
 
         var workerCpuCapacity = workerNode.Cpu > 0 ? workerNode.Cpu : DefaultWorkerCpu;
@@ -338,7 +354,10 @@ public class SizingEngine : ISizingEngine
         var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, ProductType = config.ProductType, DatabaseType = config.DatabaseType };
         var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, ProductType = config.ProductType, DatabaseType = config.DatabaseType };
 
-        CalculateK8s(k8sReq, k8sConfig, includeDatabase: false, excludeModules: HybridWindowsModules);
+        // SmartID у гібриді: на K8s — под (includeSmartId=true); на веб-серверах IIS — тоді з K8s
+        // його прибираємо (окрема ВМ не додається; IIS і є веб-сервер Windows-частини).
+        CalculateK8s(k8sReq, k8sConfig, includeDatabase: false, excludeModules: HybridWindowsModules,
+            includeSmartId: config.SmartIdOnKubernetes);
         CalculateWindows(winReq, winConfig);
 
         // БД — на Windows-частині; K8s IOPS = 0, тож підсумок IOPS бере Windows.
@@ -462,6 +481,10 @@ public class SizingEngine : ISizingEngine
     // Fallback worker capacity when matrix node specs are missing
     private const double DefaultWorkerCpu = 8;
     private const double DefaultWorkerRamGb = 32;
+
+    // Центральний SmartID (SSO) — ресурс на 1 репліку (на кожні 25 користувачів), один на систему.
+    private const double SmartIdCpuPerReplica = 0.2;
+    private const double SmartIdRamPerReplicaGb = 0.5;
 
     // Профілі читання/запису дисків за документом D-AD-ADM-E:
     //  • сервер БД — 50r/50w; сервери додатків — 30r/70w; веб-сервери — 70r/30w;

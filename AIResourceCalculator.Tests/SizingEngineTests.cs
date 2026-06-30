@@ -240,6 +240,38 @@ public class SizingEngineTests
         Assert.Equal(1, secondary.NodeCount);
     }
 
+    // --- Центральний SmartID: один на систему, за загальною к-стю користувачів ---
+    [Fact]
+    public void Calculate_K8s_HasSingleCentralSmartId()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+        var smartIds = result.Components.Where(c => c.Name == "SmartID").ToList();
+        Assert.Single(smartIds);
+        Assert.Equal(4, smartIds[0].Replicas); // ceil(100/25)
+    }
+
+    // --- SmartID у гібриді: на K8s — под; на Windows — обслуговує IIS (поду немає) ---
+    [Fact]
+    public void Calculate_Hybrid_SmartIdPlacement()
+    {
+        var onK8s = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic,
+            SmartIdOnKubernetes = true
+        });
+        Assert.Contains(onK8s.Components, c => c.Name == "SmartID");
+
+        var onWin = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic,
+            SmartIdOnKubernetes = false
+        });
+        Assert.DoesNotContain(onWin.Components, c => c.Name == "SmartID");
+    }
+
     // --- HAProxy додається лише за перемикачем (Linux 2/4) ---
     [Fact]
     public void Calculate_HaProxy_WhenEnabled_AddsLinuxNode()
@@ -708,26 +740,30 @@ public class SizingEngineTests
             UserCount = 50, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
         });
 
-        Assert.Equal(48.15, result.PodCpu, 2);
-        Assert.Equal(191.95, result.PodRamGb, 2);
+        // SmartID централізовано (один на систему за загальною к-стю користувачів), тож попередні
+        // окремі Web/LMS/HR SmartID прибрано: PodCpu/RAM зменшено на їхній внесок і додано один
+        // центральний SmartID (50 ліц → 2 репліки). Звідси нові підсумки.
+        Assert.Equal(46.20, result.PodCpu, 2);
+        Assert.Equal(175.70, result.PodRamGb, 2);
 
         int Rep(string canonical) => result.Components
             .First(c => c.Name == ComponentDisplayName.Localize(canonical)).Replicas;
         Assert.Equal(3, Rep("ROBOT"));               // 1 + int(50/100) + int(2500/1000)
         Assert.Equal(7, Rep("WS (WebSocket)"));      // 1 + int(50/50) + int(2500/500)
-        Assert.Equal(300, Rep("LMS-SmartID"));       // ceil(7500/25)
+        Assert.Equal(2, Rep("SmartID"));             // центральний: ceil(50/25), за загальною к-стю
     }
 
-    // --- Регресія: дрібний CPU модулів (HR Portal SmartID/GraphQL) не зникає ---
-    // Симптом, що пам'ятали: при малій к-сті HR Portal CPU SmartID (0.006) і GraphQL (0.01)
-    // показувались як 0 — через округлення підсумку компонента до 1 знака. Тепер 2 знаки.
+    // --- Регресія: дрібний CPU модулів (HR Portal GraphQL) не зникає ---
+    // Симптом, що пам'ятали: при малій к-сті HR Portal дрібний CPU (0.01) показувався як 0 —
+    // через округлення підсумку компонента до 1 знака. Тепер 2 знаки. (HR-SmartID прибрано —
+    // SmartID централізовано; перевіряємо на HR-GraphQL, який лишився дрібним.)
     [Fact]
-    public void Calculate_K8s_HrPortalSmallCount_SmartIdCpuNotLost()
+    public void Calculate_K8s_HrPortalSmallCount_SmallCpuNotLost()
     {
         var modules = _engine.Modules.ToClonedList();
         var hr = modules.First(m => m.Name == "HR Portal");
         hr.IsEnabled = true;
-        hr.UserCount = 100; // Per100 → рівно 1 репліка SmartID/GraphQL
+        hr.UserCount = 100; // Per100 → рівно 1 репліка GraphQL
         _engine.SetModules(modules);
 
         var result = _engine.Calculate(new ProjectConfig
@@ -735,19 +771,16 @@ public class SizingEngineTests
             UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
         });
 
-        var smartId = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-SmartID"));
         var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
 
         // Рушій зберігає точні значення з матриці (1 репліка).
-        Assert.Equal(1, smartId.Replicas);
-        Assert.Equal(0.006, smartId.Cpu, 3);
+        Assert.Equal(1, graphql.Replicas);
         Assert.Equal(0.01, graphql.Cpu, 3);
 
         // Суть фікса: округлення до 2 знаків лишає значення видимим (>0),
         // тоді як старе округлення до 1 знака давало 0.
-        Assert.True(Math.Round(smartId.Cpu, 2) > 0);
-        Assert.Equal(0, Math.Round(smartId.Cpu, 1)); // демонструє колишній баг
         Assert.True(Math.Round(graphql.Cpu, 2) > 0);
+        Assert.Equal(0, Math.Round(graphql.Cpu, 1)); // демонструє колишній баг
     }
 
     // --- Відповідність еталону: профіль Документообіг (БД + сервери додатків), 200 ліцензій ---
