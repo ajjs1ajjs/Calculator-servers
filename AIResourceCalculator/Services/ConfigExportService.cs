@@ -636,6 +636,11 @@ public class ConfigExportService
         ws.Cells[r, 1, r, 2].Merge = true;
         ws.Cells[r, 1].Style.Font.Size = 14;
         ws.Cells[r, 1].Style.Font.Bold = true;
+        // Об'єднана комірка не авторозширюється під AutoFit — переносимо текст і даємо висоту,
+        // щоб довга назва (напр. «… Гібрид (K8s + Windows)») була видна повністю.
+        ws.Cells[r, 1].Style.WrapText = true;
+        ws.Cells[r, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+        ws.Row(r).Height = 36;
         r++;
         ws.Cells[r, 1].Value = $"Документ описує, яке обладнання (сервери) потрібно підготувати для роботи системи на {config.UserCount} користувачів.";
         ws.Cells[r, 1, r, 2].Merge = true;

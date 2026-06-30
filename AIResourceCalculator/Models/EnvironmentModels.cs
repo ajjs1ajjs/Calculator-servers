@@ -26,6 +26,9 @@ public class EnvModuleCount
     public int TestUsers { get; set; }
     public int PredProdUsers { get; set; }
 
+    // Чи показувати поле к-сті користувачів (ForceBPM — ні, лише ✓). Береться з модуля.
+    public bool HasOwnUserCount { get; set; } = true;
+
     // Увімкнення модуля ОКРЕМО для кожного середовища (незалежно від PROD).
     public bool DevEnabled { get; set; } = true;
     public bool TestEnabled { get; set; } = true;

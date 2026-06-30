@@ -117,9 +117,12 @@ public class MainViewModel : INotifyPropertyChanged
     private string _testUserCount = "25";
     private string _predProdUserCount = "50";
 
-    public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); } }
-    public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); } }
-    public bool IncludePredProd { get => _includePredProd; set { _includePredProd = value; OnPropertyChanged(); } }
+    public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
+    public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
+    public bool IncludePredProd { get => _includePredProd; set { _includePredProd = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
+
+    // Чи ввімкнено хоч одне похідне середовище (для показу заголовка блоку карток середовищ).
+    public bool HasEnvironmentsSelected => IncludeDev || IncludeTest || IncludePredProd;
 
     // Опціональні вузли інфраструктури (типово вимкнені, як модулі LMS/HR Portal).
     private bool _includeReportingServer;
@@ -247,9 +250,13 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var existing = EnvModuleCounts.ToDictionary(r => r.ModuleName);
         var rows = Modules.Where(m => !m.IsMandatory).Select(m =>
-            existing.TryGetValue(m.Name, out var old)
-                ? old
-                : new EnvModuleCount { ModuleName = m.Name, DevUsers = 10, TestUsers = 25, PredProdUsers = 50 })
+            {
+                var row = existing.TryGetValue(m.Name, out var old)
+                    ? old
+                    : new EnvModuleCount { ModuleName = m.Name, DevUsers = 10, TestUsers = 25, PredProdUsers = 50 };
+                row.HasOwnUserCount = m.HasOwnUserCount; // ForceBPM — лише ✓, без к-сті
+                return row;
+            })
             .ToList();
         EnvModuleCounts = new ObservableCollection<EnvModuleCount>(rows);
         OnPropertyChanged(nameof(EnvModuleCounts));
@@ -628,16 +635,12 @@ public class MainViewModel : INotifyPropertyChanged
             // Обов'язкові сервіси (App Server / ROBOT / Web) — завжди ввімкнені.
             if (mod.IsMandatory) { mod.IsEnabled = true; continue; }
 
-            // Чи застосовний модуль до цього типу розгортання.
-            bool applicable = deploymentType switch
-            {
-                DeploymentType.Kubernetes => !mod.Name.Contains("Windows"),
-                DeploymentType.Windows => !mod.IsKubernetesOnly,
-                _ => true
-            };
-            // Незастосовні вимикаємо; застосовні зберігають свій (типовий або обраний) стан —
-            // зокрема LMS/HR лишаються вимкненими за замовчуванням.
-            if (!applicable) mod.IsEnabled = false;
+            // Kubernetes-only сервіси (ForceBPM) керуються типом розгортання автоматично (галочка
+            // заблокована): Windows — вимкнено (на чистому Windows їх немає), K8s/Гібрид — увімкнено
+            // (живуть на Ubuntu-вузлах). Користувач їх не перемикає вручну.
+            if (mod.IsKubernetesOnly) { mod.IsEnabled = deploymentType != DeploymentType.Windows; continue; }
+
+            // Решта опціональних (LMS/HR) застосовні скрізь; зберігають свій стан (типово вимкнені).
         }
 
         Modules = new ObservableCollection<ProjectModule>(Modules);

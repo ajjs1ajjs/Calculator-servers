@@ -645,9 +645,9 @@ public class SizingEngineTests
     [Fact]
     public void DbVersionLabel_Sql_PicksEditionByRam()
     {
-        Assert.Equal("MS SQL Server 2022 Standard", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 64));
-        Assert.Equal("MS SQL Server 2022 Standard", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 128));
-        Assert.Equal("MS SQL Server 2022 Enterprise", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 240));
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Standard", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 64));
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Standard", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 128));
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Enterprise", SizingEngine.DbVersionLabel(DatabaseType.MsSql, 240));
         Assert.Contains("PostgreSQL 17", SizingEngine.DbVersionLabel(DatabaseType.PostgreSQL, 64));
         Assert.Contains("Oracle Database 19c", SizingEngine.DbVersionLabel(DatabaseType.Oracle, 64));
     }
@@ -656,11 +656,11 @@ public class SizingEngineTests
     [Fact]
     public void DbVersionLabel_Sql_DeveloperForNonProd()
     {
-        Assert.Equal("MS SQL Server 2022 Developer Edition",
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Developer Edition",
             SizingEngine.DbVersionLabel(DatabaseType.MsSql, 240, 32, DeployEnvironment.Dev));
-        Assert.Equal("MS SQL Server 2022 Developer Edition",
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Developer Edition",
             SizingEngine.DbVersionLabel(DatabaseType.MsSql, 16, 4, DeployEnvironment.Test));
-        Assert.Equal("MS SQL Server 2022 Developer Edition",
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Developer Edition",
             SizingEngine.DbVersionLabel(DatabaseType.MsSql, 64, 8, DeployEnvironment.PredProd));
     }
 
@@ -668,10 +668,10 @@ public class SizingEngineTests
     public void DbVersionLabel_Sql_Prod_EnterpriseWhenCoresExceedStandardLimit()
     {
         // RAM у межах Standard (96 ≤ 128), але ядер 28 > 24 → Enterprise.
-        Assert.Equal("MS SQL Server 2022 Enterprise",
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Enterprise",
             SizingEngine.DbVersionLabel(DatabaseType.MsSql, 96, 28, DeployEnvironment.Prod));
         // У межах обох лімітів → Standard.
-        Assert.Equal("MS SQL Server 2022 Standard",
+        Assert.Equal("MS SQL Server 2025 (мін. 2022) Standard",
             SizingEngine.DbVersionLabel(DatabaseType.MsSql, 96, 24, DeployEnvironment.Prod));
     }
 

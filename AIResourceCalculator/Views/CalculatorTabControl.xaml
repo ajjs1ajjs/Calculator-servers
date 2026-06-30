@@ -48,12 +48,16 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="4,2,14,2">
+                                            <!-- Kubernetes-only модулі (ForceBPM) — галочка заблокована (керується типом розгортання). -->
                                             <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" FontSize="13" FontWeight="SemiBold"
-                                                      VerticalAlignment="Center" ToolTip="{Binding Description}"/>
+                                                      VerticalAlignment="Center" ToolTip="{Binding Description}"
+                                                      IsEnabled="{Binding IsUserToggleable}"/>
+                                            <!-- Поле к-сті лише для модулів із власним контингентом (LMS/HR); ForceBPM — без к-сті. -->
                                             <TextBox Width="50" Margin="6,0,0,0" Padding="3,1" FontSize="12" VerticalAlignment="Center"
                                                      Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ZeroEmptyConverter}}"
                                                      ToolTip="{loc:Loc modules.usersTooltip}"
-                                                     IsEnabled="{Binding IsEnabled}"/>
+                                                     IsEnabled="{Binding IsEnabled}"
+                                                     Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -85,77 +89,134 @@
                                 <CheckBox Content="{loc:Loc env.test}" IsChecked="{Binding IncludeTest, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
                                 <CheckBox Content="{loc:Loc env.predprod}" IsChecked="{Binding IncludePredProd, Mode=TwoWay}" FontWeight="SemiBold"/>
                             </StackPanel>
+                            <!-- Картки середовищ: кожне ВВІМКНЕНЕ середовище — самодостатня картка
+                                 (к-сть користувачів + модулі + опціональні вузли цього середовища).
+                                 Вимкнені не показуються взагалі. PROD керується блоком вище. -->
+                            <TextBlock Text="Налаштування ввімкнених середовищ" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMuted}" Margin="0,2,0,4"
+                                       Visibility="{Binding HasEnvironmentsSelected, Converter={StaticResource VisibilityConverter}}"/>
                             <WrapPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
-                                    <TextBlock Text="{loc:Loc env.devUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.devUsers}"/>
-                                    <TextBox Width="55" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}" IsEnabled="{Binding IncludeDev}"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
-                                    <TextBlock Text="{loc:Loc env.testUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.testUsers}"/>
-                                    <TextBox Width="55" Text="{Binding TestUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.testUsers}" IsEnabled="{Binding IncludeTest}"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
-                                    <TextBlock Text="{loc:Loc env.predprodUsers}" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
-                                    <TextBox Width="55" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.predprodUsers}" IsEnabled="{Binding IncludePredProd}"/>
-                                </StackPanel>
+                                <!-- DEV -->
+                                <Border Visibility="{Binding IncludeDev, Converter={StaticResource VisibilityConverter}}"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="6"
+                                        Padding="10" Margin="0,0,12,8" Background="{DynamicResource HighlightBg}">
+                                    <StackPanel Width="250">
+                                        <TextBlock Text="{loc:Loc env.dev}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
+                                                   Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
+                                        <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
+                                                      Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,1">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="58"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding ModuleName}" VerticalAlignment="Center"/>
+                                                        <!-- ForceBPM (HasOwnUserCount=false) — без поля к-сті, лише ✓ -->
+                                                        <TextBox Grid.Column="2" Text="{Binding DevUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="3,1" FontSize="12"
+                                                                 IsEnabled="{Binding DevEnabled}"
+                                                                 Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="Додаткові вузли" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                                        <DataGrid ItemsSource="{Binding EnvNodeToggles}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                                  CanUserAddRows="False" CanUserDeleteRows="False">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="*" MinWidth="120"/>
+                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- TEST -->
+                                <Border Visibility="{Binding IncludeTest, Converter={StaticResource VisibilityConverter}}"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="6"
+                                        Padding="10" Margin="0,0,12,8" Background="{DynamicResource HighlightBg}">
+                                    <StackPanel Width="250">
+                                        <TextBlock Text="{loc:Loc env.test}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding TestUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.testUsers}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
+                                                   Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
+                                        <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
+                                                      Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,1">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="58"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding ModuleName}" VerticalAlignment="Center"/>
+                                                        <!-- ForceBPM (HasOwnUserCount=false) — без поля к-сті, лише ✓ -->
+                                                        <TextBox Grid.Column="2" Text="{Binding TestUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="3,1" FontSize="12"
+                                                                 IsEnabled="{Binding TestEnabled}"
+                                                                 Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="Додаткові вузли" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                                        <DataGrid ItemsSource="{Binding EnvNodeToggles}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                                  CanUserAddRows="False" CanUserDeleteRows="False">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="*" MinWidth="120"/>
+                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- PreProd -->
+                                <Border Visibility="{Binding IncludePredProd, Converter={StaticResource VisibilityConverter}}"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="6"
+                                        Padding="10" Margin="0,0,12,8" Background="{DynamicResource HighlightBg}">
+                                    <StackPanel Width="250">
+                                        <TextBlock Text="{loc:Loc env.predprod}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
+                                                   Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
+                                        <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
+                                                      Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,1">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="58"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding ModuleName}" VerticalAlignment="Center"/>
+                                                        <!-- ForceBPM (HasOwnUserCount=false) — без поля к-сті, лише ✓ -->
+                                                        <TextBox Grid.Column="2" Text="{Binding PredProdUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="3,1" FontSize="12"
+                                                                 IsEnabled="{Binding PredProdEnabled}"
+                                                                 Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="Додаткові вузли" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                                        <DataGrid ItemsSource="{Binding EnvNodeToggles}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                                  CanUserAddRows="False" CanUserDeleteRows="False">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="*" MinWidth="120"/>
+                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
                             </WrapPanel>
-                            <!-- Модулі по середовищах: окремий блок під назвою кожного середовища -->
-                            <StackPanel Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}" Margin="0,6,0,0">
-                                <TextBlock Text="{loc:Loc env.moduleUsers}" FontSize="12" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4" ToolTip="{loc:Loc tooltip.moduleUsers}"/>
-                                <WrapPanel>
-                                    <!-- DEV -->
-                                    <StackPanel Margin="0,0,18,6" IsEnabled="{Binding IncludeDev}">
-                                        <TextBlock Text="DEV" FontWeight="Bold" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2"/>
-                                        <DataGrid ItemsSource="{Binding EnvModuleCounts}" AutoGenerateColumns="False" HeadersVisibility="Column"
-                                                  CanUserAddRows="False" CanUserDeleteRows="False" MaxHeight="160">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Loc col.module}" Binding="{Binding ModuleName}" IsReadOnly="True" Width="Auto" MinWidth="100"/>
-                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
-                                                <DataGridTextColumn Header="к-сть" Binding="{Binding DevUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </StackPanel>
-                                    <!-- TEST -->
-                                    <StackPanel Margin="0,0,18,6" IsEnabled="{Binding IncludeTest}">
-                                        <TextBlock Text="TEST" FontWeight="Bold" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2"/>
-                                        <DataGrid ItemsSource="{Binding EnvModuleCounts}" AutoGenerateColumns="False" HeadersVisibility="Column"
-                                                  CanUserAddRows="False" CanUserDeleteRows="False" MaxHeight="160">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Loc col.module}" Binding="{Binding ModuleName}" IsReadOnly="True" Width="Auto" MinWidth="100"/>
-                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
-                                                <DataGridTextColumn Header="к-сть" Binding="{Binding TestUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </StackPanel>
-                                    <!-- PreProd -->
-                                    <StackPanel Margin="0,0,0,6" IsEnabled="{Binding IncludePredProd}">
-                                        <TextBlock Text="PreProd" FontWeight="Bold" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,2"/>
-                                        <DataGrid ItemsSource="{Binding EnvModuleCounts}" AutoGenerateColumns="False" HeadersVisibility="Column"
-                                                  CanUserAddRows="False" CanUserDeleteRows="False" MaxHeight="160">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Loc col.module}" Binding="{Binding ModuleName}" IsReadOnly="True" Width="Auto" MinWidth="100"/>
-                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
-                                                <DataGridTextColumn Header="к-сть" Binding="{Binding PredProdUsers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </StackPanel>
-                                </WrapPanel>
-                            </StackPanel>
-                            <!-- Додаткові вузли по середовищах: окремо вмикаються для DEV/TEST/PreProd -->
-                            <StackPanel Margin="0,8,0,0">
-                                <TextBlock Text="Додаткові вузли по середовищах (PROD — у блоці вище):" FontSize="12" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
-                                <DataGrid ItemsSource="{Binding EnvNodeToggles}" AutoGenerateColumns="False" HeadersVisibility="Column"
-                                          CanUserAddRows="False" CanUserDeleteRows="False" MaxWidth="520" HorizontalAlignment="Left">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="Auto" MinWidth="180"/>
-                                        <DataGridCheckBoxColumn Header="DEV" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                                        <DataGridCheckBoxColumn Header="TEST" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                                        <DataGridCheckBoxColumn Header="PreProd" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <StackPanel Orientation="Horizontal" Margin="0,15,0,0">

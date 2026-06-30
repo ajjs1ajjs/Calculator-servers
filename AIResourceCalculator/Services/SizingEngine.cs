@@ -192,7 +192,7 @@ public class SizingEngine : ISizingEngine
         }
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "Master Node", Os = masterNode.Os, Cpu = masterNode.Cpu,
+            Name = "Master node", Os = masterNode.Os, Cpu = masterNode.Cpu,
             RamGb = masterNode.RamGb, NodeCount = req.MasterNodeCount,
             StorageType = masterNode.StorageType, StorageGb = masterNode.StorageGb,
             StorageType2 = masterNode.StorageType2, StorageGb2 = masterNode.StorageGb2,
@@ -202,7 +202,7 @@ public class SizingEngine : ISizingEngine
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "Worker Node", Os = workerNode.Os, Cpu = workerNode.Cpu,
+            Name = "Worker-node", Os = workerNode.Os, Cpu = workerNode.Cpu,
             RamGb = workerNode.RamGb, NodeCount = req.WorkerNodeCount,
             StorageType = workerNode.StorageType, StorageGb = workerNode.StorageGb,
             StorageType2 = workerNode.StorageType2, StorageGb2 = workerNode.StorageGb2,
@@ -436,11 +436,13 @@ public class SizingEngine : ISizingEngine
         }
     }
 
-    // SQL Server мінімальна підтримувана версія — 2022 (за вимогами D-AD-ADM-E).
+    // SQL Server: рекомендована версія — 2025, мінімально допустима — 2022 (за вимогами D-AD-ADM-E).
     // Редакція Standard обмежена 128 ГБ ОЗП та 24 ядрами на екземпляр БД → понад це потрібна Enterprise.
     // Non-prod (DEV/TEST/PreProd) використовує безкоштовну Developer Edition (не для робочого навантаження).
     private const double MsSqlStandardMaxRamGb = 128;
     private const double MsSqlStandardMaxCores = 24;
+    // Базовий підпис версії MS SQL: рекомендовано 2025, допустимо від 2022.
+    private const string MsSqlVersion = "MS SQL Server 2025 (мін. 2022)";
 
     // Зворотно-сумісне перевантаження (PROD, без урахування ядер).
     public static string DbVersionLabel(DatabaseType dbType, double dbRamGb)
@@ -453,8 +455,8 @@ public class SizingEngine : ISizingEngine
             DatabaseType.Oracle => "Oracle Database 19c Enterprise Edition",
             // MS SQL: Developer для non-prod; для PROD — Standard/Enterprise за лімітами ядер і RAM.
             _ => environment != DeployEnvironment.Prod
-                ? "MS SQL Server 2022 Developer Edition"
-                : $"MS SQL Server 2022 {(dbRamGb > MsSqlStandardMaxRamGb || dbCpu > MsSqlStandardMaxCores ? "Enterprise" : "Standard")}"
+                ? $"{MsSqlVersion} Developer Edition"
+                : $"{MsSqlVersion} {(dbRamGb > MsSqlStandardMaxRamGb || dbCpu > MsSqlStandardMaxCores ? "Enterprise" : "Standard")}"
         };
 
     // Fallback worker capacity when matrix node specs are missing
@@ -472,8 +474,8 @@ public class SizingEngine : ISizingEngine
     private const double DefaultWorkerLatency = 5;
 
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master Node", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker Node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultReporting = new() { Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 150, StorageType = "SSD", Iops = 250, IopsProfile = "50r/50w", Latency = 10 };
     private static readonly InfrastructureNode _defaultHaProxy = new() { Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
 }

@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 namespace AIResourceCalculator.Models;
 
 public enum ReplicaFormula
@@ -59,14 +62,27 @@ public class ModuleComponent
     };
 }
 
-public class ProjectModule
+public class ProjectModule : INotifyPropertyChanged
 {
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    public bool IsEnabled { get; set; } = true;
+    // Сповіщає про зміну (UI прив'язує чекбокс), щоб ViewModel реагувала — напр. ввімкнення
+    // Kubernetes-only модуля (ForceBPM) блокує вибір Windows-розгортання.
+    private bool _isEnabled = true;
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set { if (_isEnabled == value) return; _isEnabled = value; OnPropertyChanged(); }
+    }
     public bool IsKubernetesOnly { get; set; }
     // Обов'язковий сервіс (App Server / ROBOT / Web) — завжди ввімкнений, не виноситься у вибір.
     public bool IsMandatory { get; set; }
+    // Чи має модуль власну к-сть користувачів (LMS/HR Portal — так; ForceBPM — ні, він масштабується
+    // від загальної к-сті за формулами). Керує показом поля к-сті в UI.
+    public bool HasOwnUserCount { get; set; } = true;
+    // Чи може користувач сам вмикати/вимикати модуль. Kubernetes-only модулі (ForceBPM) керуються
+    // типом розгортання автоматично, тож їхня галочка заблокована.
+    public bool IsUserToggleable => !IsKubernetesOnly;
     // Окрема кількість користувачів для цього модуля (напр., LMS/HR Portal використовує не вся
     // компанія). 0 = брати загальну кількість користувачів проєкту. Понад загальну не піднімається.
     public int UserCount { get; set; }
@@ -83,6 +99,7 @@ public class ProjectModule
     {
         Name = Name, Description = Description, IsEnabled = IsEnabled,
         IsKubernetesOnly = IsKubernetesOnly, IsMandatory = IsMandatory, UserCount = UserCount,
+        HasOwnUserCount = HasOwnUserCount,
         Components = Components.Select(c => c.Clone()).ToList()
     };
 
@@ -104,4 +121,8 @@ public class ProjectModule
 
         return (totalCpu, totalRam);
     }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

@@ -180,7 +180,7 @@ public class SizingMatrix
         new()
         {
             Name = "ForceBPM", Description = "Business process management engine and tools",
-            IsEnabled = true, IsKubernetesOnly = true,
+            IsEnabled = true, IsKubernetesOnly = true, HasOwnUserCount = false,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },
@@ -259,7 +259,7 @@ public class SizingMatrix
         new()
         {
             Name = "ForceBPM", Description = "Business process management engine and tools (DocumentFlow)",
-            IsEnabled = true, IsKubernetesOnly = true,
+            IsEnabled = true, IsKubernetesOnly = true, HasOwnUserCount = false,
             Components = new List<ModuleComponent>
             {
                 new() { Name = "GraphQL", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Per25Users },
