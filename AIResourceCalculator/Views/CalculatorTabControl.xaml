@@ -69,8 +69,11 @@
                                           ToolTip="Reporting Services, окремий вузол 2 ядра / 4 ГБ (Windows)"/>
                                 <CheckBox Content="SQL Secondary (Failover)" IsChecked="{Binding IncludeSqlFailover, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
                                           ToolTip="Другий вузол БД для failover-кластера (копія первинного вузла БД)"/>
-                                <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold"
+                                <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
                                           ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux)"/>
+                                <CheckBox Content="HAProxy HA (2 вузли)" IsChecked="{Binding HaProxyHa, Mode=TwoWay}" FontWeight="SemiBold"
+                                          IsEnabled="{Binding IncludeHaProxy}"
+                                          ToolTip="Відмовостійкість балансувальника: 2 вузли active/passive (keepalived/VRRP, спільний VIP). Діє лише коли HAProxy увімкнено."/>
                             </WrapPanel>
                         </StackPanel>
                     </Border>

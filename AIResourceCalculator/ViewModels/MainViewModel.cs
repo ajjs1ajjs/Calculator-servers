@@ -125,9 +125,13 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _includeReportingServer;
     private bool _includeSqlFailover;
     private bool _includeHaProxy;
+    private bool _haProxyHa;
     public bool IncludeReportingServer { get => _includeReportingServer; set { _includeReportingServer = value; OnPropertyChanged(); } }
     public bool IncludeSqlFailover { get => _includeSqlFailover; set { _includeSqlFailover = value; OnPropertyChanged(); } }
     public bool IncludeHaProxy { get => _includeHaProxy; set { _includeHaProxy = value; OnPropertyChanged(); } }
+    // PROD: HAProxy у режимі HA (2 вузли). Діє лише коли HAProxy увімкнено. Похідні середовища —
+    // окремими перемикачами у сітці EnvNodeToggles (рядок "haproxy-ha").
+    public bool HaProxyHa { get => _haProxyHa; set { _haProxyHa = value; OnPropertyChanged(); } }
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
     public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
     public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
@@ -232,9 +236,10 @@ public class MainViewModel : INotifyPropertyChanged
     // PROD керується верхніми прапорцями IncludeReportingServer/IncludeSqlFailover/IncludeHaProxy.
     public ObservableCollection<EnvNodeToggle> EnvNodeToggles { get; private set; } = new()
     {
-        new() { Key = "reporting", NodeName = "Сервер звітів" },
-        new() { Key = "failover",  NodeName = "SQL Secondary (Failover)" },
-        new() { Key = "haproxy",   NodeName = "HAProxy" },
+        new() { Key = "reporting",   NodeName = "Сервер звітів" },
+        new() { Key = "failover",    NodeName = "SQL Secondary (Failover)" },
+        new() { Key = "haproxy",     NodeName = "HAProxy" },
+        new() { Key = "haproxy-ha",  NodeName = "HAProxy HA (2 вузли)" },
     };
 
     // Перебудова рядків к-сті модулів по середовищах зі збереженням раніше введених значень.
@@ -305,7 +310,8 @@ public class MainViewModel : INotifyPropertyChanged
             DatabaseType = (DatabaseType)DatabaseIndex,
             IncludeReportingServer = IncludeReportingServer,
             IncludeSqlFailover = IncludeSqlFailover,
-            IncludeHaProxy = IncludeHaProxy
+            IncludeHaProxy = IncludeHaProxy,
+            HaProxyHa = HaProxyHa
         };
     }
 
@@ -434,7 +440,8 @@ public class MainViewModel : INotifyPropertyChanged
                 // Опціональні вузли — ОКРЕМО для кожного похідного середовища (перемикачі внизу).
                 IncludeReportingServer = NodeEnabledFor("reporting", env),
                 IncludeSqlFailover = NodeEnabledFor("failover", env),
-                IncludeHaProxy = NodeEnabledFor("haproxy", env)
+                IncludeHaProxy = NodeEnabledFor("haproxy", env),
+                HaProxyHa = NodeEnabledFor("haproxy-ha", env)
             };
             // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
             // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).

@@ -83,7 +83,18 @@ public class SizingEngine : ISizingEngine
             req.Infrastructure.Add((_matrix.DefaultReportingServer ?? _defaultReporting).Clone());
 
         if (config.IncludeHaProxy)
-            req.Infrastructure.Add((_matrix.DefaultHaProxy ?? _defaultHaProxy).Clone());
+        {
+            var ha = (_matrix.DefaultHaProxy ?? _defaultHaProxy).Clone();
+            // HA: два вузли HAProxy active/passive зі спільним VIP (keepalived/VRRP), щоб сам
+            // балансувальник не був єдиною точкою відмови. Інакше — один вузол (як було).
+            if (config.HaProxyHa)
+            {
+                ha.NodeCount = 2;
+                const string haNote = "HA: 2 вузли active/passive, keepalived/VRRP, спільний VIP";
+                ha.Notes = string.IsNullOrWhiteSpace(ha.Notes) ? haNote : $"{ha.Notes}; {haNote}";
+            }
+            req.Infrastructure.Add(ha);
+        }
 
         req.TotalCpu = req.Infrastructure.Sum(n => n.Cpu * n.NodeCount);
         req.TotalRamGb = req.Infrastructure.Sum(n => n.RamGb * n.NodeCount);
@@ -262,8 +273,11 @@ public class SizingEngine : ISizingEngine
             StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
             StorageType3 = sqlNode.StorageType3, StorageGb3 = sqlNode.StorageGb3,
             StorageType4 = sqlNode.StorageType4, StorageGb4 = sqlNode.StorageGb4,
-            PageFileGb = sqlNode.PageFileGb > 0 ? sqlNode.PageFileGb : (int)Math.Ceiling(sqlRam * 1.0),
-            PageFileType = sqlNode.PageFileType ?? "Auto",
+            // Файл підкачки для вузла БД НЕ задаємо: документ D-AD-ADM-E / еталонний калькулятор
+            // визначають pagefile лише для серверів додатків/веб, а виділений SQL Server не потребує
+            // pagefile, масштабованого від RAM. Беремо лише явне значення з матриці (типово 0).
+            PageFileGb = sqlNode.PageFileGb,
+            PageFileType = sqlNode.PageFileType,
             Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1,
             IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
             ThroughputMiBs = ThroughputFor(sqlRange)

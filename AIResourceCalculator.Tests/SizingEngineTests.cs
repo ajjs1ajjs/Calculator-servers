@@ -253,6 +253,34 @@ public class SizingEngineTests
         Assert.Equal(2, node.Cpu);
         Assert.Equal(4, node.RamGb);
         Assert.Contains("Ubuntu", node.Os);
+        // Без HA — один вузол (зворотна сумісність).
+        Assert.Equal(1, node.NodeCount);
+    }
+
+    // --- HAProxy HA: 2 вузли (active/passive) замість 1, із приміткою про VRRP ---
+    [Fact]
+    public void Calculate_HaProxyHa_WhenEnabled_AddsTwoNodes()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            IncludeHaProxy = true, HaProxyHa = true
+        });
+        var node = result.Infrastructure.First(n => n.Name.Contains("HAProxy"));
+        Assert.Equal(2, node.NodeCount);
+        Assert.Contains("HA", node.Notes);
+    }
+
+    // --- HA без увімкненого HAProxy не додає вузол (HA лише підсилює наявний HAProxy) ---
+    [Fact]
+    public void Calculate_HaProxyHa_WithoutHaProxy_AddsNothing()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            IncludeHaProxy = false, HaProxyHa = true
+        });
+        Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("HAProxy"));
     }
 
     // --- Гібрид: опціональні вузли НЕ дублюються (додаються один раз) ---

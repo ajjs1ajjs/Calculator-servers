@@ -399,42 +399,93 @@ public class ConfigExportService
         return pkg.GetAsByteArray();
     }
 
-    // Аркуш із розбивкою ВМ для кожного середовища (PROD/DEV/TEST/PreProd).
+    // Аркуш із розбивкою ВМ для кожного середовища (PROD/DEV/TEST/PreProd) — окремим блоком-таблицею
+    // на кожне середовище (підпис → шапка → рядки → підсумок → рамка + відступ), щоб середовища
+    // візуально не зливались в одну суцільну таблицю. Стиль збігається з аркушем «Інфраструктура».
     private static void BuildEnvironmentVmsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
         var ws = pkg.Workbook.Worksheets.Add("ВМ по середовищах");
-        string[] headers = { "Середовище", "Сервер (ВМ)", "CPU (ядер)", "RAM (ГБ)", "К-сть",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
-            "Призначення", "ОС", "Версія СУБД", "Примітки" };
-        WriteHeader(ws, headers);
-        int row = 2;
+        int row = 1;
         foreach (var e in environments)
         {
-            foreach (var n in e.Requirement.Infrastructure.Where(x => x.NodeCount > 0))
+            row = WriteEnvVmBlock(ws, e, row);
+            row += 2; // порожні рядки-відступ між середовищами, щоб таблиці не зливались
+        }
+        if (ws.Dimension == null) return;
+        ws.Cells[ws.Dimension.Address].AutoFitColumns();
+        // Обмежуємо надто широкі стовпці (довгі назви/примітки переносяться) — як у StyleTable.
+        for (int c = ws.Dimension.Start.Column; c <= ws.Dimension.End.Column; c++)
+        {
+            if (ws.Column(c).Width > 46)
             {
-                ws.Cells[row, 1].Value = e.Name;
-                ws.Cells[row, 2].Value = n.Name;
-                ws.Cells[row, 3].Value = n.Cpu;
-                ws.Cells[row, 4].Value = n.RamGb;
-                ws.Cells[row, 5].Value = n.NodeCount;
-                ws.Cells[row, 6].Value = n.DiskPerNodeGb;
-                ws.Cells[row, 7].Value = n.TotalStorageGb;
-                ws.Cells[row, 8].Value = n.Iops > 0 ? n.Iops : (object)"";
-                ws.Cells[row, 9].Value = n.IopsProfile;
-                ws.Cells[row, 10].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
-                ws.Cells[row, 11].Value = n.Latency > 0 ? n.Latency : (object)"";
-                ws.Cells[row, 12].Value = NodeRole(n.Name);
-                ws.Cells[row, 13].Value = n.Os;
-                ws.Cells[row, 14].Value = n.DbVersion;
-                ws.Cells[row, 15].Value = n.Notes;
-                // Числові/кодові стовпці — по центру; власне числа — ще й жирним.
-                ws.Cells[row, 3, row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                ws.Cells[row, 3, row, 8].Style.Font.Bold = true;
-                ws.Cells[row, 10, row, 11].Style.Font.Bold = true;
-                row++;
+                ws.Column(c).Width = 46;
+                ws.Cells[1, c, ws.Dimension.End.Row, c].Style.WrapText = true;
             }
         }
-        StyleTable(ws);
+    }
+
+    // Один блок таблиці ВМ для одного середовища, починаючи з рядка startRow. Стиль повторює блоки
+    // аркуша «Інфраструктура»: підпис (синій) → шапка → рядки ВМ → підсумок «Разом» (сірий) → рамка.
+    // Повертає номер наступного вільного рядка.
+    private static int WriteEnvVmBlock(ExcelWorksheet ws, EnvironmentReport e, int startRow)
+    {
+        const int cols = 14;
+        // Підпис середовища над таблицею (із к-стю користувачів).
+        ws.Cells[startRow, 1].Value = $"Середовище {e.Name} — користувачів: {e.UserCount}";
+        ws.Cells[startRow, 1, startRow, cols].Merge = true;
+        ws.Cells[startRow, 1].Style.Font.Bold = true;
+        ws.Cells[startRow, 1].Style.Font.Size = 12;
+        ws.Cells[startRow, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
+
+        // «Середовище» більше не окрема колонка — воно у підписі блоку (звідси й зручніше).
+        string[] headers = { "Сервер (ВМ)", "CPU (ядер)", "RAM (ГБ)", "К-сть",
+            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
+            "Призначення", "ОС", "Версія СУБД", "Примітки" };
+        int headerRow = startRow + 1;
+        WriteHeader(ws, headers, headerRow);
+
+        int row = headerRow + 1;
+        foreach (var n in e.Requirement.Infrastructure.Where(x => x.NodeCount > 0))
+        {
+            ws.Cells[row, 1].Value = n.Name;
+            ws.Cells[row, 2].Value = n.Cpu;
+            ws.Cells[row, 3].Value = n.RamGb;
+            ws.Cells[row, 4].Value = n.NodeCount;
+            ws.Cells[row, 5].Value = n.DiskPerNodeGb;
+            ws.Cells[row, 6].Value = n.TotalStorageGb;
+            ws.Cells[row, 7].Value = n.Iops > 0 ? n.Iops : (object)"";
+            ws.Cells[row, 8].Value = n.IopsProfile;
+            ws.Cells[row, 9].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+            ws.Cells[row, 10].Value = n.Latency > 0 ? n.Latency : (object)"";
+            ws.Cells[row, 11].Value = NodeRole(n.Name);
+            ws.Cells[row, 12].Value = n.Os;
+            ws.Cells[row, 13].Value = n.DbVersion;
+            ws.Cells[row, 14].Value = n.Notes;
+            // Числові/кодові стовпці — по центру; власне числа — ще й жирним. Назви/опис — зліва (типово).
+            ws.Cells[row, 2, row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 2, row, 7].Style.Font.Bold = true;
+            ws.Cells[row, 9, row, 10].Style.Font.Bold = true;
+            row++;
+        }
+        // Підсумковий рядок.
+        ws.Cells[row, 1].Value = "Разом";
+        ws.Cells[row, 2].Value = Math.Round(e.Requirement.TotalCpu, 1);
+        ws.Cells[row, 3].Value = Math.Round(e.Requirement.TotalRamGb, 1);
+        ws.Cells[row, 4].Value = e.Requirement.Infrastructure.Sum(n => n.NodeCount);
+        ws.Cells[row, 6].Value = e.Requirement.TotalStorageGb;
+        ws.Cells[row, 2, row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        ws.Cells[row, 1, row, cols].Style.Font.Bold = true;
+        ws.Cells[row, 1, row, cols].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        ws.Cells[row, 1, row, cols].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+
+        // Тонкі рамки лише на таблицю (від шапки до підсумку), щоб порожні рядки-відступ лишались чистими.
+        var block = ws.Cells[headerRow, 1, row, cols];
+        block.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+        block.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+        block.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+        block.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+
+        return row + 1;
     }
 
     // Аркуш із компонентами (подами): ЗВЕДЕНИЙ вигляд — один рядок на компонент, а середовища
