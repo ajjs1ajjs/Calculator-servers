@@ -19,13 +19,11 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _loc;
     private readonly ResultsPresenter _results;
     private ResourceRequirement? _lastResult;
-    private ResourceRequirement? _lastResultPerf;
 
     public MatrixViewModel MatrixVM { get; }
 
     private string _userCount = "100";
     private int _deploymentIndex;
-    private int _productIndex;
     private int _databaseIndex;
     private string _statusText = "";
     private string _langFlag = "\U0001F1FA\U0001F1E6";
@@ -45,8 +43,6 @@ public class MainViewModel : INotifyPropertyChanged
         _engine = engine;
 
         MatrixVM = new MatrixViewModel(_loc, matrixManager);
-
-        _engine.SetProductType(ProductType.Standard);
 
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         _statusText = _loc["status.ready"];
@@ -88,26 +84,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _deploymentIndex = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(IsHybrid));
             OnDeploymentTypeChanged();
-        }
-    }
-
-    // Гібрид обрано (індекс 2) — лише тоді показуємо вибір розміщення SmartID (Kuber/Windows).
-    public bool IsHybrid => _deploymentIndex == 2;
-
-    // Розміщення центрального SmartID у гібриді: true = Kubernetes (под), false = веб-сервери (IIS).
-    private bool _smartIdOnKubernetes = true;
-    public bool SmartIdOnKubernetes { get => _smartIdOnKubernetes; set { _smartIdOnKubernetes = value; OnPropertyChanged(); } }
-
-    public int ProductIndex
-    {
-        get => _productIndex;
-        set
-        {
-            _productIndex = value;
-            OnPropertyChanged();
-            OnProductTypeChanged();
         }
     }
 
@@ -124,6 +101,10 @@ public class MainViewModel : INotifyPropertyChanged
     private string _devUserCount = "10";
     private string _testUserCount = "25";
     private string _predProdUserCount = "50";
+    private string _prodDbSizeGb = "0";
+    private string _devDbSizeGb = "0";
+    private string _testDbSizeGb = "0";
+    private string _predProdDbSizeGb = "0";
 
     public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
     public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
@@ -136,16 +117,18 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _includeReportingServer;
     private bool _includeSqlFailover;
     private bool _includeHaProxy;
-    private bool _haProxyHa;
     public bool IncludeReportingServer { get => _includeReportingServer; set { _includeReportingServer = value; OnPropertyChanged(); } }
     public bool IncludeSqlFailover { get => _includeSqlFailover; set { _includeSqlFailover = value; OnPropertyChanged(); } }
     public bool IncludeHaProxy { get => _includeHaProxy; set { _includeHaProxy = value; OnPropertyChanged(); } }
-    // PROD: HAProxy у режимі HA (2 вузли). Діє лише коли HAProxy увімкнено. Похідні середовища —
-    // окремими перемикачами у сітці EnvNodeToggles (рядок "haproxy-ha").
-    public bool HaProxyHa { get => _haProxyHa; set { _haProxyHa = value; OnPropertyChanged(); } }
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
     public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
     public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
+    // Обсяг даних БД (ГБ) — PROD задає вручну; Test/PreProd за замовчуванням = PROD, не менше PROD
+    // (клампиться при розрахунку); Dev — незалежне значення без нижньої межі.
+    public string ProdDbSizeGb { get => _prodDbSizeGb; set { _prodDbSizeGb = value; OnPropertyChanged(); } }
+    public string DevDbSizeGb { get => _devDbSizeGb; set { _devDbSizeGb = value; OnPropertyChanged(); } }
+    public string TestDbSizeGb { get => _testDbSizeGb; set { _testDbSizeGb = value; OnPropertyChanged(); } }
+    public string PredProdDbSizeGb { get => _predProdDbSizeGb; set { _predProdDbSizeGb = value; OnPropertyChanged(); } }
 
     public string StatusText
     {
@@ -178,7 +161,6 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<UserLoadRange> MsSqlRanges => MatrixVM.MsSqlRanges;
     public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges => MatrixVM.MsSqlPerformanceRanges;
-    public ObservableCollection<ServiceComponent> K8sStandardComponents => MatrixVM.K8sStandardComponents;
     public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents => MatrixVM.K8sDocumentFlowComponents;
     public ObservableCollection<InfrastructureNode> InfraNodes => MatrixVM.InfraNodes;
 
@@ -250,7 +232,6 @@ public class MainViewModel : INotifyPropertyChanged
         new() { Key = "reporting",   NodeName = "Сервер звітів" },
         new() { Key = "failover",    NodeName = "SQL Secondary (Failover)" },
         new() { Key = "haproxy",     NodeName = "HAProxy" },
-        new() { Key = "haproxy-ha",  NodeName = "HAProxy HA (2 вузли)" },
     };
 
     // Перебудова рядків к-сті модулів по середовищах зі збереженням раніше введених значень.
@@ -308,8 +289,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         if (!int.TryParse(UserCount, out var uc) || uc < 1) uc = 100;
         uc = Math.Clamp(uc, 1, 5000);
-        var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
-        var loadProfile = productType == ProductType.DocumentFlow ? LoadProfile.Performance : LoadProfile.Basic;
+        if (!int.TryParse(ProdDbSizeGb, out var dbSize) || dbSize < 0) dbSize = 0;
         return new ProjectConfig
         {
             ProjectName = "Project",
@@ -320,14 +300,12 @@ public class MainViewModel : INotifyPropertyChanged
                 1 => DeploymentType.Windows,
                 _ => DeploymentType.Hybrid
             },
-            ProductType = productType,
-            LoadProfile = loadProfile,
+            LoadProfile = LoadProfile.Performance,
             DatabaseType = (DatabaseType)DatabaseIndex,
             IncludeReportingServer = IncludeReportingServer,
             IncludeSqlFailover = IncludeSqlFailover,
             IncludeHaProxy = IncludeHaProxy,
-            HaProxyHa = HaProxyHa,
-            SmartIdOnKubernetes = SmartIdOnKubernetes
+            DbSizeGb = dbSize
         };
     }
 
@@ -336,10 +314,10 @@ public class MainViewModel : INotifyPropertyChanged
         try
         {
             var config = GetConfig();
-            var (req, perfReq) = CalculateInternal(config);
+            _engine.SetModules(Modules.ToList());
+            var req = _engine.Calculate(config);
             _lastResult = req;
-            _lastResultPerf = perfReq;
-            ShowResults(req, perfReq, config);
+            ShowResults(req, config);
             _historyService.SaveToHistory(config, req);
             LoadHistory();
             SelectedTabIndex = 1;   // вкладка «Результати» (після видалення вкладки матриці)
@@ -364,31 +342,7 @@ public class MainViewModel : INotifyPropertyChanged
         MessageBox.Show(message, _loc["error.title"], MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
-    private (ResourceRequirement req, ResourceRequirement? perfReq) CalculateInternal(ProjectConfig config)
-    {
-        _engine.SetModules(Modules.ToList());
-        var req = _engine.Calculate(config);
-        ResourceRequirement? perfReq = null;
-        var otherProduct = config.ProductType == ProductType.Standard ? ProductType.DocumentFlow : ProductType.Standard;
-        var otherProfile = config.ProductType == ProductType.Standard ? LoadProfile.Performance : LoadProfile.Basic;
-        var otherConfig = new ProjectConfig
-        {
-            ProjectName = config.ProjectName,
-            UserCount = config.UserCount,
-            DeploymentType = config.DeploymentType,
-            ProductType = otherProduct,
-            LoadProfile = otherProfile,
-            DatabaseType = config.DatabaseType
-        };
-        _engine.SetProductType(otherProduct);
-        _engine.SetModules(_engine.Modules.ToClonedList());
-        perfReq = _engine.Calculate(otherConfig);
-        _engine.SetProductType(config.ProductType);
-        _engine.SetModules(Modules.ToList());
-        return (req, perfReq);
-    }
-
-    private void ShowResults(ResourceRequirement req, ResourceRequirement? perfReq, ProjectConfig config)
+    private void ShowResults(ResourceRequirement req, ProjectConfig config)
     {
         // Спершу будуємо середовища — це додає бекап-резерв і до PROD (req),
         // тож KPI нижче вже відображають повний диск PROD з бекапом.
@@ -426,6 +380,15 @@ public class MainViewModel : INotifyPropertyChanged
         if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
         if (!int.TryParse(TestUserCount, out var test) || test < 1) test = 25;
         if (!int.TryParse(PredProdUserCount, out var pp) || pp < 1) pp = 50;
+
+        if (!int.TryParse(ProdDbSizeGb, out var prodDbSize) || prodDbSize < 0) prodDbSize = 0;
+        if (!int.TryParse(DevDbSizeGb, out var devDbSize) || devDbSize < 0) devDbSize = prodDbSize;
+        if (!int.TryParse(TestDbSizeGb, out var testDbSize) || testDbSize <= 0) testDbSize = prodDbSize;
+        if (!int.TryParse(PredProdDbSizeGb, out var ppDbSize) || ppDbSize <= 0) ppDbSize = prodDbSize;
+        // Test/PreProd не можуть бути менше PROD (можуть бути більше) — Dev без обмеження знизу.
+        testDbSize = Math.Max(testDbSize, prodDbSize);
+        ppDbSize = Math.Max(ppDbSize, prodDbSize);
+
         return new EnvironmentSettings
         {
             IncludeDev = IncludeDev,
@@ -433,7 +396,10 @@ public class MainViewModel : INotifyPropertyChanged
             IncludePredProd = IncludePredProd,
             DevUserCount = Math.Clamp(dev, 1, 5000),
             TestUserCount = Math.Clamp(test, 1, 5000),
-            PredProdUserCount = Math.Clamp(pp, 1, 5000)
+            PredProdUserCount = Math.Clamp(pp, 1, 5000),
+            DevDbSizeGb = devDbSize,
+            TestDbSizeGb = testDbSize,
+            PredProdDbSizeGb = ppDbSize
         };
     }
 
@@ -447,18 +413,24 @@ public class MainViewModel : INotifyPropertyChanged
 
         EnvironmentReport BuildEnv(DeployEnvironment env, string name, int users)
         {
+            var envDbSize = env switch
+            {
+                DeployEnvironment.Dev => s.DevDbSizeGb,
+                DeployEnvironment.Test => s.TestDbSizeGb,
+                DeployEnvironment.PredProd => s.PredProdDbSizeGb,
+                _ => config.DbSizeGb
+            };
             var envConfig = new ProjectConfig
             {
                 ProjectName = config.ProjectName, UserCount = users,
-                DeploymentType = config.DeploymentType, ProductType = config.ProductType,
+                DeploymentType = config.DeploymentType,
                 LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
                 Environment = env,
+                DbSizeGb = envDbSize,
                 // Опціональні вузли — ОКРЕМО для кожного похідного середовища (перемикачі внизу).
                 IncludeReportingServer = NodeEnabledFor("reporting", env),
                 IncludeSqlFailover = NodeEnabledFor("failover", env),
-                IncludeHaProxy = NodeEnabledFor("haproxy", env),
-                HaProxyHa = NodeEnabledFor("haproxy-ha", env),
-                SmartIdOnKubernetes = config.SmartIdOnKubernetes
+                IncludeHaProxy = NodeEnabledFor("haproxy", env)
             };
             // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
             // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).
@@ -525,7 +497,7 @@ public class MainViewModel : INotifyPropertyChanged
             DeploymentType.Windows => _loc["deploy.windowsName"],
             _ => _loc["deploy.hybridName"]
         };
-        var product = config.ProductType == ProductType.Standard ? _loc["product.standard"] : _loc["product.documentflow"];
+        var product = _loc["product.documentflow"];
         var db = config.DatabaseType switch
         {
             DatabaseType.PostgreSQL => "PostgreSQL",
@@ -592,7 +564,6 @@ public class MainViewModel : INotifyPropertyChanged
             DeploymentType.Windows => 1,
             _ => 2
         };
-        ProductIndex = config.ProductType == ProductType.DocumentFlow ? 1 : 0;
 
         if (config.SelectedModules.Count > 0)
         {
@@ -609,26 +580,12 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void OnMatrixChanged()
     {
-        var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
-        _engine.SetProductType(productType);
+        _engine.ReloadModules();
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules.ToClonedList());
         _engine.SetModules(Modules.ToList());
         OnPropertyChanged(nameof(Modules));
         OnDeploymentTypeChanged();
         RebuildEnvModuleCounts();
-    }
-
-    private void OnProductTypeChanged()
-    {
-        var productType = ProductIndex == 0 ? ProductType.Standard : ProductType.DocumentFlow;
-        _engine.SetProductType(productType);
-        Modules = new ObservableCollection<ProjectModule>(_engine.Modules.ToClonedList());
-        _engine.SetModules(Modules.ToList());
-        OnDeploymentTypeChanged();
-        RebuildEnvModuleCounts();
-        var loc = _loc;
-        StatusText = string.Format(loc["status.productChanged"],
-            productType == ProductType.Standard ? loc["product.standard"] : loc["product.documentflow"]);
     }
 
     private void OnDeploymentTypeChanged()
@@ -724,7 +681,6 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ISizingEngine Engine => _engine;
     public ResourceRequirement? LastResult => _lastResult;
-    public ResourceRequirement? LastResultPerf => _lastResultPerf;
 
     #endregion
 }

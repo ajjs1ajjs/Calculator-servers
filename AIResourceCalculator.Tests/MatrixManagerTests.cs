@@ -13,7 +13,7 @@ public class MatrixManagerTests
         public SizingMatrix LoadMatrix()
         {
             var m = new SizingMatrix();
-            foreach (var mod in m.StandardModules.Concat(m.DocumentFlowModules))
+            foreach (var mod in m.DocumentFlowModules)
             {
                 mod.IsMandatory = false;                  // старі дані не знали про IsMandatory
                 if (mod.Name is "LMS" or "HR Portal") mod.IsEnabled = true; // помилково увімкнені
@@ -31,14 +31,14 @@ public class MatrixManagerTests
 
         foreach (var name in new[] { "App Server", "ROBOT", "Web" })
         {
-            var mod = manager.Matrix.StandardModules.First(m => m.Name == name);
+            var mod = manager.Matrix.DocumentFlowModules.First(m => m.Name == name);
             Assert.True(mod.IsMandatory, $"{name} має бути обов'язковим");
             Assert.True(mod.IsEnabled);
         }
 
         foreach (var name in new[] { "LMS", "HR Portal" })
         {
-            var mod = manager.Matrix.StandardModules.First(m => m.Name == name);
+            var mod = manager.Matrix.DocumentFlowModules.First(m => m.Name == name);
             Assert.False(mod.IsMandatory);
             Assert.False(mod.IsEnabled);
         }

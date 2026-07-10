@@ -5,8 +5,7 @@ public class ProjectConfig
     public string ProjectName { get; set; } = "";
     public int UserCount { get; set; }
     public DeploymentType DeploymentType { get; set; } = DeploymentType.Kubernetes;
-    public ProductType ProductType { get; set; } = ProductType.Standard;
-    public LoadProfile LoadProfile { get; set; } = LoadProfile.Basic;
+    public LoadProfile LoadProfile { get; set; } = LoadProfile.Performance;
     public DatabaseType DatabaseType { get; set; } = DatabaseType.MsSql;
     public List<string> SelectedModules { get; set; } = new();
 
@@ -14,15 +13,13 @@ public class ProjectConfig
     // LMS/HR Portal). Додаються лише коли увімкнені; на базовий розрахунок інакше не впливають.
     public bool IncludeReportingServer { get; set; }   // Сервер звітів (Reporting Services), 2/4
     public bool IncludeSqlFailover { get; set; }       // Другий вузол БД (failover-кластер)
-    public bool IncludeHaProxy { get; set; }           // Балансувальник HAProxy (Linux), 2/4
-    public bool HaProxyHa { get; set; }                // HAProxy у режимі HA → 2 вузли (active/passive, VRRP)
-
-    // Розміщення центрального SmartID (SSO) у ГІБРИДІ: true = под у Kubernetes, false = на
-    // веб-серверах (IIS) — без окремої ВМ (IIS у нас і є веб-сервер). У чистому K8s SmartID
-    // завжди под; у чистому Windows — завжди на веб-серверах (IIS). Поза гібридом поле ігнорується.
-    public bool SmartIdOnKubernetes { get; set; } = true;
+    public bool IncludeHaProxy { get; set; }           // Балансувальник HAProxy (Linux), 2/4 — завжди 1 вузол
 
     // Середовище, для якого виконується розрахунок. Визначає редакцію СУБД:
     // non-prod (DEV/TEST/PreProd) → Developer Edition; PROD → Standard/Enterprise.
     public DeployEnvironment Environment { get; set; } = DeployEnvironment.Prod;
+
+    // Обсяг даних БД (ГБ), заданий вручну для цього середовища. 0 = не задано (диски беруться
+    // фіксованими з матриці, як і раніше). Test/PreProd за замовчуванням = Prod, не менше Prod.
+    public int DbSizeGb { get; set; }
 }

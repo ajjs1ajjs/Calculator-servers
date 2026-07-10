@@ -19,7 +19,6 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     public ObservableCollection<UserLoadRange> MsSqlRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges { get; private set; } = new();
-    public ObservableCollection<ServiceComponent> K8sStandardComponents { get; private set; } = new();
     public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents { get; private set; } = new();
     public ObservableCollection<InfrastructureNode> InfraNodes { get; private set; } = new();
 
@@ -50,15 +49,6 @@ public class MatrixViewModel : INotifyPropertyChanged
         MsSqlRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlRanges);
         MsSqlPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlPerformanceRanges);
 
-        K8sStandardComponents = new ObservableCollection<ServiceComponent>(
-            _matrix.StandardModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
-            {
-                Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
-                Replicas = c.FixedReplicas, FixedReplicas = c.FixedReplicas,
-                Formula = c.Formula, Category = m.Name
-            }))
-        );
-
         K8sDocumentFlowComponents = new ObservableCollection<ServiceComponent>(
             _matrix.DocumentFlowModules.SelectMany(m => m.Components.Select(c => new ServiceComponent
             {
@@ -75,7 +65,6 @@ public class MatrixViewModel : INotifyPropertyChanged
 
         OnPropertyChanged(nameof(MsSqlRanges));
         OnPropertyChanged(nameof(MsSqlPerformanceRanges));
-        OnPropertyChanged(nameof(K8sStandardComponents));
         OnPropertyChanged(nameof(K8sDocumentFlowComponents));
         OnPropertyChanged(nameof(InfraNodes));
     }
@@ -84,7 +73,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     {
         _matrixManager.SyncGridsToMatrix(
             MsSqlRanges.ToList(), MsSqlPerformanceRanges.ToList(),
-            K8sStandardComponents.ToList(), K8sDocumentFlowComponents.ToList(),
+            K8sDocumentFlowComponents.ToList(),
             new List<ServiceComponent>(), InfraNodes.ToList());
         _matrix = _matrixManager.Matrix;
     }

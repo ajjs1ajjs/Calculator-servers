@@ -145,17 +145,6 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void ProductIndex_DocumentFlow_KeepsModulesAndUpdatesStatus()
-    {
-        var vm = BuildVm(out _);
-        vm.ProductIndex = 1;                            // Документообіг
-
-        Assert.Equal(1, vm.ProductIndex);
-        Assert.NotEmpty(vm.Modules);
-        Assert.False(string.IsNullOrEmpty(vm.StatusText));
-    }
-
-    [Fact]
     public void LangSwitchCommand_TogglesLanguage()
     {
         var vm = BuildVm(out _);

@@ -44,18 +44,6 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
-            <Expander Header="{loc:Loc matrix.k8sStandard}" IsExpanded="True">
-                <DataGrid Height="140" IsReadOnly="False" CanUserAddRows="True"
-                          ItemsSource="{Binding MatrixVM.K8sStandardComponents}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
-                        <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas, Mode=TwoWay}" Width="60"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Expander>
             <Expander Header="{loc:Loc matrix.k8sDocumentFlow}" IsExpanded="True">
                 <DataGrid Height="140" IsReadOnly="False" CanUserAddRows="True"
                           ItemsSource="{Binding MatrixVM.K8sDocumentFlowComponents}">

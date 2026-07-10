@@ -23,29 +23,17 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc setup.users}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.users}"/>
                                 <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtUserCount" Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14" ToolTip="{loc:Loc tooltip.users}"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.product}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.product}"/>
-                                <ComboBox Grid.Row="1" Grid.Column="1" SelectedIndex="{Binding ProductIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.product}">
-                                    <ComboBoxItem Content="{loc:Loc product.standard}"/><ComboBoxItem Content="{loc:Loc product.documentflow}"/>
-                                </ComboBox>
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.deployment}"/>
-                                <ComboBox Grid.Row="2" Grid.Column="1" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.deployment}">
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc setup.deployment}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.deployment}"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" SelectedIndex="{Binding DeploymentIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.deployment}">
                                     <ComboBoxItem Content="{loc:Loc deploy.k8s}"/><ComboBoxItem Content="{loc:Loc deploy.windows}"/><ComboBoxItem Content="{loc:Loc deploy.hybrid}"/>
                                 </ComboBox>
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Database" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.database}"/>
-                                <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.database}">
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Database" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.database}"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" SelectedIndex="{Binding DatabaseIndex, Mode=TwoWay}" Margin="3" Padding="4" ToolTip="{loc:Loc tooltip.database}">
                                     <ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="Oracle 19c"/>
                                 </ComboBox>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Loc env.dbData}" FontSize="14" VerticalAlignment="Center" Margin="3" ToolTip="{loc:Loc tooltip.dbData}"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ProdDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="3" Padding="5" FontSize="14" ToolTip="{loc:Loc tooltip.dbData}"/>
                             </Grid>
-                            <!-- Розміщення центрального SmartID — лише в гібриді (у чистому K8s завжди под,
-                                 у чистому Windows завжди на веб-серверах IIS). На Windows SmartID
-                                 розгортається на веб-серверах (IIS), без окремої ВМ. -->
-                            <StackPanel Orientation="Horizontal" Margin="3,4,0,0"
-                                        Visibility="{Binding IsHybrid, Converter={StaticResource VisibilityConverter}}">
-                                <TextBlock Text="SmartID:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
-                                <CheckBox Content="у Kubernetes (інакше — на веб-серверах IIS)" VerticalAlignment="Center"
-                                          IsChecked="{Binding SmartIdOnKubernetes, Mode=TwoWay}"
-                                          ToolTip="Гібрид: де розгортати центральний сервіс єдиного входу SmartID. Увімкнено — под у Kubernetes; вимкнено — на веб-серверах (IIS), без окремої ВМ."/>
-                            </StackPanel>
                         </StackPanel>
                     </Border>
                     <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
@@ -83,11 +71,8 @@
                                           ToolTip="Reporting Services, окремий вузол 2 ядра / 4 ГБ (Windows)"/>
                                 <CheckBox Content="SQL Secondary (Failover)" IsChecked="{Binding IncludeSqlFailover, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
                                           ToolTip="Другий вузол БД для failover-кластера (копія первинного вузла БД)"/>
-                                <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
-                                          ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux)"/>
-                                <CheckBox Content="HAProxy HA (2 вузли)" IsChecked="{Binding HaProxyHa, Mode=TwoWay}" FontWeight="SemiBold"
-                                          IsEnabled="{Binding IncludeHaProxy}"
-                                          ToolTip="Відмовостійкість балансувальника: 2 вузли active/passive (keepalived/VRRP, спільний VIP). Діє лише коли HAProxy увімкнено."/>
+                                <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold"
+                                          ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол"/>
                             </WrapPanel>
                         </StackPanel>
                     </Border>
@@ -115,6 +100,10 @@
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                             <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <TextBox Width="60" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding DevDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.dbData}"/>
                                         </StackPanel>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
@@ -156,6 +145,10 @@
                                             <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <TextBox Width="60" Text="{Binding TestUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.testUsers}"/>
                                         </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding TestDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="Не менше розміру БД PROD; за замовчуванням дорівнює PROD"/>
+                                        </StackPanel>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
@@ -195,6 +188,10 @@
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                             <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <TextBox Width="60" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding PredProdDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="Не менше розміру БД PROD; за замовчуванням дорівнює PROD"/>
                                         </StackPanel>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>

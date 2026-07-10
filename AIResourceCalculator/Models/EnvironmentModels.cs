@@ -14,6 +14,12 @@ public class EnvironmentSettings
     public int TestUserCount { get; set; } = 25;
     public int PredProdUserCount { get; set; } = 50;
 
+    // Обсяг даних БД (ГБ) для похідних середовищ. Test/PreProd за замовчуванням = PROD, не менше
+    // PROD (може бути більше); Dev — незалежне значення, без нижньої межі.
+    public int DevDbSizeGb { get; set; }
+    public int TestDbSizeGb { get; set; }
+    public int PredProdDbSizeGb { get; set; }
+
     public bool AnyDerived => IncludeDev || IncludeTest || IncludePredProd;
 }
 
@@ -101,6 +107,8 @@ public class EnvironmentReport
 
     // Компоненти (поди) середовища — для окремої розбивки DEV/TEST/PreProd у звіті/UI.
     public IEnumerable<ServiceComponent> Components => Requirement.Components.Where(c => c.Cpu > 0);
+    // Ті самі компоненти, відфільтровані для звіту (галочка IncludeInReport) — Excel/PDF.
+    public IEnumerable<ServiceComponent> ReportComponents => Components.Where(c => c.IncludeInReport);
     public bool HasComponents => Components.Any();
     // Підсумок ресурсів подів середовища.
     public double ComponentsCpu => Math.Round(Components.Sum(c => c.Cpu), 2);

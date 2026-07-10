@@ -156,6 +156,7 @@
                                                   FontWeight="Normal"
                                                   Visibility="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
                                             <DataGrid.Columns>
+                                                <DataGridCheckBoxColumn Header="{loc:Loc col.includeInReport}" Binding="{Binding IncludeInReport, Mode=TwoWay}" Width="Auto" IsReadOnly="False"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="Auto" MinWidth="90"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>

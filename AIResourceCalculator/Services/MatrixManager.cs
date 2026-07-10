@@ -45,7 +45,6 @@ public class MatrixManager
         target.WebServerPerformanceRanges = CloneRanges(source.WebServerPerformanceRanges);
         target.PostgresRanges = CloneRanges(source.PostgresRanges);
         target.OracleRanges = CloneRanges(source.OracleRanges);
-        target.StandardModules = source.StandardModules.ToClonedList();
         target.DocumentFlowModules = source.DocumentFlowModules.ToClonedList();
         target.Modules = source.Modules.ToClonedList();
         target.DefaultK8sSql = source.DefaultK8sSql?.Clone();
@@ -69,7 +68,7 @@ public class MatrixManager
 
     private static void NormalizeModulePolicy(SizingMatrix m)
     {
-        foreach (var mod in m.StandardModules.Concat(m.DocumentFlowModules))
+        foreach (var mod in m.DocumentFlowModules)
         {
             mod.IsMandatory = MandatoryModules.Contains(mod.Name);
             if (mod.IsMandatory) mod.IsEnabled = true;
@@ -80,7 +79,6 @@ public class MatrixManager
     public void SyncGridsToMatrix(
         List<UserLoadRange> msSqlRanges,
         List<UserLoadRange> msSqlPerfRanges,
-        List<ServiceComponent> k8sStandard,
         List<ServiceComponent> k8sDocFlow,
         List<ServiceComponent> k8sComponents,
         List<InfrastructureNode> infraNodes)
@@ -88,7 +86,6 @@ public class MatrixManager
         _matrix.MsSqlRanges = msSqlRanges;
         _matrix.MsSqlPerformanceRanges = msSqlPerfRanges;
 
-        SyncComponentsToModules(k8sStandard, _matrix.StandardModules);
         SyncComponentsToModules(k8sDocFlow, _matrix.DocumentFlowModules);
         SyncComponentsToModules(k8sComponents, _matrix.Modules);
 

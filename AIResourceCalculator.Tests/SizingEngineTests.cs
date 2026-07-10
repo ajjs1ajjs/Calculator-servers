@@ -253,23 +253,15 @@ public class SizingEngineTests
         Assert.Equal(4, smartIds[0].Replicas); // ceil(100/25)
     }
 
-    // --- SmartID у гібриді: на K8s — под; на Windows — обслуговує IIS (поду немає) ---
+    // --- SmartID у гібриді: завжди под у Kubernetes (без окремої ВМ на IIS) ---
     [Fact]
-    public void Calculate_Hybrid_SmartIdPlacement()
+    public void Calculate_Hybrid_SmartIdAlwaysOnKubernetes()
     {
-        var onK8s = _engine.Calculate(new ProjectConfig
+        var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic,
-            SmartIdOnKubernetes = true
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic
         });
-        Assert.Contains(onK8s.Components, c => c.Name == "SmartID");
-
-        var onWin = _engine.Calculate(new ProjectConfig
-        {
-            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic,
-            SmartIdOnKubernetes = false
-        });
-        Assert.DoesNotContain(onWin.Components, c => c.Name == "SmartID");
+        Assert.Contains(result.Components, c => c.Name == "SmartID");
     }
 
     // --- HAProxy додається лише за перемикачем (Linux 2/4) ---
@@ -289,28 +281,27 @@ public class SizingEngineTests
         Assert.Equal(1, node.NodeCount);
     }
 
-    // --- HAProxy HA: 2 вузли (active/passive) замість 1, із приміткою про VRRP ---
+    // --- HAProxy завжди 1 вузол (вибір HA прибрано) ---
     [Fact]
-    public void Calculate_HaProxyHa_WhenEnabled_AddsTwoNodes()
+    public void Calculate_HaProxy_AlwaysSingleNode()
     {
         var result = _engine.Calculate(new ProjectConfig
         {
             UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
-            IncludeHaProxy = true, HaProxyHa = true
+            IncludeHaProxy = true
         });
         var node = result.Infrastructure.First(n => n.Name.Contains("HAProxy"));
-        Assert.Equal(2, node.NodeCount);
-        Assert.Contains("HA", node.Notes);
+        Assert.Equal(1, node.NodeCount);
     }
 
-    // --- HA без увімкненого HAProxy не додає вузол (HA лише підсилює наявний HAProxy) ---
+    // --- Вимкнений HAProxy не додає вузол ---
     [Fact]
-    public void Calculate_HaProxyHa_WithoutHaProxy_AddsNothing()
+    public void Calculate_HaProxy_Disabled_AddsNothing()
     {
         var result = _engine.Calculate(new ProjectConfig
         {
             UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
-            IncludeHaProxy = false, HaProxyHa = true
+            IncludeHaProxy = false
         });
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("HAProxy"));
     }
@@ -453,7 +444,6 @@ public class SizingEngineTests
             LoadProfile = LoadProfile.Basic
         };
 
-        _engine.SetProductType(ProductType.Standard);
         var forceBpm = _engine.Modules.FirstOrDefault(m => m.Name == "ForceBPM");
         Assert.NotNull(forceBpm);
         Assert.True(forceBpm!.IsKubernetesOnly);
@@ -508,9 +498,8 @@ public class SizingEngineTests
     }
 
     [Fact]
-    public void SetProductType_PreservesIsKubernetesOnly()
+    public void Modules_PreserveIsKubernetesOnly()
     {
-        _engine.SetProductType(ProductType.DocumentFlow);
         var forceBpm = _engine.Modules.FirstOrDefault(m => m.Name == "ForceBPM");
         Assert.NotNull(forceBpm);
         Assert.True(forceBpm!.IsKubernetesOnly);
@@ -742,9 +731,10 @@ public class SizingEngineTests
 
         // SmartID централізовано (один на систему за загальною к-стю користувачів), тож попередні
         // окремі Web/LMS/HR SmartID прибрано: PodCpu/RAM зменшено на їхній внесок і додано один
-        // центральний SmartID (50 ліц → 2 репліки). Звідси нові підсумки.
-        Assert.Equal(46.20, result.PodCpu, 2);
-        Assert.Equal(175.70, result.PodRamGb, 2);
+        // центральний SmartID (50 ліц → 2 репліки). Значення оновлено після переходу застосунку
+        // виключно на профіль Документообіг (StandardModules прибрано — компоненти важчі).
+        Assert.Equal(48.60, result.PodCpu, 2);
+        Assert.Equal(190.60, result.PodRamGb, 2);
 
         int Rep(string canonical) => result.Components
             .First(c => c.Name == ComponentDisplayName.Localize(canonical)).Replicas;
@@ -787,11 +777,10 @@ public class SizingEngineTests
     [Fact]
     public void Calculate_DocumentFlow_Windows_MatchesReferenceRanges()
     {
-        _engine.SetProductType(ProductType.DocumentFlow);
         var result = _engine.Calculate(new ProjectConfig
         {
             UserCount = 200, DeploymentType = DeploymentType.Windows,
-            ProductType = ProductType.DocumentFlow, LoadProfile = LoadProfile.Performance
+            LoadProfile = LoadProfile.Performance
         });
         var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
         Assert.Equal(6, db.Cpu);        // MSSQL Документообіг 101-200 → 6 ядер
@@ -878,5 +867,55 @@ public class SizingEngineTests
         var result = _engine.Calculate(config);
         Assert.Contains(result.Infrastructure, n => n.Name == "PostgreSQL");
         Assert.DoesNotContain(result.Infrastructure, n => n.Name == "SQL Server");
+    }
+
+    // --- Обсяг даних БД (ГБ), заданий вручну, піднімає диск MainData і пропорційно Logs/TempDB ---
+    [Fact]
+    public void Calculate_DbSizeGb_ScalesMainDataAndLogsDisks()
+    {
+        var withoutSize = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+        var withSize = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            DbSizeGb = 5000
+        });
+
+        var dbNoSize = withoutSize.Infrastructure.First(n => n.Name.Contains("SQL"));
+        var dbWithSize = withSize.Infrastructure.First(n => n.Name.Contains("SQL"));
+
+        Assert.Equal(5000, dbWithSize.StorageGb3);          // MainData піднято до заданого обсягу
+        Assert.Equal(1250, dbWithSize.StorageGb2);           // Logs/TempDB = 25% від обсягу даних
+        Assert.True(dbWithSize.StorageGb3 > dbNoSize.StorageGb3);
+    }
+
+    // --- Малий обсяг даних БД не зменшує диск нижче фіксованого значення з матриці ---
+    [Fact]
+    public void Calculate_DbSizeGb_DoesNotShrinkBelowMatrixDefault()
+    {
+        var withoutSize = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+        var dbNoSize = withoutSize.Infrastructure.First(n => n.Name.Contains("SQL"));
+
+        var withTinySize = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            DbSizeGb = 1
+        });
+        var dbTinySize = withTinySize.Infrastructure.First(n => n.Name.Contains("SQL"));
+
+        Assert.Equal(dbNoSize.StorageGb3, dbTinySize.StorageGb3);
+    }
+
+    // --- Файл підкачки — окремий диск: враховується у сумі дисків вузла ---
+    [Fact]
+    public void InfrastructureNode_DiskPerNodeGb_IncludesPageFile()
+    {
+        var node = new InfrastructureNode { StorageGb = 100, StorageGb2 = 50, PageFileGb = 32 };
+        Assert.Equal(182, node.DiskPerNodeGb);
     }
 }

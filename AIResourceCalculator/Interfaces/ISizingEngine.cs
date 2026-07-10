@@ -6,8 +6,7 @@ namespace AIResourceCalculator.Interfaces;
 public interface ISizingEngine
 {
     IReadOnlyList<ProjectModule> Modules { get; }
-    ProductType CurrentProduct { get; }
     void SetModules(List<ProjectModule> modules);
-    void SetProductType(ProductType productType);
+    void ReloadModules();
     ResourceRequirement Calculate(ProjectConfig config);
 }

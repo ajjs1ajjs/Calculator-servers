@@ -8,15 +8,13 @@ public class SizingEngine : ISizingEngine
 {
     private readonly SizingMatrix _matrix;
     private List<ProjectModule> _modules;
-    private ProductType _currentProduct = ProductType.Standard;
 
     public IReadOnlyList<ProjectModule> Modules => _modules.AsReadOnly();
-    public ProductType CurrentProduct => _currentProduct;
 
     public SizingEngine(SizingMatrix matrix)
     {
         _matrix = matrix;
-        _modules = matrix.StandardModules.ToClonedList();
+        _modules = matrix.DocumentFlowModules.ToClonedList();
     }
 
     public void SetModules(List<ProjectModule> modules)
@@ -24,13 +22,10 @@ public class SizingEngine : ISizingEngine
         _modules = modules;
     }
 
-    public void SetProductType(ProductType productType)
+    // Перечитує модулі з матриці (напр. після Reset/Import у редакторі матриці).
+    public void ReloadModules()
     {
-        _currentProduct = productType;
-        var source = productType == ProductType.DocumentFlow
-            ? _matrix.DocumentFlowModules
-            : _matrix.StandardModules;
-        _modules = source.ToClonedList();
+        _modules = _matrix.DocumentFlowModules.ToClonedList();
     }
 
     public ResourceRequirement Calculate(ProjectConfig config)
@@ -85,14 +80,7 @@ public class SizingEngine : ISizingEngine
         if (config.IncludeHaProxy)
         {
             var ha = (_matrix.DefaultHaProxy ?? _defaultHaProxy).Clone();
-            // HA: два вузли HAProxy active/passive зі спільним VIP (keepalived/VRRP), щоб сам
-            // балансувальник не був єдиною точкою відмови. Інакше — один вузол (як було).
-            if (config.HaProxyHa)
-            {
-                ha.NodeCount = 2;
-                const string haNote = "HA: 2 вузли active/passive, keepalived/VRRP, спільний VIP";
-                ha.Notes = string.IsNullOrWhiteSpace(ha.Notes) ? haNote : $"{ha.Notes}; {haNote}";
-            }
+            ha.NodeCount = 1;
             req.Infrastructure.Add(ha);
         }
 
@@ -203,7 +191,7 @@ public class SizingEngine : ISizingEngine
                 IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
                 ThroughputMiBs = ThroughputFor(sqlRange)
             };
-            ApplyDbDisks(dbNode, config.DatabaseType, dbRam, config.Environment);
+            ApplyDbDisks(dbNode, config.DatabaseType, dbRam, config.Environment, config.DbSizeGb);
             req.Infrastructure.Add(dbNode);
         }
         req.Infrastructure.Add(new InfrastructureNode
@@ -298,7 +286,7 @@ public class SizingEngine : ISizingEngine
             IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
             ThroughputMiBs = ThroughputFor(sqlRange)
         };
-        ApplyDbDisks(dbNode, config.DatabaseType, sqlRam, config.Environment);
+        ApplyDbDisks(dbNode, config.DatabaseType, sqlRam, config.Environment, config.DbSizeGb);
         req.Infrastructure.Add(dbNode);
         req.Infrastructure.Add(new InfrastructureNode
         {
@@ -351,13 +339,12 @@ public class SizingEngine : ISizingEngine
         var k8sReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
         var winReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile };
 
-        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, ProductType = config.ProductType, DatabaseType = config.DatabaseType };
-        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, ProductType = config.ProductType, DatabaseType = config.DatabaseType };
+        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb };
+        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb };
 
-        // SmartID у гібриді: на K8s — под (includeSmartId=true); на веб-серверах IIS — тоді з K8s
-        // його прибираємо (окрема ВМ не додається; IIS і є веб-сервер Windows-частини).
+        // SmartID у гібриді: завжди под у Kubernetes (окрема ВМ на веб-серверах IIS не додається).
         CalculateK8s(k8sReq, k8sConfig, includeDatabase: false, excludeModules: HybridWindowsModules,
-            includeSmartId: config.SmartIdOnKubernetes);
+            includeSmartId: true);
         CalculateWindows(winReq, winConfig);
 
         // БД — на Windows-частині; K8s IOPS = 0, тож підсумок IOPS бере Windows.
@@ -425,12 +412,20 @@ public class SizingEngine : ISizingEngine
     // Content не виділяється (потрібне лише у PROD) і OS-диск зменшується.
     private const int NonProdOsDiskGb = 100;
     private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, double dbRamGb,
-        DeployEnvironment environment)
+        DeployEnvironment environment, int dbSizeGb = 0)
     {
         // Диски беремо ФІКСОВАНІ з матриці/еталона (OS / Logs+TempDB / MainData / Content) —
         // обсяг даних наперед невідомий, тож не масштабуємо вручну. Гарантуємо типи за замовчуванням.
         if (db.StorageGb2 > 0 && string.IsNullOrWhiteSpace(db.StorageType2)) db.StorageType2 = "SSD";
         if (db.StorageGb3 > 0 && string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
+
+        // Якщо користувач вручну задав обсяг даних БД — диск MainData піднімаємо до нього (не менше
+        // фіксованого з матриці), а диск Logs+TempDB масштабуємо пропорційно (25% від обсягу даних).
+        if (dbSizeGb > 0)
+        {
+            db.StorageGb3 = Math.Max(db.StorageGb3, dbSizeGb);
+            db.StorageGb2 = Math.Max(db.StorageGb2, (int)Math.Ceiling(dbSizeGb * 0.25));
+        }
 
         // non-prod: прибираємо диск Content (холодні/бекап дані не потрібні) і зменшуємо OS-диск.
         if (environment != DeployEnvironment.Prod)

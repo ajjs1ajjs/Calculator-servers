@@ -25,7 +25,7 @@ public class ConfigExportService
         _ => "Гібрид (K8s + Windows)"
     };
 
-    private static string ProductName(ProductType t) => t == ProductType.DocumentFlow ? "Документообіг" : "Стандарт";
+    private const string ProductName = "Документообіг";
 
     // Пояснення (UI/Excel/PDF), чому середовища з близькою к-стю користувачів мають однакові поди.
     private const string PodScalingNote =
@@ -164,7 +164,7 @@ public class ConfigExportService
         c.BorderBottom(2).BorderColor(PdfAccent).PaddingBottom(6).Column(col =>
         {
             col.Item().Text(ReportTitle(config)).FontSize(16).Bold().FontColor(PdfAccent);
-            col.Item().Text($"Продукт: {ProductName(config.ProductType)}  ·  Розгортання: {DeployName(config.DeploymentType)}  ·  " +
+            col.Item().Text($"Продукт: {ProductName}  ·  Розгортання: {DeployName(config.DeploymentType)}  ·  " +
                             $"Профіль: {ProfileName(config.LoadProfile)}  ·  СКБД: {DbName(config.DatabaseType)}")
                 .FontSize(9).FontColor(PdfMuted);
         });
@@ -292,7 +292,7 @@ public class ConfigExportService
 
     private static void ComposePdfComponents(IContainer c, ResourceRequirement req, string title = "Компоненти (поди)")
     {
-        var comps = req.Components.Where(x => x.Cpu > 0).ToList();
+        var comps = req.Components.Where(x => x.Cpu > 0 && x.IncludeInReport).ToList();
         if (comps.Count == 0) { c.Text(""); return; }
         c.Column(col =>
         {
@@ -429,7 +429,7 @@ public class ConfigExportService
     // Повертає номер наступного вільного рядка.
     private static int WriteEnvVmBlock(ExcelWorksheet ws, EnvironmentReport e, int startRow)
     {
-        const int cols = 14;
+        const int cols = 15;
         // Підпис середовища над таблицею (із к-стю користувачів).
         ws.Cells[startRow, 1].Value = $"Середовище {e.Name} — користувачів: {e.UserCount}";
         ws.Cells[startRow, 1, startRow, cols].Merge = true;
@@ -439,7 +439,7 @@ public class ConfigExportService
 
         // «Середовище» більше не окрема колонка — воно у підписі блоку (звідси й зручніше).
         string[] headers = { "Сервер (ВМ)", "CPU (ядер)", "RAM (ГБ)", "К-сть",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
+            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "Page file (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
             "Призначення", "ОС", "Версія СУБД", "Примітки" };
         int headerRow = startRow + 1;
         WriteHeader(ws, headers, headerRow);
@@ -453,18 +453,19 @@ public class ConfigExportService
             ws.Cells[row, 4].Value = n.NodeCount;
             ws.Cells[row, 5].Value = n.DiskPerNodeGb;
             ws.Cells[row, 6].Value = n.TotalStorageGb;
-            ws.Cells[row, 7].Value = n.Iops > 0 ? n.Iops : (object)"";
-            ws.Cells[row, 8].Value = n.IopsProfile;
-            ws.Cells[row, 9].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
-            ws.Cells[row, 10].Value = n.Latency > 0 ? n.Latency : (object)"";
-            ws.Cells[row, 11].Value = NodeRole(n.Name);
-            ws.Cells[row, 12].Value = n.Os;
-            ws.Cells[row, 13].Value = n.DbVersion;
-            ws.Cells[row, 14].Value = n.Notes;
+            ws.Cells[row, 7].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
+            ws.Cells[row, 8].Value = n.Iops > 0 ? n.Iops : (object)"";
+            ws.Cells[row, 9].Value = n.IopsProfile;
+            ws.Cells[row, 10].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+            ws.Cells[row, 11].Value = n.Latency > 0 ? n.Latency : (object)"";
+            ws.Cells[row, 12].Value = NodeRole(n.Name);
+            ws.Cells[row, 13].Value = n.Os;
+            ws.Cells[row, 14].Value = n.DbVersion;
+            ws.Cells[row, 15].Value = n.Notes;
             // Числові/кодові стовпці — по центру; власне числа — ще й жирним. Назви/опис — зліва (типово).
-            ws.Cells[row, 2, row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 2, row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             ws.Cells[row, 2, row, 7].Style.Font.Bold = true;
-            ws.Cells[row, 9, row, 10].Style.Font.Bold = true;
+            ws.Cells[row, 9, row, 11].Style.Font.Bold = true;
             row++;
         }
         // Підсумковий рядок.
@@ -473,7 +474,7 @@ public class ConfigExportService
         ws.Cells[row, 3].Value = Math.Round(e.Requirement.TotalRamGb, 1);
         ws.Cells[row, 4].Value = e.Requirement.Infrastructure.Sum(n => n.NodeCount);
         ws.Cells[row, 6].Value = e.Requirement.TotalStorageGb;
-        ws.Cells[row, 2, row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        ws.Cells[row, 2, row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
         ws.Cells[row, 1, row, cols].Style.Font.Bold = true;
         ws.Cells[row, 1, row, cols].Style.Fill.PatternType = ExcelFillStyle.Solid;
         ws.Cells[row, 1, row, cols].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
@@ -492,7 +493,7 @@ public class ConfigExportService
     // йдуть СТОВПЦЯМИ зліва направо (Реплік/CPU/RAM на кожне), щоб зручно порівнювати по горизонталі.
     private static void BuildEnvironmentComponentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
-        var envs = environments.Where(e => e.Components.Any()).ToList();
+        var envs = environments.Where(e => e.ReportComponents.Any()).ToList();
         if (envs.Count == 0) return;
         var ws = pkg.Workbook.Worksheets.Add("Компоненти по середовищах");
 
@@ -500,7 +501,7 @@ public class ConfigExportService
         var order = new List<(string Cat, string Name)>();
         var seen = new HashSet<string>();
         foreach (var e in envs)
-            foreach (var c in e.Components)
+            foreach (var c in e.ReportComponents)
                 if (seen.Add(c.Category + "|" + c.Name)) order.Add((c.Category, c.Name));
 
         // Дворядкова шапка: над кожним середовищем — його назва (об'єднано на 3 стовпці).
@@ -538,7 +539,7 @@ public class ConfigExportService
             for (int i = 0; i < envs.Count; i++)
             {
                 int c0 = Col0(i);
-                var comp = envs[i].Components.FirstOrDefault(x => x.Category == cat && x.Name == name);
+                var comp = envs[i].ReportComponents.FirstOrDefault(x => x.Category == cat && x.Name == name);
                 if (comp != null)
                 {
                     ws.Cells[row, c0].Value = comp.Replicas;
@@ -556,9 +557,9 @@ public class ConfigExportService
         for (int i = 0; i < envs.Count; i++)
         {
             int c0 = Col0(i);
-            ws.Cells[row, c0].Value = envs[i].Components.Sum(c => c.Replicas);
-            ws.Cells[row, c0 + 1].Value = Math.Round(envs[i].Components.Sum(c => c.Cpu), 2);
-            ws.Cells[row, c0 + 2].Value = Math.Round(envs[i].Components.Sum(c => c.RamGb), 2);
+            ws.Cells[row, c0].Value = envs[i].ReportComponents.Sum(c => c.Replicas);
+            ws.Cells[row, c0 + 1].Value = Math.Round(envs[i].ReportComponents.Sum(c => c.Cpu), 2);
+            ws.Cells[row, c0 + 2].Value = Math.Round(envs[i].ReportComponents.Sum(c => c.RamGb), 2);
             ws.Cells[row, c0, row, c0 + 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
         }
 
@@ -671,7 +672,7 @@ public class ConfigExportService
 
         Section("Параметри");
         Kv("Користувачів", config.UserCount);
-        Kv("Продукт", ProductName(config.ProductType));
+        Kv("Продукт", ProductName);
         Kv("Тип розгортання", DeployName(config.DeploymentType));
         Kv("Профіль навантаження", ProfileName(config.LoadProfile));
         Kv("База даних (СКБД)", DbName(config.DatabaseType));
@@ -797,7 +798,7 @@ public class ConfigExportService
 
     private static void BuildComponentsSheet(ExcelPackage pkg, ResourceRequirement req)
     {
-        var comps = req.Components.Where(c => c.Cpu > 0).ToList();
+        var comps = req.Components.Where(c => c.Cpu > 0 && c.IncludeInReport).ToList();
         if (comps.Count == 0) return;
 
         var ws = pkg.Workbook.Worksheets.Add("Компоненти");
