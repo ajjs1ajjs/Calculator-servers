@@ -124,11 +124,33 @@ public class MainViewModel : INotifyPropertyChanged
     public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
     public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
     // Обсяг даних БД (ГБ) — PROD задає вручну; Test/PreProd за замовчуванням = PROD, не менше PROD
-    // (клампиться при розрахунку); Dev — незалежне значення без нижньої межі.
-    public string ProdDbSizeGb { get => _prodDbSizeGb; set { _prodDbSizeGb = value; OnPropertyChanged(); } }
+    // (клампиться при розрахунку, а до того — видно попередження в реальному часі); Dev — незалежне
+    // значення без нижньої межі.
+    public string ProdDbSizeGb { get => _prodDbSizeGb; set { _prodDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
     public string DevDbSizeGb { get => _devDbSizeGb; set { _devDbSizeGb = value; OnPropertyChanged(); } }
-    public string TestDbSizeGb { get => _testDbSizeGb; set { _testDbSizeGb = value; OnPropertyChanged(); } }
-    public string PredProdDbSizeGb { get => _predProdDbSizeGb; set { _predProdDbSizeGb = value; OnPropertyChanged(); } }
+    public string TestDbSizeGb { get => _testDbSizeGb; set { _testDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
+    public string PredProdDbSizeGb { get => _predProdDbSizeGb; set { _predProdDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
+
+    // Попередження в реальному часі (поки друкує), якщо Test/PreProd менше PROD — значення все одно
+    // буде піднято до PROD при розрахунку, але користувач бачить це одразу, а не лише постфактум.
+    private string _testDbSizeWarning = "";
+    public string TestDbSizeWarning { get => _testDbSizeWarning; private set { _testDbSizeWarning = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasTestDbSizeWarning)); } }
+    public bool HasTestDbSizeWarning => !string.IsNullOrEmpty(TestDbSizeWarning);
+
+    private string _predProdDbSizeWarning = "";
+    public string PredProdDbSizeWarning { get => _predProdDbSizeWarning; private set { _predProdDbSizeWarning = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasPredProdDbSizeWarning)); } }
+    public bool HasPredProdDbSizeWarning => !string.IsNullOrEmpty(PredProdDbSizeWarning);
+
+    private void UpdateDbSizeWarnings()
+    {
+        int.TryParse(ProdDbSizeGb, out var prod);
+        TestDbSizeWarning = int.TryParse(TestDbSizeGb, out var test) && test > 0 && test < prod
+            ? $"Буде піднято до {prod} ГБ (не менше PROD)"
+            : "";
+        PredProdDbSizeWarning = int.TryParse(PredProdDbSizeGb, out var pp) && pp > 0 && pp < prod
+            ? $"Буде піднято до {prod} ГБ (не менше PROD)"
+            : "";
+    }
 
     // Чи включати компоненти (поди) у сформований звіт (Excel/PDF). На розрахунок не впливає.
     private bool _includeComponentsInReport = true;
