@@ -130,6 +130,10 @@ public class MainViewModel : INotifyPropertyChanged
     public string TestDbSizeGb { get => _testDbSizeGb; set { _testDbSizeGb = value; OnPropertyChanged(); } }
     public string PredProdDbSizeGb { get => _predProdDbSizeGb; set { _predProdDbSizeGb = value; OnPropertyChanged(); } }
 
+    // Чи включати компоненти (поди) у сформований звіт (Excel/PDF). На розрахунок не впливає.
+    private bool _includeComponentsInReport = true;
+    public bool IncludeComponentsInReport { get => _includeComponentsInReport; set { _includeComponentsInReport = value; OnPropertyChanged(); } }
+
     public string StatusText
     {
         get => _statusText;
@@ -305,7 +309,8 @@ public class MainViewModel : INotifyPropertyChanged
             IncludeReportingServer = IncludeReportingServer,
             IncludeSqlFailover = IncludeSqlFailover,
             IncludeHaProxy = IncludeHaProxy,
-            DbSizeGb = dbSize
+            DbSizeGb = dbSize,
+            IncludeComponentsInReport = IncludeComponentsInReport
         };
     }
 
@@ -388,6 +393,12 @@ public class MainViewModel : INotifyPropertyChanged
         // Test/PreProd не можуть бути менше PROD (можуть бути більше) — Dev без обмеження знизу.
         testDbSize = Math.Max(testDbSize, prodDbSize);
         ppDbSize = Math.Max(ppDbSize, prodDbSize);
+
+        // Відображаємо застосоване значення в полях (успадкування від PROD і підняття до мінімуму
+        // видно одразу після розрахунку, а не лише "мовчки" застосовується в обчисленні).
+        DevDbSizeGb = devDbSize.ToString();
+        TestDbSizeGb = testDbSize.ToString();
+        PredProdDbSizeGb = ppDbSize.ToString();
 
         return new EnvironmentSettings
         {

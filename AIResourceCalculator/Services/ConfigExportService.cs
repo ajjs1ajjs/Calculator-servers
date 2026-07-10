@@ -130,15 +130,17 @@ public class ConfigExportService
                             if (!string.IsNullOrEmpty(e.ModulesInfo))
                                 col.Item().Text($"Модулі: {e.ModulesInfo}").FontSize(8).Italic().FontColor(PdfMuted);
                             col.Item().Element(c => ComposePdfInfraTable(c, e.Requirement));
-                            col.Item().Element(c => ComposePdfComponents(c, e.Requirement,
-                                $"Компоненти (поди) середовища {e.Name}"));
+                            if (config.IncludeComponentsInReport)
+                                col.Item().Element(c => ComposePdfComponents(c, e.Requirement,
+                                    $"Компоненти (поди) середовища {e.Name}"));
                         }
                     }
                     else
                     {
                         col.Item().Element(c => PdfSectionTitle(c, "Інфраструктура — сервери (віртуальні машини)"));
                         col.Item().Element(c => ComposePdfInfraTable(c, req));
-                        col.Item().Element(c => ComposePdfComponents(c, req));
+                        if (config.IncludeComponentsInReport)
+                            col.Item().Element(c => ComposePdfComponents(c, req));
                     }
 
                     col.Item().PaddingTop(4).Element(c => PdfSectionTitle(c, "Пояснення показників"));
@@ -292,7 +294,7 @@ public class ConfigExportService
 
     private static void ComposePdfComponents(IContainer c, ResourceRequirement req, string title = "Компоненти (поди)")
     {
-        var comps = req.Components.Where(x => x.Cpu > 0 && x.IncludeInReport).ToList();
+        var comps = req.Components.Where(x => x.Cpu > 0).ToList();
         if (comps.Count == 0) { c.Text(""); return; }
         c.Column(col =>
         {
@@ -390,11 +392,11 @@ public class ConfigExportService
         {
             BuildEnvironmentsSheet(pkg, environments!);
             BuildEnvironmentVmsSheet(pkg, environments!);
-            BuildEnvironmentComponentsSheet(pkg, environments!);
+            if (config.IncludeComponentsInReport) BuildEnvironmentComponentsSheet(pkg, environments!);
         }
         BuildInfrastructureSheet(pkg, req, multiEnv ? environments : null);
         // Компоненти PROD окремо лише коли не було розбивки по середовищах.
-        if (!multiEnv) BuildComponentsSheet(pkg, req);
+        if (!multiEnv && config.IncludeComponentsInReport) BuildComponentsSheet(pkg, req);
 
         return pkg.GetAsByteArray();
     }
@@ -493,7 +495,7 @@ public class ConfigExportService
     // йдуть СТОВПЦЯМИ зліва направо (Реплік/CPU/RAM на кожне), щоб зручно порівнювати по горизонталі.
     private static void BuildEnvironmentComponentsSheet(ExcelPackage pkg, IReadOnlyList<EnvironmentReport> environments)
     {
-        var envs = environments.Where(e => e.ReportComponents.Any()).ToList();
+        var envs = environments.Where(e => e.Components.Any()).ToList();
         if (envs.Count == 0) return;
         var ws = pkg.Workbook.Worksheets.Add("Компоненти по середовищах");
 
@@ -501,7 +503,7 @@ public class ConfigExportService
         var order = new List<(string Cat, string Name)>();
         var seen = new HashSet<string>();
         foreach (var e in envs)
-            foreach (var c in e.ReportComponents)
+            foreach (var c in e.Components)
                 if (seen.Add(c.Category + "|" + c.Name)) order.Add((c.Category, c.Name));
 
         // Дворядкова шапка: над кожним середовищем — його назва (об'єднано на 3 стовпці).
@@ -539,7 +541,7 @@ public class ConfigExportService
             for (int i = 0; i < envs.Count; i++)
             {
                 int c0 = Col0(i);
-                var comp = envs[i].ReportComponents.FirstOrDefault(x => x.Category == cat && x.Name == name);
+                var comp = envs[i].Components.FirstOrDefault(x => x.Category == cat && x.Name == name);
                 if (comp != null)
                 {
                     ws.Cells[row, c0].Value = comp.Replicas;
@@ -557,9 +559,9 @@ public class ConfigExportService
         for (int i = 0; i < envs.Count; i++)
         {
             int c0 = Col0(i);
-            ws.Cells[row, c0].Value = envs[i].ReportComponents.Sum(c => c.Replicas);
-            ws.Cells[row, c0 + 1].Value = Math.Round(envs[i].ReportComponents.Sum(c => c.Cpu), 2);
-            ws.Cells[row, c0 + 2].Value = Math.Round(envs[i].ReportComponents.Sum(c => c.RamGb), 2);
+            ws.Cells[row, c0].Value = envs[i].Components.Sum(c => c.Replicas);
+            ws.Cells[row, c0 + 1].Value = Math.Round(envs[i].Components.Sum(c => c.Cpu), 2);
+            ws.Cells[row, c0 + 2].Value = Math.Round(envs[i].Components.Sum(c => c.RamGb), 2);
             ws.Cells[row, c0, row, c0 + 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
         }
 
@@ -798,7 +800,7 @@ public class ConfigExportService
 
     private static void BuildComponentsSheet(ExcelPackage pkg, ResourceRequirement req)
     {
-        var comps = req.Components.Where(c => c.Cpu > 0 && c.IncludeInReport).ToList();
+        var comps = req.Components.Where(c => c.Cpu > 0).ToList();
         if (comps.Count == 0) return;
 
         var ws = pkg.Workbook.Worksheets.Add("Компоненти");

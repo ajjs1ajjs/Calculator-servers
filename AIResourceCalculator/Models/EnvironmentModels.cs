@@ -107,8 +107,6 @@ public class EnvironmentReport
 
     // Компоненти (поди) середовища — для окремої розбивки DEV/TEST/PreProd у звіті/UI.
     public IEnumerable<ServiceComponent> Components => Requirement.Components.Where(c => c.Cpu > 0);
-    // Ті самі компоненти, відфільтровані для звіту (галочка IncludeInReport) — Excel/PDF.
-    public IEnumerable<ServiceComponent> ReportComponents => Components.Where(c => c.IncludeInReport);
     public bool HasComponents => Components.Any();
     // Підсумок ресурсів подів середовища.
     public double ComponentsCpu => Math.Round(Components.Sum(c => c.Cpu), 2);

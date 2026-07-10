@@ -17,7 +17,4 @@ public class ServiceComponent
     public string Notes { get; set; } = "";
     public string Category { get; set; } = "";
     public ReplicaFormula Formula { get; set; } = ReplicaFormula.Fixed;
-    // Чи включати компонент у сформований звіт (Excel/PDF). У деяких звітах компонент не потрібен —
-    // на сам розрахунок CPU/RAM/подів не впливає, лише на те, що потрапляє у файл звіту.
-    public bool IncludeInReport { get; set; } = true;
 }
