@@ -25,17 +25,10 @@ public class ConfigExportService
         _ => "Гібрид (K8s + Windows)"
     };
 
-    private const string ProductName = "Документообіг";
-
     // Пояснення (UI/Excel/PDF), чому середовища з близькою к-стю користувачів мають однакові поди.
     private const string PodScalingNote =
         "Поди масштабуються блоками (на кожні 25/50/100 користувачів, мінімум 1 репліка), тож середовища " +
         "з близькою кількістю користувачів можуть мати однакові компоненти — відмінності проявляються у вузлі БД.";
-
-    // Зрозуміла назва профілю навантаження (замість англ. Basic/Performance).
-    private static string ProfileName(LoadProfile p) => p == LoadProfile.Performance
-        ? "Продуктивний (підвищене навантаження)"
-        : "Базовий (звичайне навантаження)";
 
     // Кількість worker-вузлів K8s (саме на них лягають поди), окремо від Windows-VM.
     private static int WorkerNodes(ResourceRequirement req)
@@ -166,8 +159,7 @@ public class ConfigExportService
         c.BorderBottom(2).BorderColor(PdfAccent).PaddingBottom(6).Column(col =>
         {
             col.Item().Text(ReportTitle(config)).FontSize(16).Bold().FontColor(PdfAccent);
-            col.Item().Text($"Продукт: {ProductName}  ·  Розгортання: {DeployName(config.DeploymentType)}  ·  " +
-                            $"Профіль: {ProfileName(config.LoadProfile)}  ·  СКБД: {DbName(config.DatabaseType)}")
+            col.Item().Text($"Розгортання: {DeployName(config.DeploymentType)}  ·  СКБД: {DbName(config.DatabaseType)}")
                 .FontSize(9).FontColor(PdfMuted);
         });
     }
@@ -674,9 +666,7 @@ public class ConfigExportService
 
         Section("Параметри");
         Kv("Користувачів", config.UserCount);
-        Kv("Продукт", ProductName);
         Kv("Тип розгортання", DeployName(config.DeploymentType));
-        Kv("Профіль навантаження", ProfileName(config.LoadProfile));
         Kv("База даних (СКБД)", DbName(config.DatabaseType));
         r++;
         Section("Підсумкові потреби (середовище PROD)");
