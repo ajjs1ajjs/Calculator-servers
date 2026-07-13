@@ -11,7 +11,8 @@ public enum ReplicaFormula
     Per50Users,         // Ceiling(користувачі / 50)
     Per100Plus1000,     // 1 + Int(користувачі/100) + Int(користувачі/1000)
     Per50Plus500,       // 1 + Int(користувачі/50) + Int(користувачі/500)
-    OnePlusPer100       // 1 + Int(користувачі/100)
+    OnePlusPer100,      // 1 + Int(користувачі/100)
+    Per1000Users        // Ceiling(користувачі / 1000)
 }
 
 // Єдине джерело правди для розрахунку кількості реплік за формулою.
@@ -36,6 +37,10 @@ public static class ReplicaMath
             // WS: 1 + int(ліцензій/50) + int(HR/500)
             ReplicaFormula.Per50Plus500 => 1 + (int)(userCount / 50.0) + (int)(auxUsers / 500.0),
             ReplicaFormula.OnePlusPer100 => 1 + (int)(userCount / 100.0),
+            // HR-GraphQL: легке навантаження на сесію — 1 репліка на кожні 1000 користувачів
+            // (не на 100, як типові поди), бо HR Portal — самообслуговуючий портал з рідкісними
+            // короткими сесіями, а не постійним активним навантаженням.
+            ReplicaFormula.Per1000Users => (int)Math.Ceiling(userCount / 1000.0),
             _ => Math.Max(1, fixedReplicas)
         };
     }

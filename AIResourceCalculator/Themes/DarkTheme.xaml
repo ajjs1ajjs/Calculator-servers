@@ -1,0 +1,32 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Темна палітра (Catppuccin Mocha поверхні + ті самі акценти, що й у світлій темі —
+         бренд-кольори лишаються впізнаваними в обох темах, контраст з білим текстом перевірений). -->
+    <SolidColorBrush x:Key="WindowBg" Color="#1E1E2E"/>
+    <SolidColorBrush x:Key="HeaderBg" Color="#1E66F5"/>
+    <SolidColorBrush x:Key="StatusBarBg" Color="#11111B"/>
+    <SolidColorBrush x:Key="CardBg" Color="#313244"/>
+    <SolidColorBrush x:Key="InputBg" Color="#181825"/>
+    <SolidColorBrush x:Key="InputFg" Color="#CDD6F4"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#45475A"/>
+    <SolidColorBrush x:Key="GridBg" Color="#313244"/>
+    <SolidColorBrush x:Key="GridAltBg" Color="#3A3B54"/>
+    <SolidColorBrush x:Key="GridFg" Color="#CDD6F4"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#CDD6F4"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#A6ADC8"/>
+    <SolidColorBrush x:Key="TextOnDark" Color="#BAC2DE"/>
+    <SolidColorBrush x:Key="TextWhite" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#45475A"/>
+    <SolidColorBrush x:Key="AccentBg" Color="#1E66F5"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#4C86FF"/>
+    <SolidColorBrush x:Key="SuccessBg" Color="#40A02B"/>
+    <SolidColorBrush x:Key="WarningBg" Color="#FE640B"/>
+    <SolidColorBrush x:Key="DangerBg" Color="#D20F39"/>
+    <SolidColorBrush x:Key="PurpleBg" Color="#8839EF"/>
+    <SolidColorBrush x:Key="HighlightBg" Color="#2A2B3D"/>
+    <SolidColorBrush x:Key="InfoBg" Color="#2A2B3D"/>
+    <SolidColorBrush x:Key="PanelCompareBg" Color="#33344A"/>
+    <SolidColorBrush x:Key="DiagramBg" Color="#11111B"/>
+    <SolidColorBrush x:Key="GridHeaderBg" Color="#1E66F5"/>
+    <SolidColorBrush x:Key="GridHeaderFg" Color="#FFFFFF"/>
+</ResourceDictionary>

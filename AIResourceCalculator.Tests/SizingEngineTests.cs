@@ -732,15 +732,18 @@ public class SizingEngineTests
         // SmartID централізовано (один на систему за загальною к-стю користувачів), тож попередні
         // окремі Web/LMS/HR SmartID прибрано: PodCpu/RAM зменшено на їхній внесок і додано один
         // центральний SmartID (50 ліц → 2 репліки). Значення оновлено після переходу застосунку
-        // виключно на профіль Документообіг (StandardModules прибрано — компоненти важчі).
-        Assert.Equal(48.60, result.PodCpu, 2);
-        Assert.Equal(190.60, result.PodRamGb, 2);
+        // виключно на профіль Документообіг (StandardModules прибрано — компоненти важчі), і після
+        // переведення HR-GraphQL на Per1000Users (легке навантаження — 1 репліка на 1000 HR-сесій,
+        // а не на 100, як типові поди).
+        Assert.Equal(48.38, result.PodCpu, 2);
+        Assert.Equal(189.28, result.PodRamGb, 2);
 
         int Rep(string canonical) => result.Components
             .First(c => c.Name == ComponentDisplayName.Localize(canonical)).Replicas;
         Assert.Equal(3, Rep("ROBOT"));               // 1 + int(50/100) + int(2500/1000)
         Assert.Equal(7, Rep("WS (WebSocket)"));      // 1 + int(50/50) + int(2500/500)
         Assert.Equal(2, Rep("SmartID"));             // центральний: ceil(50/25), за загальною к-стю
+        Assert.Equal(3, Rep("HR-GraphQL"));          // ceil(2500/1000) — легке навантаження HR-сесій
     }
 
     // --- Регресія: дрібний CPU модулів (HR Portal GraphQL) не зникає ---
@@ -753,7 +756,7 @@ public class SizingEngineTests
         var modules = _engine.Modules.ToClonedList();
         var hr = modules.First(m => m.Name == "HR Portal");
         hr.IsEnabled = true;
-        hr.UserCount = 100; // Per100 → рівно 1 репліка GraphQL
+        hr.UserCount = 100; // Per1000Users → ceil(100/1000) = 1 репліка GraphQL
         _engine.SetModules(modules);
 
         var result = _engine.Calculate(new ProjectConfig
@@ -917,5 +920,30 @@ public class SizingEngineTests
     {
         var node = new InfrastructureNode { StorageGb = 100, StorageGb2 = 50, PageFileGb = 32 };
         Assert.Equal(182, node.DiskPerNodeGb);
+    }
+
+    // --- HR-GraphQL: легке навантаження HR-сесій — 1 репліка на кожні 1000 (не 100) користувачів ---
+    [Theory]
+    [InlineData(100, 1)]
+    [InlineData(1000, 1)]
+    [InlineData(1001, 2)]
+    [InlineData(2500, 3)]
+    [InlineData(3000, 3)]
+    [InlineData(5000, 5)]
+    public void Calculate_HrGraphQl_ScalesPer1000Users(int hrUsers, int expectedReplicas)
+    {
+        var modules = _engine.Modules.ToClonedList();
+        var hr = modules.First(m => m.Name == "HR Portal");
+        hr.IsEnabled = true;
+        hr.UserCount = hrUsers;
+        _engine.SetModules(modules);
+
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
+        Assert.Equal(expectedReplicas, graphql.Replicas);
     }
 }

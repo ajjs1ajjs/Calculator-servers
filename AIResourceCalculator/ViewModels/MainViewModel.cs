@@ -67,6 +67,7 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TabMatrixHeader));
         OnPropertyChanged(nameof(TabSetupHeader));
         OnPropertyChanged(nameof(TabResultsHeader));
+        OnPropertyChanged(nameof(ThemeName));
     }
 
     #region Properties
@@ -173,6 +174,22 @@ public class MainViewModel : INotifyPropertyChanged
         get => _langName;
         set { _langName = value; OnPropertyChanged(); }
     }
+
+    // Перемикач світлої/темної теми — застосовується одразу через ThemeService (без перезапуску).
+    private bool _isDarkTheme;
+    public bool IsDarkTheme
+    {
+        get => _isDarkTheme;
+        set
+        {
+            _isDarkTheme = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ThemeIcon));
+            OnPropertyChanged(nameof(ThemeName));
+        }
+    }
+    public string ThemeIcon => IsDarkTheme ? "\U0001F319" : "☀️";
+    public string ThemeName => IsDarkTheme ? _loc["theme.dark"] : _loc["theme.light"];
 
     private int _selectedTabIndex;
     public int SelectedTabIndex
@@ -294,6 +311,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ExportExcelCommand { get; private set; } = null!;
     public ICommand ExportPdfCommand { get; private set; } = null!;
     public ICommand LangSwitchCommand { get; private set; } = null!;
+    public ICommand ThemeSwitchCommand { get; private set; } = null!;
     public ICommand RecallHistoryCommand { get; private set; } = null!;
 
     private void InitializeCommands()
@@ -302,6 +320,7 @@ public class MainViewModel : INotifyPropertyChanged
         ExportExcelCommand = new RelayCommand(_ => ExportExcel());
         ExportPdfCommand = new RelayCommand(_ => ExportPdf());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
+        ThemeSwitchCommand = new RelayCommand(_ => SwitchTheme());
         RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
 
         LoadHistory();
@@ -695,6 +714,12 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var loc = _loc;
         loc.LoadLanguage(loc.CurrentLang == "uk" ? "en" : "uk");
+    }
+
+    private void SwitchTheme()
+    {
+        IsDarkTheme = !IsDarkTheme;
+        AIResourceCalculator.Themes.ThemeService.SetDark(IsDarkTheme);
     }
 
     #endregion
