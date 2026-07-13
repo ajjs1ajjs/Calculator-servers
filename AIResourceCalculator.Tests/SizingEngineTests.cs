@@ -894,24 +894,21 @@ public class SizingEngineTests
         Assert.True(dbWithSize.StorageGb3 > dbNoSize.StorageGb3);
     }
 
-    // --- Малий обсяг даних БД не зменшує диск нижче фіксованого значення з матриці ---
+    // --- Заданий обсяг даних БД замінює фіксований дефолт з матриці, а не лише піднімає мінімум ---
+    // (матричне значення — просто заглушка «поки невідомо»; явно введене число користувача має
+    // відображатись у розрахунку напряму, інакше поле виглядає так, ніби нічого не робить).
     [Fact]
-    public void Calculate_DbSizeGb_DoesNotShrinkBelowMatrixDefault()
+    public void Calculate_DbSizeGb_OverridesMatrixDefault_EvenWhenSmaller()
     {
-        var withoutSize = _engine.Calculate(new ProjectConfig
-        {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
-        });
-        var dbNoSize = withoutSize.Infrastructure.First(n => n.Name.Contains("SQL"));
-
-        var withTinySize = _engine.Calculate(new ProjectConfig
+        var withSmallSize = _engine.Calculate(new ProjectConfig
         {
             UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
-            DbSizeGb = 1
+            DbSizeGb = 150
         });
-        var dbTinySize = withTinySize.Infrastructure.First(n => n.Name.Contains("SQL"));
+        var db = withSmallSize.Infrastructure.First(n => n.Name.Contains("SQL"));
 
-        Assert.Equal(dbNoSize.StorageGb3, dbTinySize.StorageGb3);
+        Assert.Equal(150, db.StorageGb3);   // MainData = точно введений обсяг, а не дефолт матриці
+        Assert.Equal(38, db.StorageGb2);    // Logs/TempDB = ceil(25% від 150)
     }
 
     // --- Файл підкачки — окремий диск: враховується у сумі дисків вузла ---

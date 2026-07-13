@@ -419,12 +419,14 @@ public class SizingEngine : ISizingEngine
         if (db.StorageGb2 > 0 && string.IsNullOrWhiteSpace(db.StorageType2)) db.StorageType2 = "SSD";
         if (db.StorageGb3 > 0 && string.IsNullOrWhiteSpace(db.StorageType3)) db.StorageType3 = "SSD";
 
-        // Якщо користувач вручну задав обсяг даних БД — диск MainData піднімаємо до нього (не менше
-        // фіксованого з матриці), а диск Logs+TempDB масштабуємо пропорційно (25% від обсягу даних).
+        // Якщо користувач вручну задав обсяг даних БД — диск MainData встановлюємо РІВНО йому
+        // (не лише як мінімум: фіксоване значення з матриці — це просто заглушка «поки невідомо»,
+        // тож явно введене число має його замінювати, а не лише піднімати), а диск Logs+TempDB
+        // масштабуємо пропорційно (25% від обсягу даних).
         if (dbSizeGb > 0)
         {
-            db.StorageGb3 = Math.Max(db.StorageGb3, dbSizeGb);
-            db.StorageGb2 = Math.Max(db.StorageGb2, (int)Math.Ceiling(dbSizeGb * 0.25));
+            db.StorageGb3 = dbSizeGb;
+            db.StorageGb2 = (int)Math.Ceiling(dbSizeGb * 0.25);
         }
 
         // non-prod: прибираємо диск Content (холодні/бекап дані не потрібні) і зменшуємо OS-диск.
