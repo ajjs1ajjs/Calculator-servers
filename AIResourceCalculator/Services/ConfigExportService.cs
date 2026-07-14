@@ -467,11 +467,24 @@ public class ConfigExportService
             ws.Cells[row, 4].Value = n.NodeCount;
             ws.Cells[row, 5].Value = n.DiskPerNodeGb;
             ws.Cells[row, 6].Value = n.TotalStorageGb;
-            ws.Cells[row, 7].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
-            ws.Cells[row, 8].Value = n.Iops > 0 ? n.Iops : (object)"";
-            ws.Cells[row, 9].Value = n.IopsProfile;
-            ws.Cells[row, 10].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
-            ws.Cells[row, 11].Value = n.Latency > 0 ? n.Latency : (object)"";
+            if (n.PageFileNotApplicable)
+                WriteNaCell(ws, row, 7);
+            else
+                ws.Cells[row, 7].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
+            if (n.IopsNotApplicable)
+            {
+                WriteNaCell(ws, row, 8);
+                WriteNaCell(ws, row, 9);
+                WriteNaCell(ws, row, 10);
+                WriteNaCell(ws, row, 11);
+            }
+            else
+            {
+                ws.Cells[row, 8].Value = n.Iops > 0 ? n.Iops : (object)"";
+                ws.Cells[row, 9].Value = n.IopsProfile;
+                ws.Cells[row, 10].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+                ws.Cells[row, 11].Value = n.Latency > 0 ? n.Latency : (object)"";
+            }
             ws.Cells[row, 12].Value = NodeRole(n.Name);
             ws.Cells[row, 13].Value = n.Os;
             ws.Cells[row, 14].Value = n.DbVersion;
@@ -742,6 +755,18 @@ public class ConfigExportService
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
     }
 
+    // Сіра "н/д" клітинка для показників, які свідомо не застосовні до ролі вузла (а не просто
+    // не порахувані) — щоб відрізнити це від порожньої клітинки (яка читається як "забули заповнити").
+    private static void WriteNaCell(ExcelWorksheet ws, int row, int col)
+    {
+        var cell = ws.Cells[row, col];
+        cell.Value = "н/д";
+        cell.Style.Font.Italic = true;
+        cell.Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(108, 111, 133));
+        cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+        cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+    }
+
     // Один блок таблиці інфраструктури (для одного середовища), починаючи з рядка startRow.
     // Повертає номер наступного вільного рядка (одразу після підсумкового «Разом»).
     private static int WriteInfraBlock(ExcelWorksheet ws, ResourceRequirement req, int startRow, string title)
@@ -773,15 +798,37 @@ public class ConfigExportService
             ws.Cells[row, 5].Value = n.NodeCount;
             ws.Cells[row, 6].Value = n.StorageType;
             ws.Cells[row, 7].Value = n.StorageGb > 0 ? n.StorageGb : (object)"";
-            ws.Cells[row, 8].Value = n.StorageGb2 > 0 ? n.StorageGb2 : (object)"";
-            ws.Cells[row, 9].Value = n.StorageGb3 > 0 ? n.StorageGb3 : (object)"";
-            ws.Cells[row, 10].Value = n.StorageGb4 > 0 ? n.StorageGb4 : (object)"";
-            ws.Cells[row, 11].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
+            if (n.DiskSplitNotApplicable)
+            {
+                WriteNaCell(ws, row, 8);
+                WriteNaCell(ws, row, 9);
+                WriteNaCell(ws, row, 10);
+            }
+            else
+            {
+                ws.Cells[row, 8].Value = n.StorageGb2 > 0 ? n.StorageGb2 : (object)"";
+                ws.Cells[row, 9].Value = n.StorageGb3 > 0 ? n.StorageGb3 : (object)"";
+                ws.Cells[row, 10].Value = n.StorageGb4 > 0 ? n.StorageGb4 : (object)"";
+            }
+            if (n.PageFileNotApplicable)
+                WriteNaCell(ws, row, 11);
+            else
+                ws.Cells[row, 11].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
             ws.Cells[row, 12].Value = n.TotalStorageGb;
-            ws.Cells[row, 13].Value = n.Iops > 0 ? n.Iops : (object)"";
-            ws.Cells[row, 14].Value = n.IopsProfile;
-            ws.Cells[row, 15].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
-            ws.Cells[row, 16].Value = n.Latency > 0 ? n.Latency : (object)"";
+            if (n.IopsNotApplicable)
+            {
+                WriteNaCell(ws, row, 13);
+                WriteNaCell(ws, row, 14);
+                WriteNaCell(ws, row, 15);
+                WriteNaCell(ws, row, 16);
+            }
+            else
+            {
+                ws.Cells[row, 13].Value = n.Iops > 0 ? n.Iops : (object)"";
+                ws.Cells[row, 14].Value = n.IopsProfile;
+                ws.Cells[row, 15].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+                ws.Cells[row, 16].Value = n.Latency > 0 ? n.Latency : (object)"";
+            }
             ws.Cells[row, 17].Value = NodeRole(n.Name);
             ws.Cells[row, 18].Value = n.Os;
             ws.Cells[row, 19].Value = n.DbVersion;

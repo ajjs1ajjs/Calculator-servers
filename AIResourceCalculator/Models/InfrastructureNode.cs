@@ -29,6 +29,11 @@ public class InfrastructureNode
     public string Notes { get; set; } = "";
     // Версія/редакція СУБД для вузлів БД, напр. "MS SQL Server 2022 Standard". Порожнє для не-БД вузлів.
     public string DbVersion { get; set; } = "";
+    // Прапорці "не застосовно" (а не просто не порахували) — керують сірим/"н/д"
+    // форматуванням клітинки у звіті замість порожньої, щоб відрізняти свідомий N/A від прогалини.
+    public bool DiskSplitNotApplicable { get; set; }
+    public bool PageFileNotApplicable { get; set; }
+    public bool IopsNotApplicable { get; set; }
     // Сума всіх дисків одного вузла (OS + Logs + Data + Content + файл підкачки — теж окремий диск).
     public int DiskPerNodeGb => StorageGb + StorageGb2 + StorageGb3 + StorageGb4 + PageFileGb;
     // Сумарний обсяг дисків з урахуванням кількості вузлів.

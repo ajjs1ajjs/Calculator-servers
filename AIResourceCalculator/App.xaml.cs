@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
@@ -71,6 +72,12 @@ public partial class App : Application
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Debug.WriteLine($"Unhandled exception: {e.Exception}");
+        try
+        {
+            var logPath = Path.Combine(AppContext.BaseDirectory, "error.log");
+            File.AppendAllText(logPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {e.Exception}\n\n");
+        }
+        catch { /* logging must never crash the handler itself */ }
         var loc = LocalizationService.Instance;
         MessageBox.Show(
             string.Format(loc["error.unknown"], e.Exception.Message),

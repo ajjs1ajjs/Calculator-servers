@@ -277,9 +277,12 @@ public class SizingMatrix
         StorageType = "SSD", StorageGb = 150, Iops = 250, IopsProfile = "50r/50w", Latency = 10
     };
 
+    // L7-балансувальник, диск не в критичному шляху запиту (логи — асинхронно через syslog) —
+    // жоден вендорський стандарт не задає тут IOPS/latency/pagefile/розподіл дисків.
     public InfrastructureNode? DefaultHaProxy { get; set; } = new()
     {
         Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
-        StorageType = "SSD", StorageGb = 100
+        StorageType = "SSD", StorageGb = 100,
+        DiskSplitNotApplicable = true, PageFileNotApplicable = true, IopsNotApplicable = true
     };
 }

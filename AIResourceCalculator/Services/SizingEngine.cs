@@ -190,11 +190,18 @@ public class SizingEngine : ISizingEngine
                 PageFileGb = sqlNode.PageFileGb, PageFileType = sqlNode.PageFileType,
                 Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1,
                 IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
-                ThroughputMiBs = ThroughputFor(sqlRange)
+                ThroughputMiBs = ThroughputFor(sqlRange),
+                PageFileNotApplicable = true
             };
             ApplyDbDisks(dbNode, config.DatabaseType, dbRam, config.Environment, config.DbSizeGb, config.ContentDbSizeGb);
             req.Infrastructure.Add(dbNode);
         }
+        // Master node: etcd тут "зовнішній" відносно control-plane, але фізично на цьому ж
+        // вузлі (не stacked, проте й не на окремих виділених серверах) — тож I/O etcd навантажує
+        // саме цей диск, і IOPS/латентність варто показувати за офіційним etcd sizing guide,
+        // а не лишати порожніми. Розподіл Logs/MainData/Content і файл підкачки — не застосовні
+        // (control-plane не має БД-подібного розподілу; kubelet вимагає вимкнений swap).
+        var masterIops = masterNode.Iops > 0 ? masterNode.Iops : EtcdIops;
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = "Master node", Os = masterNode.Os, Cpu = masterNode.Cpu, Ghz = masterNode.Ghz,
@@ -203,8 +210,15 @@ public class SizingEngine : ISizingEngine
             StorageType2 = masterNode.StorageType2, StorageGb2 = masterNode.StorageGb2,
             StorageType3 = masterNode.StorageType3, StorageGb3 = masterNode.StorageGb3,
             StorageType4 = masterNode.StorageType4, StorageGb4 = masterNode.StorageGb4,
-            PageFileGb = masterNode.PageFileGb, PageFileType = masterNode.PageFileType
+            PageFileGb = masterNode.PageFileGb, PageFileType = masterNode.PageFileType,
+            Iops = masterIops,
+            IopsProfile = string.IsNullOrWhiteSpace(masterNode.IopsProfile) ? EtcdIopsProfile : masterNode.IopsProfile,
+            ThroughputMiBs = masterNode.ThroughputMiBs > 0 ? masterNode.ThroughputMiBs : EtcdThroughputMiBs,
+            Latency = masterNode.Latency > 0 ? masterNode.Latency : EtcdLatency,
+            DiskSplitNotApplicable = true, PageFileNotApplicable = true
         });
+        // Вимоги до дисків worker-вузлів (за документом): профіль 30r/70w, від 500 IOPS.
+        var workerIops = workerNode.Iops > 0 ? workerNode.Iops : DefaultWorkerIops;
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = "Worker-node", Os = workerNode.Os, Cpu = workerNode.Cpu, Ghz = workerNode.Ghz,
@@ -214,10 +228,13 @@ public class SizingEngine : ISizingEngine
             StorageType3 = workerNode.StorageType3, StorageGb3 = workerNode.StorageGb3,
             StorageType4 = workerNode.StorageType4, StorageGb4 = workerNode.StorageGb4,
             PageFileGb = workerNode.PageFileGb, PageFileType = workerNode.PageFileType,
-            // Вимоги до дисків worker-вузлів (за документом): профіль 30r/70w, від 500 IOPS.
-            Iops = workerNode.Iops > 0 ? workerNode.Iops : DefaultWorkerIops,
+            Iops = workerIops,
             IopsProfile = string.IsNullOrWhiteSpace(workerNode.IopsProfile) ? K8sIopsProfile : workerNode.IopsProfile,
-            Latency = workerNode.Latency > 0 ? workerNode.Latency : DefaultWorkerLatency
+            // MiB/s не заданий у матриці окремо — похідне значення від наявних IOPS/латентності
+            // (середній розмір блока контейнерного I/O ~16КБ), а не вигадане число.
+            ThroughputMiBs = workerNode.ThroughputMiBs > 0 ? workerNode.ThroughputMiBs : ThroughputFromIops(workerIops),
+            Latency = workerNode.Latency > 0 ? workerNode.Latency : DefaultWorkerLatency,
+            DiskSplitNotApplicable = true, PageFileNotApplicable = true
         });
 
         // IOPS/latency атрибутуються БД-вузлу. У гібриді (includeDatabase=false) БД на Windows,
@@ -288,7 +305,8 @@ public class SizingEngine : ISizingEngine
             PageFileType = sqlNode.PageFileType,
             Iops = sqlRange?.Iops ?? 500, Latency = sqlRange?.Latency ?? 1,
             IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
-            ThroughputMiBs = ThroughputFor(sqlRange)
+            ThroughputMiBs = ThroughputFor(sqlRange),
+            PageFileNotApplicable = true
         };
         ApplyDbDisks(dbNode, config.DatabaseType, sqlRam, config.Environment, config.DbSizeGb, config.ContentDbSizeGb);
         req.Infrastructure.Add(dbNode);
@@ -307,7 +325,11 @@ public class SizingEngine : ISizingEngine
             // IOPS сервера додатків — з діапазону (за документом 250→500, профіль 30r/70w).
             Iops = appRange?.Iops ?? appNode?.Iops ?? 0,
             IopsProfile = string.IsNullOrEmpty(appNode?.IopsProfile) ? AppServerIopsProfile : appNode.IopsProfile,
-            Latency = appNode?.Latency ?? 0
+            // MiB/s і латентність поки немає в матриці — тимчасовий орієнтир з IIS/Windows
+            // capacity planning (Microsoft Learn); підлягає уточненню за результатами LT-тесту.
+            ThroughputMiBs = appNode?.ThroughputMiBs > 0 ? appNode.ThroughputMiBs : AppServerThroughputMiBs,
+            Latency = appNode?.Latency > 0 ? appNode.Latency : AppServerLatency,
+            DiskSplitNotApplicable = true
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
@@ -324,7 +346,11 @@ public class SizingEngine : ISizingEngine
             // IOPS веб-сервера — з діапазону (за документом 200, профіль 70r/30w).
             Iops = webRange?.Iops ?? webNode?.Iops ?? 0,
             IopsProfile = string.IsNullOrEmpty(webNode?.IopsProfile) ? WebServerIopsProfile : webNode.IopsProfile,
-            Latency = webNode?.Latency ?? 0
+            // MiB/s і латентність поки немає в матриці — тимчасовий орієнтир з IIS capacity
+            // planning; підлягає уточненню за результатами LT-тесту.
+            ThroughputMiBs = webNode?.ThroughputMiBs > 0 ? webNode.ThroughputMiBs : WebServerThroughputMiBs,
+            Latency = webNode?.Latency > 0 ? webNode.Latency : WebServerLatency,
+            DiskSplitNotApplicable = true
         });
 
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
@@ -512,9 +538,35 @@ public class SizingEngine : ISizingEngine
     private const int DefaultWorkerIops = 500;
     private const double DefaultWorkerLatency = 5;
 
+    // Master node/etcd — за офіційним etcd sizing guide: SSD, fsync latency < 10мс,
+    // переважно послідовний запис (WAL). Значення НЕ з документа D-AD-ADM-E (там master
+    // не описаний детально) — окреме джерело, застосовне лише коли etcd на цьому вузлі.
+    private const int EtcdIops = 1000;
+    private const string EtcdIopsProfile = "10r/90w";
+    private const int EtcdThroughputMiBs = 50;
+    private const double EtcdLatency = 10;
+
+    // Середній розмір I/O-блока контейнерного навантаження worker-вузла (оцінка, не вимірювання) —
+    // використовується лише щоб отримати MiB/s з наявних IOPS, коли матриця його не задає.
+    private const int AvgBlockSizeKb = 16;
+    private static int ThroughputFromIops(int iops) => (int)Math.Round(iops * AvgBlockSizeKb / 1024.0);
+
+    // App/Web servers: MiB/s і латентність поки не задані в матриці (D-AD-ADM-E їх не описує для
+    // цих ролей) — тимчасовий орієнтир з Microsoft IIS/Windows capacity planning, до уточнення LT-тестом.
+    private const int AppServerThroughputMiBs = 100;
+    private const double AppServerLatency = 10;
+    private const int WebServerThroughputMiBs = 80;
+    private const double WebServerLatency = 10;
+
     private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, Ghz = 2.4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, Ghz = 2.4, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
     private static readonly InfrastructureNode _defaultReporting = new() { Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 150, StorageType = "SSD", Iops = 250, IopsProfile = "50r/50w", Latency = 10 };
-    private static readonly InfrastructureNode _defaultHaProxy = new() { Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    // HAProxy: L7-балансувальник, диск не в критичному шляху запиту (логи йдуть через
+    // syslog асинхронно) — жоден вендорський стандарт не задає тут IOPS/latency/pagefile/розподіл дисків.
+    private static readonly InfrastructureNode _defaultHaProxy = new()
+    {
+        Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD",
+        DiskSplitNotApplicable = true, PageFileNotApplicable = true, IopsNotApplicable = true
+    };
 }
