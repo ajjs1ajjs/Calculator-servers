@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,12 +39,33 @@ public partial class App : Application
             return new SizingEngine(mm.Matrix);
         });
         sc.AddTransient<MainViewModel>();
+        sc.AddSingleton<IUpdateCheckService, UpdateCheckService>();
 
         Services = sc.BuildServiceProvider();
 
         var mainWindow = new MainWindow();
         mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
         mainWindow.Show();
+
+        _ = CheckForUpdatesAsync();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        var update = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync();
+        if (update is null) return;
+
+        var loc = LocalizationService.Instance;
+        var currentVersion = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+        var result = MessageBox.Show(
+            string.Format(loc["update.message"], update.Version, currentVersion),
+            loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            Process.Start(new ProcessStartInfo(update.DownloadUrl) { UseShellExecute = true });
+        }
     }
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

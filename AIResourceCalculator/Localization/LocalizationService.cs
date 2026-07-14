@@ -180,6 +180,8 @@ public class LocalizationService : ILocalizationService
         ["error.invalid_input"] = "Некоректні вхідні дані: {0}",
         ["error.unknown"] = "Сталася непередбачена помилка: {0}",
         ["dialog.matrixSaved"] = "Матрицю збережено",
+        ["update.title"] = "Доступне оновлення",
+        ["update.message"] = "Вийшла нова версія {0} (у вас — {1}).\n\nВідкрити сторінку завантаження?",
     };
 
     private static readonly Dictionary<string, string> StringsEn = new()
@@ -356,6 +358,8 @@ public class LocalizationService : ILocalizationService
         ["error.invalid_input"] = "Invalid input: {0}",
         ["error.unknown"] = "An unexpected error occurred: {0}",
         ["dialog.matrixSaved"] = "Matrix saved",
+        ["update.title"] = "Update available",
+        ["update.message"] = "A new version {0} is available (you have {1}).\n\nOpen the download page?",
     };
 
     private static readonly LocalizationService _instance = new();
