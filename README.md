@@ -62,6 +62,43 @@ dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --out
 - Щоб попередження зникали на будь-якому ПК, потрібен сертифікат від довіреного центру (CA) —
   передайте його через `-PfxPath`.
 
+### Оновлення для користувачів
+
+Є два способи розповсюдження, і в обох оновлення різне:
+
+- **Портативний `.exe`** (`publish/ITE.ResourceCalculator.exe`) — при кожному запуску застосунок
+  у фоні звіряє версію з останнім GitHub Release ([`UpdateCheckService`](AIResourceCalculator/Services/UpdateCheckService.cs))
+  і, якщо є новіша, пропонує відкрити сторінку завантаження. Заміна файлу — вручну, автоматичного
+  оновлення немає (Windows не дає переписати exe, поки він запущений).
+- **MSI-інсталятор** (`publish/ITE.ResourceCalculator.msi`, проєкт [`AIResourceCalculator.Installer`](AIResourceCalculator.Installer))
+  — класичний Windows Installer upgrade: запуск новішого MSI сам знаходить попередню версію
+  (за незмінним `UpgradeCode` у [`Package.wxs`](AIResourceCalculator.Installer/Package.wxs)),
+  видаляє її файли й ставить нову. Не має власної перевірки в мережі — оновлення відбувається,
+  коли користувач сам запускає новий MSI (вручну або через внутрішній розподіл на кшталт GPO/SCCM).
+
+Поточна версія застосунку показана в шапці вікна (поруч із підзаголовком).
+
+### Правило версійності (обов'язкове для кожного релізу)
+
+Обидва канали оновлення покладаються на версію: `UpdateCheckService` порівнює її з тегом GitHub
+Release, а MSI porівнює `ProductVersion` для upgrade/downgrade-логіки. Тому:
+
+- Єдине джерело версії — `AppVersion` у [`Directory.Build.props`](Directory.Build.props) (успадковують
+  і `AIResourceCalculator.csproj`, і `AIResourceCalculator.Installer.wixproj`).
+- **Перед кожним релізом бампати `AppVersion`.** Якщо цього не зробити, `UpdateCheckService` не
+  побачить новий реліз (версії однакові), а спроба опублікувати тег, який уже існує, — помилка.
+- [`release.ps1`](release.ps1) примусово перевіряє це: зупиняє реліз, якщо тег `vX.Y.Z` для
+  поточної `AppVersion` вже є локально або на origin.
+
+### Публікація релізу
+
+```powershell
+./release.ps1 -ReleaseNotes "Опис змін..."
+```
+
+Скрипт: перевіряє версійність → білдить і тестує → публікує й підписує exe → збирає MSI →
+комітить/тегує/пушить → створює GitHub Release з обома артефактами (`.exe` і `.msi`).
+
 ## Структура проекту
 
 | Каталог | Призначення |
@@ -73,5 +110,6 @@ dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --out
 | `AIResourceCalculator/Data` | Матриця сайзингу за замовчуванням та імпорт Excel. |
 | `AIResourceCalculator/Localization` | Рядки інтерфейсу (uk/en). |
 | `AIResourceCalculator.Tests` | Модульні тести (xUnit). |
+| `AIResourceCalculator.Installer` | WiX-проєкт MSI-інсталятора (`Package.wxs`). |
 
 Історію змін див. у [CHANGELOG.md](CHANGELOG.md).

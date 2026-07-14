@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -21,6 +22,9 @@ public class MainViewModel : INotifyPropertyChanged
     private ResourceRequirement? _lastResult;
 
     public MatrixViewModel MatrixVM { get; }
+
+    public string AppVersion => "v" + (Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?");
 
     private string _userCount = "100";
     private int _deploymentIndex;

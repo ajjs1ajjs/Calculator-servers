@@ -14,12 +14,12 @@
     <Product>IT-Enterprise Калькулятор ресурсів</Product>
     <AssemblyTitle>IT-Enterprise Калькулятор ресурсів</AssemblyTitle>
     <Company>IT-Enterprise</Company>
-    <!-- Має збігатися з тегом релізу (без "v") — UpdateCheckService порівнює це значення
-         з останнім GitHub Release, щоб показати користувачам сповіщення про оновлення.
-         Бампати при кожному релізі. -->
-    <Version>1.0.6.0</Version>
-    <FileVersion>1.0.6.0</FileVersion>
-    <InformationalVersion>1.0.6</InformationalVersion>
+    <!-- Версія береться з Directory.Build.props ($(AppVersion)) — те саме значення використовує
+         й інсталятор (MSI ProductVersion). UpdateCheckService порівнює InformationalVersion
+         з останнім GitHub Release, щоб показати користувачам сповіщення про оновлення. -->
+    <Version>$(AppVersion).0</Version>
+    <FileVersion>$(AppVersion).0</FileVersion>
+    <InformationalVersion>$(AppVersion)</InformationalVersion>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
