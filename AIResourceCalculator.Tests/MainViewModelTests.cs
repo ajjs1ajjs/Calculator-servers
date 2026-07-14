@@ -167,9 +167,9 @@ public class MainViewModelTests
         Assert.True(vm.HasPodRequests);
     }
 
-    // --- Гібрид: HAProxy за замовчуванням увімкнений для PROD/TEST/PreProd, але не DEV ---
+    // --- Гібрид: для PROD HAProxy увімкнений автоматично й заблокований; DEV/TEST/PreProd лишаються клікабельними ---
     [Fact]
-    public void DeploymentIndex_Hybrid_EnablesHaProxyForProdTestPredProd_NotDev()
+    public void DeploymentIndex_Hybrid_LocksHaProxyForProd_ButKeepsEnvTogglesEditable()
     {
         var vm = BuildVm(out _);
         vm.DeploymentIndex = 2;                         // Hybrid
@@ -177,26 +177,20 @@ public class MainViewModelTests
         Assert.True(vm.IncludeHaProxy);                 // PROD
         Assert.False(vm.CanToggleHaProxy);              // заблоковано на час Гібриду
         var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
-        Assert.True(haproxy.TestEnabled);
-        Assert.True(haproxy.PredProdEnabled);
-        Assert.False(haproxy.DevEnabled);
-        Assert.False(haproxy.IsEditable);
+        Assert.True(haproxy.IsEditable);                // DEV/TEST/PreProd — не заблоковано
     }
 
     [Fact]
-    public void DeploymentIndex_SwitchFromHybridToKubernetes_UnlocksAndResetsHaProxy()
+    public void DeploymentIndex_SwitchFromHybridToKubernetes_UnlocksProdHaProxy()
     {
         var vm = BuildVm(out _);
-        vm.DeploymentIndex = 2;                         // Hybrid — вмикається й блокується
-        vm.DeploymentIndex = 0;                         // Kubernetes — має розблокуватись і скинутись
+        vm.DeploymentIndex = 2;                         // Hybrid — PROD вмикається й блокується
+        vm.DeploymentIndex = 0;                         // Kubernetes — має розблокуватись
 
         Assert.False(vm.IncludeHaProxy);
         Assert.True(vm.CanToggleHaProxy);
         var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
         Assert.True(haproxy.IsEditable);
-        Assert.False(haproxy.DevEnabled);
-        Assert.False(haproxy.TestEnabled);
-        Assert.False(haproxy.PredProdEnabled);
     }
 
     // --- ForceBPM: заблокований у K8s, клікабельний у Гібриді ---

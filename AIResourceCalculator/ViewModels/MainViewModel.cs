@@ -706,34 +706,24 @@ public class MainViewModel : INotifyPropertyChanged
             // Решта опціональних (LMS/HR) застосовні скрізь; зберігають свій стан (типово вимкнені).
         }
 
-        // Гібрид: HAProxy керується типом розгортання автоматично — увімкнений для PROD/TEST/PreProd
-        // (балансувальник потрібен між Windows-VM і K8s-частиною), вимкнений для DEV (там зазвичай
-        // один користувач), і ЗАБЛОКОВАНИЙ (некликабельний) на час Гібриду. При переході на
-        // Kubernetes/Windows розблоковується й повертається до звичайного стану (вимкнено, вручну).
+        // Гібрид: для PROD HAProxy керується типом розгортання автоматично (балансувальник потрібен
+        // між Windows-VM і K8s-частиною) — верхній прапорець залишається заблокованим. Для DEV/TEST/PreProd
+        // це не обов'язковий компонент, тож чекбокси там завжди клікабельні — користувач сам вирішує,
+        // чи потрібен HAProxy на цих середовищах, незалежно від типу розгортання.
         var haproxy = EnvNodeToggles.FirstOrDefault(r => r.Key == "haproxy");
         if (deploymentType == DeploymentType.Hybrid)
         {
             IncludeHaProxy = true;
             CanToggleHaProxy = false;
-            if (haproxy != null)
-            {
-                haproxy.DevEnabled = false;
-                haproxy.TestEnabled = true;
-                haproxy.PredProdEnabled = true;
-                haproxy.IsEditable = false;
-            }
         }
         else
         {
             IncludeHaProxy = false;
             CanToggleHaProxy = true;
-            if (haproxy != null)
-            {
-                haproxy.DevEnabled = false;
-                haproxy.TestEnabled = false;
-                haproxy.PredProdEnabled = false;
-                haproxy.IsEditable = true;
-            }
+        }
+        if (haproxy != null)
+        {
+            haproxy.IsEditable = true;
         }
         if (haproxy != null)
         {
