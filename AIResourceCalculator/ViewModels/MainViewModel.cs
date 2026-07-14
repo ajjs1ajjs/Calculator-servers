@@ -696,6 +696,24 @@ public class MainViewModel : INotifyPropertyChanged
             // Решта опціональних (LMS/HR) застосовні скрізь; зберігають свій стан (типово вимкнені).
         }
 
+        // Гібрид: HAProxy за замовчуванням увімкнений для PROD/TEST/PreProd (балансувальник
+        // потрібен між Windows-VM і K8s-частиною), але не для DEV — там зазвичай один користувач
+        // і балансування не потрібне. Спрацьовує лише при виборі Гібрид, користувач може вимкнути вручну.
+        if (deploymentType == DeploymentType.Hybrid)
+        {
+            IncludeHaProxy = true;
+            var haproxy = EnvNodeToggles.FirstOrDefault(r => r.Key == "haproxy");
+            if (haproxy != null)
+            {
+                haproxy.TestEnabled = true;
+                haproxy.PredProdEnabled = true;
+                // EnvNodeToggle не сповіщає про зміну властивостей — перевиставляємо колекцію,
+                // щоб DataGrid-чекбокси в картках середовищ показали нові значення одразу.
+                EnvNodeToggles = new ObservableCollection<EnvNodeToggle>(EnvNodeToggles);
+                OnPropertyChanged(nameof(EnvNodeToggles));
+            }
+        }
+
         Modules = new ObservableCollection<ProjectModule>(Modules);
         OnPropertyChanged(nameof(Modules));
         OnPropertyChanged(nameof(SelectableModules));

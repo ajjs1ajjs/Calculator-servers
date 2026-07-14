@@ -1,3 +1,4 @@
+using System.Linq;
 using AIResourceCalculator.Data;
 using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Localization;
@@ -142,6 +143,20 @@ public class MainViewModelTests
         vm.CalculateCommand.Execute(null);
 
         Assert.True(vm.HasPodRequests);
+    }
+
+    // --- Гібрид: HAProxy за замовчуванням увімкнений для PROD/TEST/PreProd, але не DEV ---
+    [Fact]
+    public void DeploymentIndex_Hybrid_EnablesHaProxyForProdTestPredProd_NotDev()
+    {
+        var vm = BuildVm(out _);
+        vm.DeploymentIndex = 2;                         // Hybrid
+
+        Assert.True(vm.IncludeHaProxy);                 // PROD
+        var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
+        Assert.True(haproxy.TestEnabled);
+        Assert.True(haproxy.PredProdEnabled);
+        Assert.False(haproxy.DevEnabled);
     }
 
     [Fact]
