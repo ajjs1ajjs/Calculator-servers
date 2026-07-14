@@ -134,6 +134,7 @@
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                                                <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, StringFormat={}{0:0.#}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
                                                 <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
@@ -188,6 +189,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
                             <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
+                            <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, StringFormat={}{0:0.#}}" Width="Auto" MinWidth="55" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>
                             <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
                             <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" ElementStyle="{StaticResource CenterCell}"/>

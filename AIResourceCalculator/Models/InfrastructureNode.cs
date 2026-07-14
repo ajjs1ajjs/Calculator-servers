@@ -5,6 +5,9 @@ public class InfrastructureNode
     public string Name { get; set; } = "";
     public string Os { get; set; } = "";
     public double Cpu { get; set; }
+    // Частота процесора, ГГц (з матриці діапазонів користувачів для SQL/App/Web; фіксоване
+    // значення для Master/Worker/допоміжних вузлів). 0 = не показувати.
+    public double Ghz { get; set; }
     public double RamGb { get; set; }
     public int NodeCount { get; set; }
     public string StorageType { get; set; } = "SSD";

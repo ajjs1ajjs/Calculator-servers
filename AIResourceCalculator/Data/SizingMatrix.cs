@@ -219,7 +219,7 @@ public class SizingMatrix
 
     public InfrastructureNode? DefaultK8sSql { get; set; } = new()
     {
-        Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 1,
+        Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, Ghz = 2.4, RamGb = 0, NodeCount = 1,
         StorageType = "SSD", StorageGb = 150,
         StorageType2 = "SSD", StorageGb2 = 150,
         StorageType3 = "SSD", StorageGb3 = 300,
@@ -230,19 +230,19 @@ public class SizingMatrix
     // postgres). Еталонний шаблон задавав 4/6, але на практиці master завжди 2/4.
     public InfrastructureNode? DefaultK8sMaster { get; set; } = new()
     {
-        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1,
+        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 100
     };
 
     public InfrastructureNode? DefaultK8sWorker { get; set; } = new()
     {
-        Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1,
+        Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, Ghz = 2.4, RamGb = 32, NodeCount = 1,
         StorageType = "SSD", StorageGb = 200
     };
 
     public InfrastructureNode? DefaultWindowsSql { get; set; } = new()
     {
-        Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 1,
+        Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, Ghz = 2.4, RamGb = 0, NodeCount = 1,
         StorageType = "SSD", StorageGb = 150,
         StorageType2 = "SSD", StorageGb2 = 150,
         StorageType3 = "SSD", StorageGb3 = 300,
@@ -266,13 +266,13 @@ public class SizingMatrix
     // HAProxy 2/4. SQL Secondary — клон первинного вузла БД (failover-кластер), без окремого дефолта.
     public InfrastructureNode? DefaultReportingServer { get; set; } = new()
     {
-        Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, RamGb = 4, NodeCount = 1,
+        Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 150, Iops = 250, IopsProfile = "50r/50w", Latency = 10
     };
 
     public InfrastructureNode? DefaultHaProxy { get; set; } = new()
     {
-        Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1,
+        Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 100
     };
 }

@@ -622,6 +622,31 @@ public class SizingEngineTests
         Assert.Equal(expected, result.TotalStorageGb);
     }
 
+    // --- Частота CPU (ГГц) виставляється для кожного вузла (K8s/Windows), не лишається 0 ---
+    [Fact]
+    public void Calculate_K8s_AllNodesHaveCpuGhz()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        foreach (var node in result.Infrastructure.Where(n => n.NodeCount > 0))
+            Assert.True(node.Ghz > 0, $"{node.Name} має нульову частоту CPU");
+    }
+
+    [Fact]
+    public void Calculate_Windows_AllNodesHaveCpuGhz()
+    {
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+        });
+
+        foreach (var node in result.Infrastructure.Where(n => n.NodeCount > 0))
+            Assert.True(node.Ghz > 0, $"{node.Name} має нульову частоту CPU");
+    }
+
     // --- Диски вузла БД ФІКСОВАНІ з матриці (як еталон); non-prod без диска Content ---
     [Fact]
     public void Calculate_DbDisks_FixedFromMatrix_NonProdDropsContent()

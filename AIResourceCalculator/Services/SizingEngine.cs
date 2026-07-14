@@ -181,6 +181,7 @@ public class SizingEngine : ISizingEngine
             var dbNode = new InfrastructureNode
             {
                 Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+                Ghz = GhzFor(sqlRange, sqlNode),
                 RamGb = dbRam, NodeCount = 1,
                 StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
                 StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
@@ -196,7 +197,7 @@ public class SizingEngine : ISizingEngine
         }
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "Master node", Os = masterNode.Os, Cpu = masterNode.Cpu,
+            Name = "Master node", Os = masterNode.Os, Cpu = masterNode.Cpu, Ghz = masterNode.Ghz,
             RamGb = masterNode.RamGb, NodeCount = req.MasterNodeCount,
             StorageType = masterNode.StorageType, StorageGb = masterNode.StorageGb,
             StorageType2 = masterNode.StorageType2, StorageGb2 = masterNode.StorageGb2,
@@ -206,7 +207,7 @@ public class SizingEngine : ISizingEngine
         });
         req.Infrastructure.Add(new InfrastructureNode
         {
-            Name = "Worker-node", Os = workerNode.Os, Cpu = workerNode.Cpu,
+            Name = "Worker-node", Os = workerNode.Os, Cpu = workerNode.Cpu, Ghz = workerNode.Ghz,
             RamGb = workerNode.RamGb, NodeCount = req.WorkerNodeCount,
             StorageType = workerNode.StorageType, StorageGb = workerNode.StorageGb,
             StorageType2 = workerNode.StorageType2, StorageGb2 = workerNode.StorageGb2,
@@ -249,9 +250,11 @@ public class SizingEngine : ISizingEngine
         // (SQL + AppServers×count + WebServers×count). The K8s module/pod breakdown is NOT added —
         // on Windows the application runs inside the app-server VMs, so adding pod CPU/RAM would double-count.
         var appCpu = appRange?.Cpu ?? 4;
+        var appGhz = appRange?.Ghz ?? 2.4;
         var appRam = appRange?.RamRec ?? 16;
         var appCount = appRange?.InstanceCount ?? 1;
         var webCpu = webRange?.Cpu ?? 4;
+        var webGhz = webRange?.Ghz ?? 2.4;
         var webRam = webRange?.RamRec ?? 8;
         var webCount = webRange?.InstanceCount ?? 1;
 
@@ -272,6 +275,7 @@ public class SizingEngine : ISizingEngine
         var dbNode = new InfrastructureNode
         {
             Name = dbName, Os = sqlNode.Os, Cpu = sqlRange?.Cpu ?? sqlNode.Cpu,
+            Ghz = GhzFor(sqlRange, sqlNode),
             RamGb = sqlRam, NodeCount = 1,
             StorageType = sqlNode.StorageType, StorageGb = sqlNode.StorageGb,
             StorageType2 = sqlNode.StorageType2, StorageGb2 = sqlNode.StorageGb2,
@@ -291,7 +295,7 @@ public class SizingEngine : ISizingEngine
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = appNode?.Name ?? "App Server", Os = appNode?.Os ?? "Windows Server 2022",
-            Cpu = appCpu, RamGb = appRam, NodeCount = appCount,
+            Cpu = appCpu, Ghz = appGhz, RamGb = appRam, NodeCount = appCount,
             StorageType = appNode?.StorageType ?? "SSD", StorageGb = appNode?.StorageGb ?? 150,
             StorageType2 = appNode?.StorageType2 ?? "", StorageGb2 = appNode?.StorageGb2 ?? 0,
             StorageType3 = appNode?.StorageType3 ?? "", StorageGb3 = appNode?.StorageGb3 ?? 0,
@@ -308,7 +312,7 @@ public class SizingEngine : ISizingEngine
         req.Infrastructure.Add(new InfrastructureNode
         {
             Name = webNode?.Name ?? "Web Server (IIS)", Os = webNode?.Os ?? "Windows Server 2022",
-            Cpu = webCpu, RamGb = webRam, NodeCount = webCount,
+            Cpu = webCpu, Ghz = webGhz, RamGb = webRam, NodeCount = webCount,
             StorageType = webNode?.StorageType ?? "SSD", StorageGb = webNode?.StorageGb ?? 150,
             StorageType2 = webNode?.StorageType2 ?? "", StorageGb2 = webNode?.StorageGb2 ?? 0,
             StorageType3 = webNode?.StorageType3 ?? "", StorageGb3 = webNode?.StorageGb3 ?? 0,
@@ -394,6 +398,11 @@ public class SizingEngine : ISizingEngine
     // Не оцінюємо з IOPS: документ задає MiB/s окремою таблицею, тож вигаданий розрахунок
     // давав би хибні числа. Якщо у діапазоні не задано (напр. PostgreSQL/Oracle) — 0 (не показуємо).
     private static int ThroughputFor(UserLoadRange? range) => range?.ThroughputMiBs ?? 0;
+
+    // Частота CPU (ГГц) — з діапазону користувачів, якщо задана (MsSql/Postgres/Oracle-діапазони
+    // її не мають — там 0), інакше фіксоване значення вузла з матриці (типово 2.4 ГГц).
+    private static double GhzFor(UserLoadRange? range, InfrastructureNode fallback)
+        => range?.Ghz > 0 ? range.Ghz : fallback.Ghz;
 
     // Файл підкачки Windows-сервера додатків/веб = RAM × 4, округлено вгору до кратного 10
     // (формула еталонного аркуша Windows: CEILING(RAM*4, 10)).
@@ -503,9 +512,9 @@ public class SizingEngine : ISizingEngine
     private const int DefaultWorkerIops = 500;
     private const double DefaultWorkerLatency = 5;
 
-    private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
-    private static readonly InfrastructureNode _defaultReporting = new() { Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 150, StorageType = "SSD", Iops = 250, IopsProfile = "50r/50w", Latency = 10 };
-    private static readonly InfrastructureNode _defaultHaProxy = new() { Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultSql = new() { Name = "SQL Server", Os = "Windows Server 2022", Cpu = 4, Ghz = 2.4, RamGb = 12, NodeCount = 1, StorageGb = 300, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultMaster = new() { Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultWorker = new() { Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, Ghz = 2.4, RamGb = 32, NodeCount = 1, StorageGb = 200, StorageType = "SSD" };
+    private static readonly InfrastructureNode _defaultReporting = new() { Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 150, StorageType = "SSD", Iops = 250, IopsProfile = "50r/50w", Latency = 10 };
+    private static readonly InfrastructureNode _defaultHaProxy = new() { Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1, StorageGb = 100, StorageType = "SSD" };
 }
