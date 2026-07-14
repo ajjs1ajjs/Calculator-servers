@@ -126,9 +126,12 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _includeReportingServer;
     private bool _includeSqlFailover;
     private bool _includeHaProxy;
+    private bool _canToggleHaProxy = true;
     public bool IncludeReportingServer { get => _includeReportingServer; set { _includeReportingServer = value; OnPropertyChanged(); } }
     public bool IncludeSqlFailover { get => _includeSqlFailover; set { _includeSqlFailover = value; OnPropertyChanged(); } }
     public bool IncludeHaProxy { get => _includeHaProxy; set { _includeHaProxy = value; OnPropertyChanged(); } }
+    // У Гібриді HAProxy керується типом розгортання автоматично — чекбокс заблокований.
+    public bool CanToggleHaProxy { get => _canToggleHaProxy; private set { _canToggleHaProxy = value; OnPropertyChanged(); } }
     public string DevUserCount { get => _devUserCount; set { _devUserCount = value; OnPropertyChanged(); } }
     public string TestUserCount { get => _testUserCount; set { _testUserCount = value; OnPropertyChanged(); } }
     public string PredProdUserCount { get => _predProdUserCount; set { _predProdUserCount = value; OnPropertyChanged(); } }
@@ -703,22 +706,41 @@ public class MainViewModel : INotifyPropertyChanged
             // Решта опціональних (LMS/HR) застосовні скрізь; зберігають свій стан (типово вимкнені).
         }
 
-        // Гібрид: HAProxy за замовчуванням увімкнений для PROD/TEST/PreProd (балансувальник
-        // потрібен між Windows-VM і K8s-частиною), але не для DEV — там зазвичай один користувач
-        // і балансування не потрібне. Спрацьовує лише при виборі Гібрид, користувач може вимкнути вручну.
+        // Гібрид: HAProxy керується типом розгортання автоматично — увімкнений для PROD/TEST/PreProd
+        // (балансувальник потрібен між Windows-VM і K8s-частиною), вимкнений для DEV (там зазвичай
+        // один користувач), і ЗАБЛОКОВАНИЙ (некликабельний) на час Гібриду. При переході на
+        // Kubernetes/Windows розблоковується й повертається до звичайного стану (вимкнено, вручну).
+        var haproxy = EnvNodeToggles.FirstOrDefault(r => r.Key == "haproxy");
         if (deploymentType == DeploymentType.Hybrid)
         {
             IncludeHaProxy = true;
-            var haproxy = EnvNodeToggles.FirstOrDefault(r => r.Key == "haproxy");
+            CanToggleHaProxy = false;
             if (haproxy != null)
             {
+                haproxy.DevEnabled = false;
                 haproxy.TestEnabled = true;
                 haproxy.PredProdEnabled = true;
-                // EnvNodeToggle не сповіщає про зміну властивостей — перевиставляємо колекцію,
-                // щоб DataGrid-чекбокси в картках середовищ показали нові значення одразу.
-                EnvNodeToggles = new ObservableCollection<EnvNodeToggle>(EnvNodeToggles);
-                OnPropertyChanged(nameof(EnvNodeToggles));
+                haproxy.IsEditable = false;
             }
+        }
+        else
+        {
+            IncludeHaProxy = false;
+            CanToggleHaProxy = true;
+            if (haproxy != null)
+            {
+                haproxy.DevEnabled = false;
+                haproxy.TestEnabled = false;
+                haproxy.PredProdEnabled = false;
+                haproxy.IsEditable = true;
+            }
+        }
+        if (haproxy != null)
+        {
+            // EnvNodeToggle не сповіщає про зміну властивостей — перевиставляємо колекцію,
+            // щоб DataGrid-чекбокси в картках середовищ показали нові значення/стан одразу.
+            EnvNodeToggles = new ObservableCollection<EnvNodeToggle>(EnvNodeToggles);
+            OnPropertyChanged(nameof(EnvNodeToggles));
         }
 
         Modules = new ObservableCollection<ProjectModule>(Modules);

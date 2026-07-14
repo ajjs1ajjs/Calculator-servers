@@ -74,7 +74,8 @@
                                 <CheckBox Content="SQL Secondary (Failover)" IsChecked="{Binding IncludeSqlFailover, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
                                           ToolTip="Другий вузол БД для failover-кластера (копія первинного вузла БД)"/>
                                 <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold"
-                                          ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол"/>
+                                          IsEnabled="{Binding CanToggleHaProxy}"
+                                          ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол. У Гібриді керується автоматично."/>
                             </WrapPanel>
                         </StackPanel>
                     </Border>
@@ -136,7 +137,19 @@
                                                   CanUserAddRows="False" CanUserDeleteRows="False">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="*" MinWidth="120"/>
-                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34"/>
+                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding DevEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34">
+                                                    <DataGridCheckBoxColumn.ElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="IsEnabled" Value="{Binding IsEditable}"/>
+                                                            <Setter Property="IsHitTestVisible" Value="{Binding IsEditable}"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.ElementStyle>
+                                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="IsEnabled" Value="{Binding IsEditable}"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                                </DataGridCheckBoxColumn>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </StackPanel>
@@ -187,7 +200,19 @@
                                                   CanUserAddRows="False" CanUserDeleteRows="False">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="*" MinWidth="120"/>
-                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34"/>
+                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding TestEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34">
+                                                    <DataGridCheckBoxColumn.ElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="IsEnabled" Value="{Binding IsEditable}"/>
+                                                            <Setter Property="IsHitTestVisible" Value="{Binding IsEditable}"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.ElementStyle>
+                                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="IsEnabled" Value="{Binding IsEditable}"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                                </DataGridCheckBoxColumn>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </StackPanel>
@@ -238,7 +263,19 @@
                                                   CanUserAddRows="False" CanUserDeleteRows="False">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Вузол" Binding="{Binding NodeName}" IsReadOnly="True" Width="*" MinWidth="120"/>
-                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34"/>
+                                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding PredProdEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="34">
+                                                    <DataGridCheckBoxColumn.ElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="IsEnabled" Value="{Binding IsEditable}"/>
+                                                            <Setter Property="IsHitTestVisible" Value="{Binding IsEditable}"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.ElementStyle>
+                                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="IsEnabled" Value="{Binding IsEditable}"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                                </DataGridCheckBoxColumn>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </StackPanel>

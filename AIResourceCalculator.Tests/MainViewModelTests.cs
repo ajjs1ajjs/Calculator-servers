@@ -153,10 +153,28 @@ public class MainViewModelTests
         vm.DeploymentIndex = 2;                         // Hybrid
 
         Assert.True(vm.IncludeHaProxy);                 // PROD
+        Assert.False(vm.CanToggleHaProxy);              // заблоковано на час Гібриду
         var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
         Assert.True(haproxy.TestEnabled);
         Assert.True(haproxy.PredProdEnabled);
         Assert.False(haproxy.DevEnabled);
+        Assert.False(haproxy.IsEditable);
+    }
+
+    [Fact]
+    public void DeploymentIndex_SwitchFromHybridToKubernetes_UnlocksAndResetsHaProxy()
+    {
+        var vm = BuildVm(out _);
+        vm.DeploymentIndex = 2;                         // Hybrid — вмикається й блокується
+        vm.DeploymentIndex = 0;                         // Kubernetes — має розблокуватись і скинутись
+
+        Assert.False(vm.IncludeHaProxy);
+        Assert.True(vm.CanToggleHaProxy);
+        var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
+        Assert.True(haproxy.IsEditable);
+        Assert.False(haproxy.DevEnabled);
+        Assert.False(haproxy.TestEnabled);
+        Assert.False(haproxy.PredProdEnabled);
     }
 
     // --- ForceBPM: заблокований у K8s, клікабельний у Гібриді ---

@@ -75,6 +75,10 @@ public class EnvNodeToggle
     public bool TestEnabled { get; set; }
     public bool PredProdEnabled { get; set; }
 
+    // Чи може користувач клацнути чекбокс вручну. HAProxy в Гібриді керується типом розгортання
+    // автоматично (MainViewModel.OnDeploymentTypeChanged), тож на час Гібриду заблокований.
+    public bool IsEditable { get; set; } = true;
+
     public bool EnabledFor(DeployEnvironment env) => env switch
     {
         DeployEnvironment.Dev => DevEnabled,
