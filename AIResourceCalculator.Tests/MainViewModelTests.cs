@@ -66,6 +66,28 @@ public class MainViewModelTests
         Assert.Equal(17, lmsComp.Replicas);
     }
 
+    // --- HR Portal і LMS увімкнені в PROD автоматично додаються в DEV/TEST/PreProd (за замовчуванням,
+    // без ручного налаштування рядків EnvModuleCounts) ---
+    [Fact]
+    public void EnabledModulesInProd_AutomaticallyIncludedInAllDerivedEnvironments()
+    {
+        var vm = BuildVm(out _);
+        vm.UserCount = "100";
+        foreach (var m in vm.Modules) if (m.Name is "LMS" or "HR Portal") m.IsEnabled = true;
+        vm.IncludeDev = true;
+        vm.IncludeTest = true;
+        vm.IncludePredProd = true;
+
+        vm.CalculateCommand.Execute(null);
+
+        foreach (var envName in new[] { "DEV", "TEST", "PreProd" })
+        {
+            var env = vm.Environments.First(e => e.Name == envName);
+            Assert.Contains(env.Requirement.Components, c => c.Category == "LMS");
+            Assert.Contains(env.Requirement.Components, c => c.Category == "HR Portal");
+        }
+    }
+
     [Fact]
     public void EnvModuleCounts_DisablingModuleExcludesItFromEnvironment()
     {
