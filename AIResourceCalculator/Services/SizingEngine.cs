@@ -429,17 +429,20 @@ public class SizingEngine : ISizingEngine
             db.StorageGb2 = (int)Math.Ceiling(dbSizeGb * 0.25);
         }
 
-        // non-prod: прибираємо диск Content (холодні/бекап дані не потрібні) і зменшуємо OS-диск.
+        // non-prod: типово прибираємо диск Content (холодні/бекап дані зазвичай не потрібні) і
+        // зменшуємо OS-диск. Явно заданий обсяг Content (contentSizeGb, нижче) все одно може його
+        // повернути — для будь-якого середовища, не лише PROD.
         if (environment != DeployEnvironment.Prod)
         {
             db.StorageGb4 = 0;
             db.StorageType4 = "";
             if (db.StorageGb > NonProdOsDiskGb) db.StorageGb = NonProdOsDiskGb;
         }
-        else if (contentSizeGb > 0)
+
+        if (contentSizeGb > 0)
         {
-            // Явно заданий обсяг Content замінює фіксоване значення з матриці — той самий підхід,
-            // що й для MainData вище.
+            // Явно заданий обсяг Content замінює фіксоване значення з матриці (або нуль non-prod
+            // вище) — той самий підхід, що й для MainData вище.
             db.StorageGb4 = contentSizeGb;
             if (string.IsNullOrWhiteSpace(db.StorageType4)) db.StorageType4 = "SATA";
         }

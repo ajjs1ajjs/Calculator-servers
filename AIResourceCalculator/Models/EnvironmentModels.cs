@@ -20,6 +20,12 @@ public class EnvironmentSettings
     public int TestDbSizeGb { get; set; }
     public int PredProdDbSizeGb { get; set; }
 
+    // Обсяг Content (ГБ) для похідних середовищ — незалежне значення для кожного (0 = диск
+    // Content не виділяється, як і раніше типово для non-prod).
+    public int DevContentDbSizeGb { get; set; }
+    public int TestContentDbSizeGb { get; set; }
+    public int PredProdContentDbSizeGb { get; set; }
+
     public bool AnyDerived => IncludeDev || IncludeTest || IncludePredProd;
 }
 

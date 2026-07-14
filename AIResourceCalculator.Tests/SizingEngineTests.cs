@@ -926,12 +926,26 @@ public class SizingEngineTests
 
     // --- ContentDbSizeGb ігнорується поза PROD — диск Content там взагалі не виділяється ---
     [Fact]
-    public void Calculate_ContentDbSizeGb_NonProd_HasNoEffect()
+    public void Calculate_ContentDbSizeGb_NonProd_ExplicitValueStillApplies()
     {
+        // Явно заданий обсяг Content діє в будь-якому середовищі (поле тепер є і для DEV/TEST/PreProd) —
+        // лише типова поведінка non-prod (без явного вводу) лишається "без Content".
         var req = _engine.Calculate(new ProjectConfig
         {
             UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
             Environment = DeployEnvironment.Test, ContentDbSizeGb = 777
+        });
+        var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Equal(777, db.StorageGb4);
+    }
+
+    [Fact]
+    public void Calculate_NonProd_WithoutContentDbSizeGb_HasNoContentDisk()
+    {
+        var req = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            Environment = DeployEnvironment.Test
         });
         var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
         Assert.Equal(0, db.StorageGb4);

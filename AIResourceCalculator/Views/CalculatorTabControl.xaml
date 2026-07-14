@@ -107,6 +107,10 @@
                                             <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <TextBox Width="60" Text="{Binding DevDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.dbData}"/>
                                         </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding DevContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
+                                        </StackPanel>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
@@ -154,6 +158,10 @@
                                         <TextBlock Text="{Binding TestDbSizeWarning}" FontSize="10" FontStyle="Italic" Foreground="{DynamicResource DangerBg}"
                                                    TextWrapping="Wrap" Margin="0,0,0,6"
                                                    Visibility="{Binding HasTestDbSizeWarning, Converter={StaticResource VisibilityConverter}}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding TestContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
+                                        </StackPanel>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
@@ -201,6 +209,10 @@
                                         <TextBlock Text="{Binding PredProdDbSizeWarning}" FontSize="10" FontStyle="Italic" Foreground="{DynamicResource DangerBg}"
                                                    TextWrapping="Wrap" Margin="0,0,0,6"
                                                    Visibility="{Binding HasPredProdDbSizeWarning, Converter={StaticResource VisibilityConverter}}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Width="60" Text="{Binding PredProdContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
+                                        </StackPanel>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"

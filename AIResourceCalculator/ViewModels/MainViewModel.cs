@@ -111,6 +111,9 @@ public class MainViewModel : INotifyPropertyChanged
     private string _devDbSizeGb = "0";
     private string _testDbSizeGb = "0";
     private string _predProdDbSizeGb = "0";
+    private string _devContentDbSizeGb = "0";
+    private string _testContentDbSizeGb = "0";
+    private string _predProdContentDbSizeGb = "0";
 
     public bool IncludeDev { get => _includeDev; set { _includeDev = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
     public bool IncludeTest { get => _includeTest; set { _includeTest = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasEnvironmentsSelected)); } }
@@ -133,11 +136,16 @@ public class MainViewModel : INotifyPropertyChanged
     // (клампиться при розрахунку, а до того — видно попередження в реальному часі); Dev — незалежне
     // значення без нижньої межі.
     public string ProdDbSizeGb { get => _prodDbSizeGb; set { _prodDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
-    // Обсяг холодних/архівних даних Content (ГБ) — лише PROD (у non-prod диск Content не виділяється).
-    public string ProdContentDbSizeGb { get => _prodContentDbSizeGb; set { _prodContentDbSizeGb = value; OnPropertyChanged(); } }
     public string DevDbSizeGb { get => _devDbSizeGb; set { _devDbSizeGb = value; OnPropertyChanged(); } }
     public string TestDbSizeGb { get => _testDbSizeGb; set { _testDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
     public string PredProdDbSizeGb { get => _predProdDbSizeGb; set { _predProdDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
+
+    // Обсяг холодних/архівних даних Content (ГБ) — незалежне значення для кожного середовища
+    // (0 = диск Content не виділяється; для non-prod це й типова поведінка без явного вводу).
+    public string ProdContentDbSizeGb { get => _prodContentDbSizeGb; set { _prodContentDbSizeGb = value; OnPropertyChanged(); } }
+    public string DevContentDbSizeGb { get => _devContentDbSizeGb; set { _devContentDbSizeGb = value; OnPropertyChanged(); } }
+    public string TestContentDbSizeGb { get => _testContentDbSizeGb; set { _testContentDbSizeGb = value; OnPropertyChanged(); } }
+    public string PredProdContentDbSizeGb { get => _predProdContentDbSizeGb; set { _predProdContentDbSizeGb = value; OnPropertyChanged(); } }
 
     // Попередження в реальному часі (поки друкує), якщо Test/PreProd менше PROD — значення все одно
     // буде піднято до PROD при розрахунку, але користувач бачить це одразу, а не лише постфактум.
@@ -450,6 +458,12 @@ public class MainViewModel : INotifyPropertyChanged
         TestDbSizeGb = testDbSize.ToString();
         PredProdDbSizeGb = ppDbSize.ToString();
 
+        // Обсяг Content — незалежне значення для кожного середовища (0 = диск не виділяється,
+        // без успадкування від PROD і без нижньої межі).
+        if (!int.TryParse(DevContentDbSizeGb, out var devContentSize) || devContentSize < 0) devContentSize = 0;
+        if (!int.TryParse(TestContentDbSizeGb, out var testContentSize) || testContentSize < 0) testContentSize = 0;
+        if (!int.TryParse(PredProdContentDbSizeGb, out var ppContentSize) || ppContentSize < 0) ppContentSize = 0;
+
         return new EnvironmentSettings
         {
             IncludeDev = IncludeDev,
@@ -460,7 +474,10 @@ public class MainViewModel : INotifyPropertyChanged
             PredProdUserCount = Math.Clamp(pp, 1, 5000),
             DevDbSizeGb = devDbSize,
             TestDbSizeGb = testDbSize,
-            PredProdDbSizeGb = ppDbSize
+            PredProdDbSizeGb = ppDbSize,
+            DevContentDbSizeGb = devContentSize,
+            TestContentDbSizeGb = testContentSize,
+            PredProdContentDbSizeGb = ppContentSize
         };
     }
 
@@ -481,6 +498,13 @@ public class MainViewModel : INotifyPropertyChanged
                 DeployEnvironment.PredProd => s.PredProdDbSizeGb,
                 _ => config.DbSizeGb
             };
+            var envContentSize = env switch
+            {
+                DeployEnvironment.Dev => s.DevContentDbSizeGb,
+                DeployEnvironment.Test => s.TestContentDbSizeGb,
+                DeployEnvironment.PredProd => s.PredProdContentDbSizeGb,
+                _ => config.ContentDbSizeGb
+            };
             var envConfig = new ProjectConfig
             {
                 ProjectName = config.ProjectName, UserCount = users,
@@ -488,6 +512,7 @@ public class MainViewModel : INotifyPropertyChanged
                 LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
                 Environment = env,
                 DbSizeGb = envDbSize,
+                ContentDbSizeGb = envContentSize,
                 // Опціональні вузли — ОКРЕМО для кожного похідного середовища (перемикачі внизу).
                 IncludeReportingServer = NodeEnabledFor("reporting", env),
                 IncludeSqlFailover = NodeEnabledFor("failover", env),
