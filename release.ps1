@@ -84,11 +84,19 @@ if (-not $ReleaseNotes) {
     }
 }
 
-gh release create $tag `
-    "$root/publish/ITE.ResourceCalculator.exe" `
-    "$root/publish/ITE.ResourceCalculator.msi" `
-    --title "$tag" `
-    --notes "$ReleaseNotes"
-if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+# --notes-file замість --notes: лапки/спецсимволи в тексті нотаток інакше ламають передачу
+# аргументу в gh.exe (PowerShell не екранує вкладені лапки при інтерполяції в native-виклик).
+$notesFile = [System.IO.Path]::GetTempFileName()
+try {
+    [System.IO.File]::WriteAllText($notesFile, $ReleaseNotes, [System.Text.UTF8Encoding]::new($false))
+    gh release create $tag `
+        "$root/publish/ITE.ResourceCalculator.exe" `
+        "$root/publish/ITE.ResourceCalculator.msi" `
+        --title "$tag" `
+        --notes-file $notesFile
+    if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+} finally {
+    Remove-Item $notesFile -Force -ErrorAction SilentlyContinue
+}
 
 Write-Host "Готово: реліз $tag опубліковано." -ForegroundColor Green
