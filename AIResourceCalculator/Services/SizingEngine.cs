@@ -191,7 +191,7 @@ public class SizingEngine : ISizingEngine
                 IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
                 ThroughputMiBs = ThroughputFor(sqlRange)
             };
-            ApplyDbDisks(dbNode, config.DatabaseType, dbRam, config.Environment, config.DbSizeGb);
+            ApplyDbDisks(dbNode, config.DatabaseType, dbRam, config.Environment, config.DbSizeGb, config.ContentDbSizeGb);
             req.Infrastructure.Add(dbNode);
         }
         req.Infrastructure.Add(new InfrastructureNode
@@ -286,7 +286,7 @@ public class SizingEngine : ISizingEngine
             IopsProfile = sqlRange?.IopsProfile ?? DefaultIopsProfile,
             ThroughputMiBs = ThroughputFor(sqlRange)
         };
-        ApplyDbDisks(dbNode, config.DatabaseType, sqlRam, config.Environment, config.DbSizeGb);
+        ApplyDbDisks(dbNode, config.DatabaseType, sqlRam, config.Environment, config.DbSizeGb, config.ContentDbSizeGb);
         req.Infrastructure.Add(dbNode);
         req.Infrastructure.Add(new InfrastructureNode
         {
@@ -339,8 +339,8 @@ public class SizingEngine : ISizingEngine
         var k8sReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
         var winReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile };
 
-        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb };
-        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb };
+        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb, ContentDbSizeGb = config.ContentDbSizeGb };
+        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb, ContentDbSizeGb = config.ContentDbSizeGb };
 
         // SmartID у гібриді: завжди под у Kubernetes (окрема ВМ на веб-серверах IIS не додається).
         CalculateK8s(k8sReq, k8sConfig, includeDatabase: false, excludeModules: HybridWindowsModules,
@@ -412,7 +412,7 @@ public class SizingEngine : ISizingEngine
     // Content не виділяється (потрібне лише у PROD) і OS-диск зменшується.
     private const int NonProdOsDiskGb = 100;
     private static void ApplyDbDisks(InfrastructureNode db, DatabaseType dbType, double dbRamGb,
-        DeployEnvironment environment, int dbSizeGb = 0)
+        DeployEnvironment environment, int dbSizeGb = 0, int contentSizeGb = 0)
     {
         // Диски беремо ФІКСОВАНІ з матриці/еталона (OS / Logs+TempDB / MainData / Content) —
         // обсяг даних наперед невідомий, тож не масштабуємо вручну. Гарантуємо типи за замовчуванням.
@@ -435,6 +435,13 @@ public class SizingEngine : ISizingEngine
             db.StorageGb4 = 0;
             db.StorageType4 = "";
             if (db.StorageGb > NonProdOsDiskGb) db.StorageGb = NonProdOsDiskGb;
+        }
+        else if (contentSizeGb > 0)
+        {
+            // Явно заданий обсяг Content замінює фіксоване значення з матриці — той самий підхід,
+            // що й для MainData вище.
+            db.StorageGb4 = contentSizeGb;
+            if (string.IsNullOrWhiteSpace(db.StorageType4)) db.StorageType4 = "SATA";
         }
 
         db.DbVersion = DbVersionLabel(dbType, dbRamGb, db.Cpu, environment);

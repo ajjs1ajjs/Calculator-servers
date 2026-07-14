@@ -911,6 +911,32 @@ public class SizingEngineTests
         Assert.Equal(38, db.StorageGb2);    // Logs/TempDB = ceil(25% від 150)
     }
 
+    // --- ContentDbSizeGb (PROD) замінює фіксований дефолт Content з матриці ---
+    [Fact]
+    public void Calculate_ContentDbSizeGb_Prod_OverridesMatrixDefault()
+    {
+        var req = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            Environment = DeployEnvironment.Prod, ContentDbSizeGb = 777
+        });
+        var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Equal(777, db.StorageGb4);
+    }
+
+    // --- ContentDbSizeGb ігнорується поза PROD — диск Content там взагалі не виділяється ---
+    [Fact]
+    public void Calculate_ContentDbSizeGb_NonProd_HasNoEffect()
+    {
+        var req = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            Environment = DeployEnvironment.Test, ContentDbSizeGb = 777
+        });
+        var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
+        Assert.Equal(0, db.StorageGb4);
+    }
+
     // --- Файл підкачки — окремий диск: враховується у сумі дисків вузла ---
     [Fact]
     public void InfrastructureNode_DiskPerNodeGb_IncludesPageFile()

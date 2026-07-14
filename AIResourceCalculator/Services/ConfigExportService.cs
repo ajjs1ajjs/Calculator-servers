@@ -91,7 +91,8 @@ public class ConfigExportService
 
     public byte[] ExportPdf(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
+        IEnumerable<UserLoadRange>? matrixRanges = null,
+        string? diskRequirements = null)
     {
         QuestPDF.Settings.License = LicenseType.Community;
         bool multiEnv = environments != null && environments.Count > 1;
@@ -134,6 +135,12 @@ public class ConfigExportService
                         col.Item().Element(c => ComposePdfInfraTable(c, req));
                         if (config.IncludeComponentsInReport)
                             col.Item().Element(c => ComposePdfComponents(c, req));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(diskRequirements))
+                    {
+                        col.Item().PaddingTop(4).Element(c => PdfSectionTitle(c, "Вимоги до дисків"));
+                        col.Item().Element(c => ComposePdfDiskRequirements(c, diskRequirements!));
                     }
 
                     col.Item().PaddingTop(4).Element(c => PdfSectionTitle(c, "Пояснення показників"));
@@ -350,6 +357,23 @@ public class ConfigExportService
         });
     }
 
+    // Той самий текст, що показаний у програмі (DiskAdvisor) — заголовок вузла жирним акцентом,
+    // рядки деталей звичайним шрифтом (як список).
+    private static void ComposePdfDiskRequirements(IContainer c, string diskRequirements)
+    {
+        c.Column(col =>
+        {
+            foreach (var line in diskRequirements.Split('\n'))
+            {
+                var trimmed = line.TrimEnd('\r');
+                if (trimmed.Length == 0) { col.Item().Height(4); continue; }
+                bool isHeader = !trimmed.TrimStart().StartsWith("•");
+                var item = col.Item().Text(trimmed).FontSize(isHeader ? 9 : 8.5f);
+                if (isHeader) item.Bold().FontColor(PdfAccent); else item.FontColor(PdfInk);
+            }
+        });
+    }
+
     private static void PdfHead(IContainer c, string text) =>
         c.Background(PdfAccent).BorderColor(PdfBorder).Border(0.5f).PaddingVertical(3).PaddingHorizontal(4)
          .Text(text).FontSize(8).Bold().FontColor("#FFFFFF");
@@ -373,7 +397,8 @@ public class ConfigExportService
     // ───────────────────────────── Excel ─────────────────────────────
     public byte[] ExportExcel(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
+        IEnumerable<UserLoadRange>? matrixRanges = null,
+        string? diskRequirements = null)
     {
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         using var pkg = new ExcelPackage();
@@ -387,10 +412,30 @@ public class ConfigExportService
             if (config.IncludeComponentsInReport) BuildEnvironmentComponentsSheet(pkg, environments!);
         }
         BuildInfrastructureSheet(pkg, req, multiEnv ? environments : null);
+        if (!string.IsNullOrWhiteSpace(diskRequirements)) BuildDiskRequirementsSheet(pkg, diskRequirements);
         // Компоненти PROD окремо лише коли не було розбивки по середовищах.
         if (!multiEnv && config.IncludeComponentsInReport) BuildComponentsSheet(pkg, req);
 
         return pkg.GetAsByteArray();
+    }
+
+    // Той самий текст, що показаний у програмі (DiskAdvisor) — рядок-заголовок вузла жирним,
+    // рядки деталей звичайним шрифтом, як список.
+    private static void BuildDiskRequirementsSheet(ExcelPackage pkg, string diskRequirements)
+    {
+        var ws = pkg.Workbook.Worksheets.Add("Вимоги до дисків");
+        int row = 1;
+        foreach (var line in diskRequirements.Split('\n'))
+        {
+            var trimmed = line.TrimEnd('\r');
+            if (trimmed.Length == 0) { row++; continue; }
+            ws.Cells[row, 1].Value = trimmed;
+            bool isHeader = !trimmed.TrimStart().StartsWith("•");
+            ws.Cells[row, 1].Style.Font.Bold = isHeader;
+            if (isHeader) ws.Cells[row, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
+            row++;
+        }
+        ws.Column(1).Width = 90;
     }
 
     // Аркуш із розбивкою ВМ для кожного середовища (PROD/DEV/TEST/PreProd) — окремим блоком-таблицею

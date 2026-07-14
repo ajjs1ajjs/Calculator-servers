@@ -25,11 +25,13 @@ public class ResultsPresenter
 
     public byte[] ExportExcel(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
-        => _export.ExportExcel(req, config, environments, matrixRanges);
+        IEnumerable<UserLoadRange>? matrixRanges = null,
+        string? diskRequirements = null)
+        => _export.ExportExcel(req, config, environments, matrixRanges, diskRequirements);
 
     public byte[] ExportPdf(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null)
-        => _export.ExportPdf(req, config, environments, matrixRanges);
+        IEnumerable<UserLoadRange>? matrixRanges = null,
+        string? diskRequirements = null)
+        => _export.ExportPdf(req, config, environments, matrixRanges, diskRequirements);
 }

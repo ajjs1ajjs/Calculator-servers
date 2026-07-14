@@ -23,6 +23,10 @@ public class ProjectConfig
     // фіксованими з матриці, як і раніше). Test/PreProd за замовчуванням = Prod, не менше Prod.
     public int DbSizeGb { get; set; }
 
+    // Обсяг холодних/архівних даних Content (ГБ), заданий вручну. 0 = не задано (фіксоване
+    // значення з матриці). Актуально лише для PROD — у non-prod диск Content не виділяється.
+    public int ContentDbSizeGb { get; set; }
+
     // Чи включати розділи/аркуші з компонентами (подами) у сформований звіт (Excel/PDF).
     // На сам розрахунок не впливає — лише на те, що потрапляє у файл звіту.
     public bool IncludeComponentsInReport { get; set; } = true;

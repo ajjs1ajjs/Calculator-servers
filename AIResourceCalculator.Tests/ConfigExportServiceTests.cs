@@ -79,6 +79,24 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
+    public void ExportExcel_WithDiskRequirements_AddsDiskRequirementsSheet()
+    {
+        var bytes = _svc.ExportExcel(_req, _config, diskRequirements: "SQL Server — вимоги до дисків:\n  • Диск ОС: SSD 100 GB");
+        using var pkg = new ExcelPackage(new MemoryStream(bytes));
+        var ws = pkg.Workbook.Worksheets["Вимоги до дисків"];
+        Assert.NotNull(ws);
+        Assert.Contains("SQL Server", ws!.Cells[1, 1].Text);
+    }
+
+    [Fact]
+    public void ExportExcel_WithoutDiskRequirements_HasNoDiskRequirementsSheet()
+    {
+        var bytes = _svc.ExportExcel(_req, _config);
+        using var pkg = new ExcelPackage(new MemoryStream(bytes));
+        Assert.Null(pkg.Workbook.Worksheets["Вимоги до дисків"]);
+    }
+
+    [Fact]
     public void ExportExcel_WithEnvironments_ProducesWorkbook()
     {
         // Кілька середовищ → задіюються зведені аркуші (ВМ та Компоненти по середовищах).

@@ -25,7 +25,9 @@ public static class DiskAdvisor
                       || n.Name.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)
                       || n.Name.Contains("Oracle", StringComparison.OrdinalIgnoreCase);
             bool hasSplit = n.StorageGb2 > 0 || n.StorageGb3 > 0 || n.StorageGb4 > 0;
-            bool relevant = isSql || hasSplit || n.PageFileGb > 0 || n.Iops > 0;
+            // Показуємо будь-який вузол, що має диск (включно з Kubernetes Master/Worker) — так само,
+            // як і для БД, а не лише вузли з IOPS/pagefile/розбивкою.
+            bool relevant = isSql || hasSplit || n.PageFileGb > 0 || n.Iops > 0 || n.StorageGb > 0;
             if (!relevant) continue;
 
             var lines = new List<string>();

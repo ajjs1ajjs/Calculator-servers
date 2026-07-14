@@ -107,6 +107,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string _testUserCount = "25";
     private string _predProdUserCount = "50";
     private string _prodDbSizeGb = "0";
+    private string _prodContentDbSizeGb = "0";
     private string _devDbSizeGb = "0";
     private string _testDbSizeGb = "0";
     private string _predProdDbSizeGb = "0";
@@ -132,6 +133,8 @@ public class MainViewModel : INotifyPropertyChanged
     // (клампиться при розрахунку, а до того — видно попередження в реальному часі); Dev — незалежне
     // значення без нижньої межі.
     public string ProdDbSizeGb { get => _prodDbSizeGb; set { _prodDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
+    // Обсяг холодних/архівних даних Content (ГБ) — лише PROD (у non-prod диск Content не виділяється).
+    public string ProdContentDbSizeGb { get => _prodContentDbSizeGb; set { _prodContentDbSizeGb = value; OnPropertyChanged(); } }
     public string DevDbSizeGb { get => _devDbSizeGb; set { _devDbSizeGb = value; OnPropertyChanged(); } }
     public string TestDbSizeGb { get => _testDbSizeGb; set { _testDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
     public string PredProdDbSizeGb { get => _predProdDbSizeGb; set { _predProdDbSizeGb = value; OnPropertyChanged(); UpdateDbSizeWarnings(); } }
@@ -339,6 +342,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (!int.TryParse(UserCount, out var uc) || uc < 1) uc = 100;
         uc = Math.Clamp(uc, 1, 5000);
         if (!int.TryParse(ProdDbSizeGb, out var dbSize) || dbSize < 0) dbSize = 0;
+        if (!int.TryParse(ProdContentDbSizeGb, out var contentSize) || contentSize < 0) contentSize = 0;
         return new ProjectConfig
         {
             ProjectName = "Project",
@@ -355,6 +359,7 @@ public class MainViewModel : INotifyPropertyChanged
             IncludeSqlFailover = IncludeSqlFailover,
             IncludeHaProxy = IncludeHaProxy,
             DbSizeGb = dbSize,
+            ContentDbSizeGb = contentSize,
             IncludeComponentsInReport = IncludeComponentsInReport
         };
     }
@@ -691,7 +696,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             var cfg = GetConfig();
-            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile), DiskRecommendations);
             System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
             StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
@@ -708,7 +713,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             var cfg = GetConfig();
-            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile), DiskRecommendations);
             System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
             StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }

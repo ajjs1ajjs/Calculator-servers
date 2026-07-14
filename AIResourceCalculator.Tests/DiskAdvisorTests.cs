@@ -73,11 +73,15 @@ public class DiskAdvisorTests
     }
 
     [Fact]
-    public void NonDatabaseNode_WithoutSplit_ProducesNoRecommendation()
+    public void NonDatabaseNode_WithoutSplit_StillShowsOsDisk()
     {
+        // Kubernetes-вузли (Master/Worker) без IOPS/pagefile теж мають показувати свій OS-диск —
+        // так само, як SQL, а не пропускатися мовчки.
         var req = new ResourceRequirement { DeploymentType = DeploymentType.Kubernetes };
         req.Infrastructure.Add(new InfrastructureNode { Name = "Worker Node", Cpu = 8, RamGb = 32, NodeCount = 3, StorageGb = 200 });
         var text = DiskAdvisor.Build(req, new ProjectConfig { DeploymentType = DeploymentType.Kubernetes }, Loc);
-        Assert.True(string.IsNullOrEmpty(text));
+        Assert.False(string.IsNullOrWhiteSpace(text));
+        Assert.Contains("Worker Node", text);
+        Assert.Contains(Loc["disk.os"], text);
     }
 }
