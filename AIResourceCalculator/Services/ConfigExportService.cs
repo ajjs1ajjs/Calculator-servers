@@ -91,8 +91,7 @@ public class ConfigExportService
 
     public byte[] ExportPdf(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null,
-        string? diskRequirements = null)
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
         QuestPDF.Settings.License = LicenseType.Community;
         bool multiEnv = environments != null && environments.Count > 1;
@@ -135,12 +134,6 @@ public class ConfigExportService
                         col.Item().Element(c => ComposePdfInfraTable(c, req));
                         if (config.IncludeComponentsInReport)
                             col.Item().Element(c => ComposePdfComponents(c, req));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(diskRequirements))
-                    {
-                        col.Item().PaddingTop(4).Element(c => PdfSectionTitle(c, "Вимоги до дисків"));
-                        col.Item().Element(c => ComposePdfDiskRequirements(c, diskRequirements!));
                     }
 
                     col.Item().PaddingTop(4).Element(c => PdfSectionTitle(c, "Пояснення показників"));
@@ -232,6 +225,10 @@ public class ConfigExportService
         });
     }
 
+    // Диск розписаний по частинах (OS/Logs/MainData/Content) прямо колонками таблиці — це і є
+    // вимоги до дисків, без окремої секції/аркуша.
+    private static string DiskCell(string type, int gb) => gb > 0 ? $"{type}\n{gb}" : "";
+
     private static void ComposePdfInfraTable(IContainer c, ResourceRequirement req)
     {
         var nodes = req.Infrastructure.Where(n => n.NodeCount > 0).ToList();
@@ -239,24 +236,30 @@ public class ConfigExportService
         {
             t.ColumnsDefinition(d =>
             {
-                d.RelativeColumn(2.1f);  // Сервер
-                d.RelativeColumn(2.7f);  // Призначення
-                d.RelativeColumn(0.6f);  // CPU
-                d.RelativeColumn(0.7f);  // RAM
-                d.RelativeColumn(0.6f);  // К-сть
-                d.RelativeColumn(1.1f);  // Диск
-                d.RelativeColumn(0.8f);  // PageFile
-                d.RelativeColumn(1.3f);  // IOPS (профіль)
+                d.RelativeColumn(1.7f);  // Сервер
+                d.RelativeColumn(2.0f);  // Призначення
+                d.RelativeColumn(0.5f);  // CPU
+                d.RelativeColumn(0.6f);  // ГГц
+                d.RelativeColumn(0.6f);  // RAM
+                d.RelativeColumn(0.5f);  // К-сть
+                d.RelativeColumn(0.9f);  // Диск ОС
+                d.RelativeColumn(0.9f);  // Диск Logs/TempDB
+                d.RelativeColumn(0.9f);  // Диск MainData
+                d.RelativeColumn(0.9f);  // Диск Content
+                d.RelativeColumn(0.8f);  // Диск підкачки
+                d.RelativeColumn(0.8f);  // Диск разом
+                d.RelativeColumn(1.2f);  // IOPS (профіль)
                 d.RelativeColumn(0.7f);  // MiB/s
-                d.RelativeColumn(0.8f);  // Затримка
-                d.RelativeColumn(1.3f);  // ОС
-                d.RelativeColumn(2.0f);  // СУБД / примітки
+                d.RelativeColumn(0.7f);  // Затримка
+                d.RelativeColumn(1.1f);  // ОС
+                d.RelativeColumn(1.6f);  // СУБД / примітки
             });
             t.Header(h =>
             {
                 PdfHead(h.Cell(), "Сервер (ВМ)"); PdfHead(h.Cell(), "Призначення");
-                PdfHead(h.Cell(), "CPU"); PdfHead(h.Cell(), "RAM"); PdfHead(h.Cell(), "К-сть");
-                PdfHead(h.Cell(), "Диск (тип · ГБ)"); PdfHead(h.Cell(), "Диск підкачки");
+                PdfHead(h.Cell(), "CPU"); PdfHead(h.Cell(), "ГГц"); PdfHead(h.Cell(), "RAM"); PdfHead(h.Cell(), "К-сть");
+                PdfHead(h.Cell(), "Диск ОС"); PdfHead(h.Cell(), "Logs/TempDB"); PdfHead(h.Cell(), "MainData"); PdfHead(h.Cell(), "Content");
+                PdfHead(h.Cell(), "Підкачка"); PdfHead(h.Cell(), "Разом, ГБ");
                 PdfHead(h.Cell(), "IOPS (профіль)"); PdfHead(h.Cell(), "MiB/s"); PdfHead(h.Cell(), "Затр., мс");
                 PdfHead(h.Cell(), "ОС"); PdfHead(h.Cell(), "СУБД / примітки");
             });
@@ -264,16 +267,20 @@ public class ConfigExportService
             foreach (var n in nodes)
             {
                 bool z = i++ % 2 == 1;
-                var disk = n.DiskPerNodeGb > 0 ? $"{n.StorageType} · {n.TotalStorageGb}" : "—";
                 var iops = n.Iops > 0 ? $"{n.Iops}\n{n.IopsProfile}" : "";
                 var sub = string.Join("\n", new[] { n.DbVersion, n.Notes }.Where(s => !string.IsNullOrWhiteSpace(s)));
                 PdfData(t.Cell(), n.Name, z, bold: true);
                 PdfData(t.Cell(), NodeRole(n.Name), z);
                 PdfData(t.Cell(), $"{n.Cpu:0.#}", z, center: true);
+                PdfData(t.Cell(), n.Ghz > 0 ? $"{n.Ghz:0.#}" : "", z, center: true);
                 PdfData(t.Cell(), $"{n.RamGb:0.#}", z, center: true);
                 PdfData(t.Cell(), n.NodeCount.ToString(), z, center: true);
-                PdfData(t.Cell(), disk, z, center: true);
+                PdfData(t.Cell(), DiskCell(n.StorageType, n.StorageGb), z, center: true);
+                PdfData(t.Cell(), DiskCell(n.StorageType2, n.StorageGb2), z, center: true);
+                PdfData(t.Cell(), DiskCell(n.StorageType3, n.StorageGb3), z, center: true);
+                PdfData(t.Cell(), DiskCell(n.StorageType4, n.StorageGb4), z, center: true);
                 PdfData(t.Cell(), n.PageFileGb > 0 ? n.PageFileGb.ToString() : "", z, center: true);
+                PdfData(t.Cell(), n.TotalStorageGb.ToString(), z, center: true);
                 PdfData(t.Cell(), iops, z, center: true);
                 PdfData(t.Cell(), n.ThroughputMiBs > 0 ? n.ThroughputMiBs.ToString() : "", z, center: true);
                 PdfData(t.Cell(), n.Latency > 0 ? $"{n.Latency:0.#}" : "", z, center: true);
@@ -283,10 +290,13 @@ public class ConfigExportService
             // Підсумок.
             PdfTotal(t.Cell(), "Разом"); PdfTotal(t.Cell(), "");
             PdfTotal(t.Cell(), $"{req.TotalCpu:0.#}", center: true);
+            PdfTotal(t.Cell(), "", center: true);
             PdfTotal(t.Cell(), $"{req.TotalRamGb:0.#}", center: true);
             PdfTotal(t.Cell(), req.Infrastructure.Sum(n => n.NodeCount).ToString(), center: true);
-            PdfTotal(t.Cell(), $"{req.TotalStorageGb}", center: true);
             PdfTotal(t.Cell(), ""); PdfTotal(t.Cell(), ""); PdfTotal(t.Cell(), ""); PdfTotal(t.Cell(), "");
+            PdfTotal(t.Cell(), "");
+            PdfTotal(t.Cell(), $"{req.TotalStorageGb}", center: true);
+            PdfTotal(t.Cell(), ""); PdfTotal(t.Cell(), ""); PdfTotal(t.Cell(), "");
             PdfTotal(t.Cell(), ""); PdfTotal(t.Cell(), "");
         });
     }
@@ -357,22 +367,6 @@ public class ConfigExportService
         });
     }
 
-    // Той самий текст, що показаний у програмі (DiskAdvisor) — заголовок вузла жирним акцентом,
-    // рядки деталей звичайним шрифтом (як список).
-    private static void ComposePdfDiskRequirements(IContainer c, string diskRequirements)
-    {
-        c.Column(col =>
-        {
-            foreach (var line in diskRequirements.Split('\n'))
-            {
-                var trimmed = line.TrimEnd('\r');
-                if (trimmed.Length == 0) { col.Item().Height(4); continue; }
-                bool isHeader = !trimmed.TrimStart().StartsWith("•");
-                var item = col.Item().Text(trimmed).FontSize(isHeader ? 9 : 8.5f);
-                if (isHeader) item.Bold().FontColor(PdfAccent); else item.FontColor(PdfInk);
-            }
-        });
-    }
 
     private static void PdfHead(IContainer c, string text) =>
         c.Background(PdfAccent).BorderColor(PdfBorder).Border(0.5f).PaddingVertical(3).PaddingHorizontal(4)
@@ -397,8 +391,7 @@ public class ConfigExportService
     // ───────────────────────────── Excel ─────────────────────────────
     public byte[] ExportExcel(ResourceRequirement req, ProjectConfig config,
         IReadOnlyList<EnvironmentReport>? environments = null,
-        IEnumerable<UserLoadRange>? matrixRanges = null,
-        string? diskRequirements = null)
+        IEnumerable<UserLoadRange>? matrixRanges = null)
     {
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         using var pkg = new ExcelPackage();
@@ -411,31 +404,13 @@ public class ConfigExportService
             BuildEnvironmentVmsSheet(pkg, environments!);
             if (config.IncludeComponentsInReport) BuildEnvironmentComponentsSheet(pkg, environments!);
         }
+        // Вимоги до дисків (OS/Logs/MainData/Content) — колонками прямо в таблиці "Інфраструктура",
+        // не окремим аркушем.
         BuildInfrastructureSheet(pkg, req, multiEnv ? environments : null);
-        if (!string.IsNullOrWhiteSpace(diskRequirements)) BuildDiskRequirementsSheet(pkg, diskRequirements);
         // Компоненти PROD окремо лише коли не було розбивки по середовищах.
         if (!multiEnv && config.IncludeComponentsInReport) BuildComponentsSheet(pkg, req);
 
         return pkg.GetAsByteArray();
-    }
-
-    // Той самий текст, що показаний у програмі (DiskAdvisor) — рядок-заголовок вузла жирним,
-    // рядки деталей звичайним шрифтом, як список.
-    private static void BuildDiskRequirementsSheet(ExcelPackage pkg, string diskRequirements)
-    {
-        var ws = pkg.Workbook.Worksheets.Add("Вимоги до дисків");
-        int row = 1;
-        foreach (var line in diskRequirements.Split('\n'))
-        {
-            var trimmed = line.TrimEnd('\r');
-            if (trimmed.Length == 0) { row++; continue; }
-            ws.Cells[row, 1].Value = trimmed;
-            bool isHeader = !trimmed.TrimStart().StartsWith("•");
-            ws.Cells[row, 1].Style.Font.Bold = isHeader;
-            if (isHeader) ws.Cells[row, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
-            row++;
-        }
-        ws.Column(1).Width = 90;
     }
 
     // Аркуш із розбивкою ВМ для кожного середовища (PROD/DEV/TEST/PreProd) — окремим блоком-таблицею
@@ -773,15 +748,17 @@ public class ConfigExportService
     {
         // Підпис середовища над таблицею.
         ws.Cells[startRow, 1].Value = title;
-        ws.Cells[startRow, 1, startRow, 16].Merge = true;
+        ws.Cells[startRow, 1, startRow, 20].Merge = true;
         ws.Cells[startRow, 1].Style.Font.Bold = true;
         ws.Cells[startRow, 1].Style.Font.Size = 12;
         ws.Cells[startRow, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(30, 102, 245));
 
-        // Порядок колонок: ідентифікатор + числові характеристики спершу, описові
-        // (Призначення/ОС/Версія СУБД) — у кінці перед примітками.
-        string[] headers = { "Сервер (ВМ)", "CPU (ядер)", "RAM (ГБ)", "К-сть", "Тип диску",
-            "Диск/сервер (ГБ)", "Диск разом (ГБ)", "Диск підкачки (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
+        // Порядок колонок: ідентифікатор + числові характеристики спершу (диск розписаний по
+        // частинах — OS/Logs/MainData/Content — замість одного сукупного числа, це і є вимоги
+        // до дисків, вбудовані прямо в таблицю інфраструктури), описові — у кінці перед примітками.
+        string[] headers = { "Сервер (ВМ)", "CPU (ядер)", "Частота, ГГц", "RAM (ГБ)", "К-сть", "Тип диску",
+            "Диск ОС (ГБ)", "Диск Logs/TempDB (ГБ)", "Диск MainData (ГБ)", "Диск Content (ГБ)",
+            "Диск підкачки (ГБ)", "Диск разом (ГБ)", "IOPS", "Профіль IOPS", "MiB/s", "Затримка (мс)",
             "Призначення", "ОС", "Версія СУБД", "Примітки" };
         int headerRow = startRow + 1;
         WriteHeader(ws, headers, headerRow);
@@ -791,40 +768,44 @@ public class ConfigExportService
         {
             ws.Cells[row, 1].Value = n.Name;
             ws.Cells[row, 2].Value = n.Cpu;
-            ws.Cells[row, 3].Value = n.RamGb;
-            ws.Cells[row, 4].Value = n.NodeCount;
-            ws.Cells[row, 5].Value = n.StorageType;
-            ws.Cells[row, 6].Value = n.DiskPerNodeGb;
-            ws.Cells[row, 7].Value = n.TotalStorageGb;
-            ws.Cells[row, 8].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
-            ws.Cells[row, 9].Value = n.Iops > 0 ? n.Iops : (object)"";
-            ws.Cells[row, 10].Value = n.IopsProfile;
-            ws.Cells[row, 11].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
-            ws.Cells[row, 12].Value = n.Latency > 0 ? n.Latency : (object)"";
-            ws.Cells[row, 13].Value = NodeRole(n.Name);
-            ws.Cells[row, 14].Value = n.Os;
-            ws.Cells[row, 15].Value = n.DbVersion;
-            ws.Cells[row, 16].Value = n.Notes;
+            ws.Cells[row, 3].Value = n.Ghz > 0 ? n.Ghz : (object)"";
+            ws.Cells[row, 4].Value = n.RamGb;
+            ws.Cells[row, 5].Value = n.NodeCount;
+            ws.Cells[row, 6].Value = n.StorageType;
+            ws.Cells[row, 7].Value = n.StorageGb > 0 ? n.StorageGb : (object)"";
+            ws.Cells[row, 8].Value = n.StorageGb2 > 0 ? n.StorageGb2 : (object)"";
+            ws.Cells[row, 9].Value = n.StorageGb3 > 0 ? n.StorageGb3 : (object)"";
+            ws.Cells[row, 10].Value = n.StorageGb4 > 0 ? n.StorageGb4 : (object)"";
+            ws.Cells[row, 11].Value = n.PageFileGb > 0 ? n.PageFileGb : (object)"";
+            ws.Cells[row, 12].Value = n.TotalStorageGb;
+            ws.Cells[row, 13].Value = n.Iops > 0 ? n.Iops : (object)"";
+            ws.Cells[row, 14].Value = n.IopsProfile;
+            ws.Cells[row, 15].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
+            ws.Cells[row, 16].Value = n.Latency > 0 ? n.Latency : (object)"";
+            ws.Cells[row, 17].Value = NodeRole(n.Name);
+            ws.Cells[row, 18].Value = n.Os;
+            ws.Cells[row, 19].Value = n.DbVersion;
+            ws.Cells[row, 20].Value = n.Notes;
             // Числові/кодові стовпці — по центру; власне числа — ще й жирним. Назви/опис — зліва (типово).
-            ws.Cells[row, 2, row, 12].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            ws.Cells[row, 2, row, 4].Style.Font.Bold = true;
-            ws.Cells[row, 6, row, 9].Style.Font.Bold = true;
-            ws.Cells[row, 11, row, 12].Style.Font.Bold = true;
+            ws.Cells[row, 2, row, 16].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 2, row, 5].Style.Font.Bold = true;
+            ws.Cells[row, 7, row, 13].Style.Font.Bold = true;
+            ws.Cells[row, 15, row, 16].Style.Font.Bold = true;
             row++;
         }
         // Підсумковий рядок.
         ws.Cells[row, 1].Value = "Разом";
         ws.Cells[row, 2].Value = Math.Round(req.TotalCpu, 1);
-        ws.Cells[row, 3].Value = Math.Round(req.TotalRamGb, 1);
-        ws.Cells[row, 4].Value = req.Infrastructure.Sum(n => n.NodeCount);
-        ws.Cells[row, 7].Value = req.TotalStorageGb;
-        ws.Cells[row, 2, row, 12].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-        ws.Cells[row, 1, row, 16].Style.Font.Bold = true;
-        ws.Cells[row, 1, row, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
-        ws.Cells[row, 1, row, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+        ws.Cells[row, 4].Value = Math.Round(req.TotalRamGb, 1);
+        ws.Cells[row, 5].Value = req.Infrastructure.Sum(n => n.NodeCount);
+        ws.Cells[row, 12].Value = req.TotalStorageGb;
+        ws.Cells[row, 2, row, 16].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        ws.Cells[row, 1, row, 20].Style.Font.Bold = true;
+        ws.Cells[row, 1, row, 20].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        ws.Cells[row, 1, row, 20].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
 
         // Тонкі рамки лише на таблицю (від шапки до підсумку), щоб порожні рядки-відступ лишались чистими.
-        var block = ws.Cells[headerRow, 1, row, 16];
+        var block = ws.Cells[headerRow, 1, row, 20];
         block.Style.Border.Top.Style = ExcelBorderStyle.Thin;
         block.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
         block.Style.Border.Left.Style = ExcelBorderStyle.Thin;

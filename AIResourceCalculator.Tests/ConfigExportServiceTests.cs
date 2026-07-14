@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using AIResourceCalculator.Models;
 using AIResourceCalculator.Services;
 using OfficeOpenXml;
@@ -79,21 +80,29 @@ public class ConfigExportServiceTests
     }
 
     [Fact]
-    public void ExportExcel_WithDiskRequirements_AddsDiskRequirementsSheet()
+    public void ExportExcel_HasNoSeparateDiskRequirementsSheet()
     {
-        var bytes = _svc.ExportExcel(_req, _config, diskRequirements: "SQL Server — вимоги до дисків:\n  • Диск ОС: SSD 100 GB");
-        using var pkg = new ExcelPackage(new MemoryStream(bytes));
-        var ws = pkg.Workbook.Worksheets["Вимоги до дисків"];
-        Assert.NotNull(ws);
-        Assert.Contains("SQL Server", ws!.Cells[1, 1].Text);
-    }
-
-    [Fact]
-    public void ExportExcel_WithoutDiskRequirements_HasNoDiskRequirementsSheet()
-    {
+        // Вимоги до дисків тепер колонками в "Інфраструктура", не окремим аркушем.
         var bytes = _svc.ExportExcel(_req, _config);
         using var pkg = new ExcelPackage(new MemoryStream(bytes));
         Assert.Null(pkg.Workbook.Worksheets["Вимоги до дисків"]);
+    }
+
+    [Fact]
+    public void ExportExcel_InfrastructureSheet_HasDiskBreakdownColumns()
+    {
+        var bytes = _svc.ExportExcel(_req, _config);
+        using var pkg = new ExcelPackage(new MemoryStream(bytes));
+        var ws = pkg.Workbook.Worksheets["Інфраструктура"];
+        Assert.NotNull(ws);
+        var headerRow = Enumerable.Range(1, ws!.Dimension.Rows)
+            .First(r => ws.Cells[r, 1].Text == "Сервер (ВМ)");
+        var headers = Enumerable.Range(1, ws.Dimension.Columns).Select(cidx => ws.Cells[headerRow, cidx].Text).ToList();
+        Assert.Contains("Частота, ГГц", headers);
+        Assert.Contains("Диск ОС (ГБ)", headers);
+        Assert.Contains("Диск Logs/TempDB (ГБ)", headers);
+        Assert.Contains("Диск MainData (ГБ)", headers);
+        Assert.Contains("Диск Content (ГБ)", headers);
     }
 
     [Fact]

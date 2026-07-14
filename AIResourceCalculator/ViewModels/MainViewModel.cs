@@ -721,7 +721,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             var cfg = GetConfig();
-            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile), DiskRecommendations);
+            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
             System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
             StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
@@ -738,7 +738,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (saveDialog.ShowDialog() == true)
         {
             var cfg = GetConfig();
-            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile), DiskRecommendations);
+            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
             System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
             StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
         }
