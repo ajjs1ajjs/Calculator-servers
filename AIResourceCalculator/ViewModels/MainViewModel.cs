@@ -688,10 +688,17 @@ public class MainViewModel : INotifyPropertyChanged
             // Обов'язкові сервіси (App Server / ROBOT / Web) — завжди ввімкнені.
             if (mod.IsMandatory) { mod.IsEnabled = true; continue; }
 
-            // Kubernetes-only сервіси (ForceBPM) керуються типом розгортання автоматично (галочка
-            // заблокована): Windows — вимкнено (на чистому Windows їх немає), K8s/Гібрид — увімкнено
-            // (живуть на Ubuntu-вузлах). Користувач їх не перемикає вручну.
-            if (mod.IsKubernetesOnly) { mod.IsEnabled = deploymentType != DeploymentType.Windows; continue; }
+            // Kubernetes-only сервіси (ForceBPM): Windows — вимкнено (на чистому Windows їх немає).
+            // K8s — увімкнено автоматично, галочка заблокована (не обов'язковий компонент, але
+            // в чистому K8s завжди потрібен). Гібрид — так само типово увімкнено, але галочка
+            // розблокована: користувач може свідомо прибрати ForceBPM (живе на Ubuntu-вузлах поруч
+            // із Windows-VM, тож у гібриді це реальний вибір, а не обов'язковість).
+            if (mod.IsKubernetesOnly)
+            {
+                mod.IsEnabled = deploymentType != DeploymentType.Windows;
+                mod.AllowManualToggle = deploymentType == DeploymentType.Hybrid;
+                continue;
+            }
 
             // Решта опціональних (LMS/HR) застосовні скрізь; зберігають свій стан (типово вимкнені).
         }

@@ -159,6 +159,29 @@ public class MainViewModelTests
         Assert.False(haproxy.DevEnabled);
     }
 
+    // --- ForceBPM: заблокований у K8s, клікабельний у Гібриді ---
+    [Fact]
+    public void DeploymentIndex_Kubernetes_ForceBpmIsLocked()
+    {
+        var vm = BuildVm(out _);
+        vm.DeploymentIndex = 0;                         // Kubernetes
+
+        var forceBpm = vm.Modules.First(m => m.Name == "ForceBPM");
+        Assert.True(forceBpm.IsEnabled);
+        Assert.False(forceBpm.IsUserToggleable);
+    }
+
+    [Fact]
+    public void DeploymentIndex_Hybrid_ForceBpmIsToggleable()
+    {
+        var vm = BuildVm(out _);
+        vm.DeploymentIndex = 2;                         // Hybrid
+
+        var forceBpm = vm.Modules.First(m => m.Name == "ForceBPM");
+        Assert.True(forceBpm.IsEnabled);
+        Assert.True(forceBpm.IsUserToggleable);
+    }
+
     [Fact]
     public void LangSwitchCommand_TogglesLanguage()
     {
