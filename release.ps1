@@ -88,6 +88,7 @@ gh release create $tag `
     "$root/publish/ITE.ResourceCalculator.exe" `
     "$root/publish/ITE.ResourceCalculator.msi" `
     --title "$tag" `
-    --notes $ReleaseNotes
+    --notes "$ReleaseNotes"
+if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 
 Write-Host "Готово: реліз $tag опубліковано." -ForegroundColor Green
