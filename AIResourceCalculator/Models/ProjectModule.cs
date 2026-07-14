@@ -12,7 +12,8 @@ public enum ReplicaFormula
     Per100Plus1000,     // 1 + Int(користувачі/100) + Int(користувачі/1000)
     Per50Plus500,       // 1 + Int(користувачі/50) + Int(користувачі/500)
     OnePlusPer100,      // 1 + Int(користувачі/100)
-    Per1000Users        // Ceiling(користувачі / 1000)
+    Per1000Users,       // Ceiling(користувачі / 1000)
+    LmsGraphqlLoadTest  // Табличні точки з навантажувального тесту LMS-GraphQL (LMS_LT_results.pdf)
 }
 
 // Єдине джерело правди для розрахунку кількості реплік за формулою.
@@ -41,8 +42,29 @@ public static class ReplicaMath
             // (не на 100, як типові поди), бо HR Portal — самообслуговуючий портал з рідкісними
             // короткими сесіями, а не постійним активним навантаженням.
             ReplicaFormula.Per1000Users => (int)Math.Ceiling(userCount / 1000.0),
+            ReplicaFormula.LmsGraphqlLoadTest => LmsGraphqlReplicas(userCount),
             _ => Math.Max(1, fixedReplicas)
         };
+    }
+
+    // Реальні точки з навантажувального тесту LMS-GraphQL (LMS_LT_results.pdf): 50→1, 100→2,
+    // 150→3, 200→5, 250→7 репліки. Не лягає на жодну з наявних формул (Per25Users/Per50Users
+    // тощо давали б удвічі більше реплік, ніж реально знадобилось), тож — таблиця точних значень
+    // з екстраполяцією за межами 250 користувачів тим самим темпом, що й останній крок тесту
+    // (200→250: +2 репліки на кожні 50 користувачів).
+    private static readonly (int Users, int Replicas)[] LmsGraphqlBreakpoints =
+    {
+        (50, 1), (100, 2), (150, 3), (200, 5), (250, 7)
+    };
+
+    private static int LmsGraphqlReplicas(int userCount)
+    {
+        foreach (var (users, replicas) in LmsGraphqlBreakpoints)
+            if (userCount <= users) return replicas;
+
+        var last = LmsGraphqlBreakpoints[^1];
+        var extra = (int)Math.Ceiling((userCount - last.Users) / 50.0) * 2;
+        return last.Replicas + extra;
     }
 }
 

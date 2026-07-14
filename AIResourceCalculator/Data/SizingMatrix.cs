@@ -9,7 +9,10 @@ public class SizingMatrix
     // v6: master-вузол 4 ядра/6 ГБ (як еталон). Старі збереження відкидаються.
     // v7: master-вузол 2 ядра/4 ГБ — як у всіх реальних розрахунках клієнтам (еталонний
     //     шаблон давав ідеалізовані 4/6, на практиці використовують 2/4). Старі збереження відкидаються.
-    public const int CurrentSchemaVersion = 7;
+    // v8: LMS-GraphQL скориговано за навантажувальним тестом (LMS_LT_results.pdf) — Per25Users
+    //     давав удвічі більше реплік, ніж реально треба; CPU/репліку занижений (0.09 замість 0.25).
+    //     Старі збереження відкидаються.
+    public const int CurrentSchemaVersion = 8;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
     // Значення узгоджені з документом D-AD-ADM-E, таблиця зведення конфігурацій (розділ 1.3):
@@ -197,7 +200,11 @@ public class SizingMatrix
             Components = new List<ModuleComponent>
             {
                 new() { Name = "LMS", Cpu = 0.3, RamGb = 1, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true },
-                new() { Name = "LMS-GraphQL", Cpu = 0.09, RamGb = 0.3, Formula = ReplicaFormula.Per25Users },
+                // Скориговано за навантажувальним тестом LMS-GraphQL (LMS_LT_results.pdf, 2026):
+                // реальні репліки на 50/100/150/200/250 користувачів — 1/2/3/5/7 (Per25Users
+                // давав удвічі більше), CPU/RAM на репліку — з розділу "Ресурси" звіту (K8s requests:
+                // cpu 0.25, memory 0.25 ГБ; було занижено 0.09 CPU).
+                new() { Name = "LMS-GraphQL", Cpu = 0.25, RamGb = 0.25, Formula = ReplicaFormula.LmsGraphqlLoadTest },
                 new() { Name = "LMS-Videoutilities", Cpu = 4.0, RamGb = 6, Formula = ReplicaFormula.Fixed, FixedReplicas = 1, HasLocalSql = true, Notes = "Перекодування відео (ресурсомісткий под)" },
                 new() { Name = "LMS-Fileserver", Cpu = 0.5, RamGb = 8, Formula = ReplicaFormula.Fixed, FixedReplicas = 1 }
             }

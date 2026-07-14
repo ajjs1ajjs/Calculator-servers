@@ -759,9 +759,11 @@ public class SizingEngineTests
         // центральний SmartID (50 ліц → 2 репліки). Значення оновлено після переходу застосунку
         // виключно на профіль Документообіг (StandardModules прибрано — компоненти важчі), і після
         // переведення HR-GraphQL на Per1000Users (легке навантаження — 1 репліка на 1000 HR-сесій,
-        // а не на 100, як типові поди).
-        Assert.Equal(48.38, result.PodCpu, 2);
-        Assert.Equal(189.28, result.PodRamGb, 2);
+        // а не на 100, як типові поди), і після коригування LMS-GraphQL за навантажувальним тестом
+        // (LMS_LT_results.pdf): CPU/репліку 0.25 (було 0.09), формула LmsGraphqlLoadTest замість
+        // Per25Users (297 реплік на 7500 замість 300 — близько, але CPU/RAM на репліку інші).
+        Assert.Equal(95.63, result.PodCpu, 2);
+        Assert.Equal(173.53, result.PodRamGb, 2);
 
         int Rep(string canonical) => result.Components
             .First(c => c.Name == ComponentDisplayName.Localize(canonical)).Replicas;
@@ -1006,6 +1008,31 @@ public class SizingEngineTests
         });
 
         var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
+        Assert.Equal(expectedReplicas, graphql.Replicas);
+    }
+
+    // --- LMS-GraphQL: точки навантажувального тесту (LMS_LT_results.pdf) + екстраполяція за 250 ---
+    [Theory]
+    [InlineData(50, 1)]
+    [InlineData(100, 2)]
+    [InlineData(150, 3)]
+    [InlineData(200, 5)]
+    [InlineData(250, 7)]
+    [InlineData(300, 9)]   // за межами тесту: +2 репліки на кожні 50 користувачів (темп 200→250)
+    public void Calculate_LmsGraphQl_MatchesLoadTestBreakpoints(int lmsUsers, int expectedReplicas)
+    {
+        var modules = _engine.Modules.ToClonedList();
+        var lms = modules.First(m => m.Name == "LMS");
+        lms.IsEnabled = true;
+        lms.UserCount = lmsUsers;
+        _engine.SetModules(modules);
+
+        var result = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+        });
+
+        var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("LMS-GraphQL"));
         Assert.Equal(expectedReplicas, graphql.Replicas);
     }
 }

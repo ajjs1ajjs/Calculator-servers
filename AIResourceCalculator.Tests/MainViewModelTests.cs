@@ -56,14 +56,14 @@ public class MainViewModelTests
         foreach (var m in vm.Modules) if (m.Name == "LMS") m.IsEnabled = true;
         vm.IncludeDev = true;
         var lmsRow = vm.EnvModuleCounts.First(r => r.ModuleName == "LMS");
-        lmsRow.DevUsers = 500;     // DEV LMS = 500 → LMS-GraphQL = ceil(500/25) = 20
+        lmsRow.DevUsers = 500;     // DEV LMS = 500 → LMS-GraphQL (LmsGraphqlLoadTest): 7 (на 250) + 10 (екстраполяція) = 17
 
         vm.CalculateCommand.Execute(null);
 
         var dev = vm.Environments.First(e => e.Name == "DEV");
         var lmsComp = dev.Requirement.Components.First(c =>
             c.Category == "LMS" && c.Name == ComponentDisplayName.Localize("LMS-GraphQL"));
-        Assert.Equal(20, lmsComp.Replicas);
+        Assert.Equal(17, lmsComp.Replicas);
     }
 
     [Fact]
