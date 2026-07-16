@@ -9,11 +9,22 @@
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="15">
+            <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
             <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="{loc:Loc setup.title}" Style="{StaticResource SectionHeader}"/>
-                    <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <Border Style="{StaticResource Card}">
                         <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource AccentSoftBg}" Margin="0,0,10,0">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE713;" Foreground="{DynamicResource AccentBg}"/>
+                                </Border>
+                                <TextBlock Text="ОСНОВНІ НАЛАШТУВАННЯ" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                            </StackPanel>
                             <Grid Margin="0,0,0,8">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
@@ -38,80 +49,132 @@
                             </Grid>
                         </StackPanel>
                     </Border>
-                    <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="{loc:Loc modules.title}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource IconBadge}" Background="{DynamicResource PurpleSoftBg}" Margin="0,0,10,0">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xEA86;" Foreground="{DynamicResource PurpleBg}"/>
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="{loc:Loc modules.title}" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Порожньо = усі користувачі" FontSize="10" FontStyle="Italic" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                            </Grid>
                             <ItemsControl x:Name="ModulesPanel">
                                 <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    <ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="4,2,14,2">
-                                            <!-- Kubernetes-only модулі (ForceBPM) — галочка заблокована (керується типом розгортання). -->
-                                            <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" FontSize="13" FontWeight="SemiBold"
-                                                      VerticalAlignment="Center" ToolTip="{Binding Description}"
-                                                      IsEnabled="{Binding IsUserToggleable}"/>
-                                            <!-- Поле к-сті лише для модулів із власним контингентом (LMS/HR); ForceBPM — без к-сті. -->
-                                            <TextBox Width="50" Margin="6,0,0,0" Padding="3,1" FontSize="12" VerticalAlignment="Center"
-                                                     Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ZeroEmptyConverter}}"
-                                                     ToolTip="{loc:Loc modules.usersTooltip}"
-                                                     IsEnabled="{Binding IsEnabled}"
-                                                     Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}"/>
-                                        </StackPanel>
+                                        <Border Style="{StaticResource ChipRow}" Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- Kubernetes-only модулі (ForceBPM) — галочка заблокована (керується типом розгортання). -->
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                          VerticalAlignment="Center" ToolTip="{Binding Description}"
+                                                          IsEnabled="{Binding IsUserToggleable}"/>
+                                                <!-- Поле к-сті лише для модулів із власним контингентом (LMS/HR); ForceBPM — без к-сті. -->
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                                            Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}">
+                                                    <TextBlock Text="Користувачів:" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBox Width="60" Padding="3,1" FontSize="12" VerticalAlignment="Center"
+                                                             Text="{Binding UserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ZeroEmptyConverter}}"
+                                                             ToolTip="{loc:Loc modules.usersTooltip}"
+                                                             IsEnabled="{Binding IsEnabled}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </StackPanel>
                     </Border>
-                    <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                    <Border Style="{StaticResource Card}" Margin="0,12,0,0">
                         <StackPanel>
-                            <TextBlock Text="Додаткові вузли" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"
-                                       ToolTip="Опціональні вузли — додаються до розрахунку лише коли увімкнені (типово вимкнені)"/>
-                            <WrapPanel>
-                                <CheckBox Content="Сервер звітів" IsChecked="{Binding IncludeReportingServer, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
-                                          ToolTip="Reporting Services, окремий вузол 2 ядра / 4 ГБ (Windows)"/>
-                                <CheckBox Content="SQL Secondary (Failover)" IsChecked="{Binding IncludeSqlFailover, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"
-                                          ToolTip="Другий вузол БД для failover-кластера (копія первинного вузла БД)"/>
-                                <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold"
-                                          IsEnabled="{Binding CanToggleHaProxy}"
-                                          ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол. У Гібриді керується автоматично."/>
-                            </WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14" ToolTip="Опціональні вузли — додаються до розрахунку лише коли увімкнені (типово вимкнені)">
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource SurfaceBg}" Margin="0,0,10,0">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE977;" Foreground="{DynamicResource TextMuted}"/>
+                                </Border>
+                                <TextBlock Text="ДОДАТКОВІ ВУЗЛИ СИСТЕМИ" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <UniformGrid Columns="3">
+                                <Border Style="{StaticResource ChipRow}" Margin="0,0,8,0">
+                                    <CheckBox Content="Сервер звітів" IsChecked="{Binding IncludeReportingServer, Mode=TwoWay}" FontWeight="SemiBold" FontSize="12"
+                                              ToolTip="Reporting Services, окремий вузол 2 ядра / 4 ГБ (Windows)"/>
+                                </Border>
+                                <Border Style="{StaticResource ChipRow}" Margin="0,0,8,0">
+                                    <CheckBox Content="SQL Secondary (Failover)" IsChecked="{Binding IncludeSqlFailover, Mode=TwoWay}" FontWeight="SemiBold" FontSize="12"
+                                              ToolTip="Другий вузол БД для failover-кластера (копія первинного вузла БД)"/>
+                                </Border>
+                                <Border Style="{StaticResource ChipRow}">
+                                    <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold" FontSize="12"
+                                              IsEnabled="{Binding CanToggleHaProxy}"
+                                              ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол. У Гібриді керується автоматично."/>
+                                </Border>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
-                    <Border Background="{DynamicResource CardBg}" Padding="15" CornerRadius="8" Margin="0,12,0,0" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                </StackPanel>
+            </Grid>
+            <Grid>
+                <StackPanel Grid.Column="0">
+                    <Border Style="{StaticResource Card}" Margin="0,12,0,0">
                         <StackPanel>
-                            <TextBlock Text="{loc:Loc env.title}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8" ToolTip="{loc:Loc tooltip.env}"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" ToolTip="{loc:Loc tooltip.env}">
-                                <CheckBox Content="{loc:Loc env.dev}" IsChecked="{Binding IncludeDev, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
-                                <CheckBox Content="{loc:Loc env.test}" IsChecked="{Binding IncludeTest, Mode=TwoWay}" Margin="0,0,16,0" FontWeight="SemiBold"/>
-                                <CheckBox Content="{loc:Loc env.predprod}" IsChecked="{Binding IncludePredProd, Mode=TwoWay}" FontWeight="SemiBold"/>
-                            </StackPanel>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{loc:Loc env.title}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" ToolTip="{loc:Loc tooltip.env}"/>
+                                <Border Grid.Column="1" Style="{StaticResource PillGroup}" ToolTip="{loc:Loc tooltip.env}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <CheckBox Content="{loc:Loc env.dev}" IsChecked="{Binding IncludeDev, Mode=TwoWay}" Style="{StaticResource EnvTogglePill}"/>
+                                        <CheckBox Content="{loc:Loc env.test}" IsChecked="{Binding IncludeTest, Mode=TwoWay}" Style="{StaticResource EnvTogglePill}"/>
+                                        <CheckBox Content="{loc:Loc env.predprod}" IsChecked="{Binding IncludePredProd, Mode=TwoWay}" Style="{StaticResource EnvTogglePill}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                             <!-- Картки середовищ: кожне ВВІМКНЕНЕ середовище — самодостатня картка
                                  (к-сть користувачів + модулі + опціональні вузли цього середовища).
                                  Вимкнені не показуються взагалі. PROD керується блоком вище. -->
                             <TextBlock Text="Налаштування ввімкнених середовищ" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMuted}" Margin="0,2,0,4"
                                        Visibility="{Binding HasEnvironmentsSelected, Converter={StaticResource VisibilityConverter}}"/>
-                            <WrapPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
                                 <!-- DEV -->
-                                <Border Visibility="{Binding IncludeDev, Converter={StaticResource VisibilityConverter}}"
-                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="6"
-                                        Padding="10" Margin="0,0,12,8" Background="{DynamicResource HighlightBg}">
-                                    <StackPanel Width="250">
-                                        <TextBlock Text="{loc:Loc env.dev}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,4"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.devUsers}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding DevDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.dbData}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding DevContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
-                                        </StackPanel>
+                                <Border Grid.Column="0" Visibility="{Binding IncludeDev, Converter={StaticResource VisibilityConverter}}"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="10"
+                                        Padding="16" Margin="0,0,10,8" Background="{DynamicResource HighlightBg}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                                <Ellipse Style="{StaticResource EnvDot}" Fill="{DynamicResource AccentBg}"/>
+                                                <TextBlock Text="{loc:Loc env.dev}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}">
+                                                <TextBlock Text="АКТИВНЕ" Style="{StaticResource PillText}"/>
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,4"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding DevUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.devUsers}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,4"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4" Text="{Binding DevDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.dbData}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DevContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
+                                        </Grid>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
@@ -155,26 +218,38 @@
                                     </StackPanel>
                                 </Border>
                                 <!-- TEST -->
-                                <Border Visibility="{Binding IncludeTest, Converter={StaticResource VisibilityConverter}}"
-                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="6"
-                                        Padding="10" Margin="0,0,12,8" Background="{DynamicResource HighlightBg}">
-                                    <StackPanel Width="250">
-                                        <TextBlock Text="{loc:Loc env.test}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,4"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding TestUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.testUsers}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                            <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding TestDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="Не менше розміру БД PROD; за замовчуванням дорівнює PROD"/>
-                                        </StackPanel>
+                                <Border Grid.Column="1" Visibility="{Binding IncludeTest, Converter={StaticResource VisibilityConverter}}"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="10"
+                                        Padding="16" Margin="0,0,10,8" Background="{DynamicResource HighlightBg}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                                <Ellipse Style="{StaticResource EnvDot}" Fill="{DynamicResource SuccessBg}"/>
+                                                <TextBlock Text="{loc:Loc env.test}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}">
+                                                <TextBlock Text="АКТИВНЕ" Style="{StaticResource PillText}"/>
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,4"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding TestUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.testUsers}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TestDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="Не менше розміру БД PROD; за замовчуванням дорівнює PROD"/>
+                                        </Grid>
                                         <TextBlock Text="{Binding TestDbSizeWarning}" FontSize="10" FontStyle="Italic" Foreground="{DynamicResource DangerBg}"
                                                    TextWrapping="Wrap" Margin="0,0,0,6"
                                                    Visibility="{Binding HasTestDbSizeWarning, Converter={StaticResource VisibilityConverter}}"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding TestContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
-                                        </StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Grid.Column="1" Text="{Binding TestContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
+                                        </Grid>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
@@ -218,26 +293,38 @@
                                     </StackPanel>
                                 </Border>
                                 <!-- PreProd -->
-                                <Border Visibility="{Binding IncludePredProd, Converter={StaticResource VisibilityConverter}}"
-                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="6"
-                                        Padding="10" Margin="0,0,12,8" Background="{DynamicResource HighlightBg}">
-                                    <StackPanel Width="250">
-                                        <TextBlock Text="{loc:Loc env.predprod}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentBg}" Margin="0,0,0,4"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                            <TextBlock Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding PredProdDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="Не менше розміру БД PROD; за замовчуванням дорівнює PROD"/>
-                                        </StackPanel>
+                                <Border Grid.Column="2" Visibility="{Binding IncludePredProd, Converter={StaticResource VisibilityConverter}}"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="10"
+                                        Padding="16" Margin="0,0,0,8" Background="{DynamicResource HighlightBg}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                                <Ellipse Style="{StaticResource EnvDot}" Fill="{DynamicResource PurpleBg}"/>
+                                                <TextBlock Text="{loc:Loc env.predprod}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimary}"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}">
+                                                <TextBlock Text="АКТИВНЕ" Style="{StaticResource PillText}"/>
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc col.users}" VerticalAlignment="Center" Margin="0,0,6,4"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding PredProdUserCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.predprodUsers}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc env.dbData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PredProdDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="Не менше розміру БД PROD; за замовчуванням дорівнює PROD"/>
+                                        </Grid>
                                         <TextBlock Text="{Binding PredProdDbSizeWarning}" FontSize="10" FontStyle="Italic" Foreground="{DynamicResource DangerBg}"
                                                    TextWrapping="Wrap" Margin="0,0,0,6"
                                                    Visibility="{Binding HasPredProdDbSizeWarning, Converter={StaticResource VisibilityConverter}}"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <TextBlock Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox Width="60" Text="{Binding PredProdContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
-                                        </StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{loc:Loc env.contentData}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Grid.Column="1" Text="{Binding PredProdContentDbSizeGb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" ToolTip="{loc:Loc tooltip.contentDataEnv}"/>
+                                        </Grid>
                                         <TextBlock Text="Модулі" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"
                                                    Visibility="{Binding HasEnvModuleCounts, Converter={StaticResource VisibilityConverter}}"/>
                                         <ItemsControl ItemsSource="{Binding EnvModuleCounts}" Margin="0,0,0,6"
@@ -280,15 +367,57 @@
                                         </DataGrid>
                                     </StackPanel>
                                 </Border>
-                            </WrapPanel>
+                            </Grid>
                         </StackPanel>
                     </Border>
-                    <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
-                        <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,12"
-                                Command="{Binding CalculateCommand}" FontSize="15">
-                            <TextBlock Text="{loc:Loc setup.calculate}"/>
-                        </Button>
-                    </StackPanel>
+                    <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,14"
+                            Command="{Binding CalculateCommand}" FontSize="15" Margin="0,15,0,0" HorizontalAlignment="Stretch">
+                        <Button.Effect>
+                            <DropShadowEffect Color="#1E66F5" BlurRadius="16" ShadowDepth="2" Opacity="0.3"/>
+                        </Button.Effect>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="&#xE9D9; " FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Loc setup.calculate}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Швидкий підсумок останнього розрахунку — заповнює простір під кнопкою,
+                         дублює вже обчислені значення (ті самі, що у вкладці "Результати"), без нової логіки. -->
+                    <Border Style="{StaticResource Card}" Margin="0,16,0,0"
+                            Visibility="{Binding HasResultSummary, Converter={StaticResource VisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="ОСТАННІЙ РОЗРАХУНОК" Style="{StaticResource CardHeader}"/>
+                            <UniformGrid Columns="5">
+                                <StackPanel Margin="0,0,10,0">
+                                    <TextBlock Text="{Binding TotalCpu}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource AccentBg}"/>
+                                    <TextBlock Text="CPU" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,10,0">
+                                    <TextBlock Text="{Binding TotalRam}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource SuccessBg}"/>
+                                    <TextBlock Text="RAM" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,10,0">
+                                    <TextBlock Text="{Binding TotalStorage}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource WarningBg}"/>
+                                    <TextBlock Text="ДИСКИ" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,10,0">
+                                    <TextBlock Text="{Binding TotalIops}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PurpleBg}"/>
+                                    <TextBlock Text="IOPS" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding TotalNodes}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource DangerBg}"/>
+                                    <TextBlock Text="ВМ" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                                </StackPanel>
+                            </UniformGrid>
+                            <TextBlock Text="{Binding ResultSummary}" FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                                       TextWrapping="Wrap" Margin="0,12,0,0"/>
+                            <Button Background="Transparent" Foreground="{DynamicResource AccentBg}" FontWeight="Bold" Padding="0" Margin="0,10,0,0"
+                                    HorizontalAlignment="Left" BorderThickness="0"
+                                    Click="OpenResultsTab_Click">
+                                <TextBlock Text="Детальніше у вкладці «Результати» &#x2192;" FontSize="12"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Grid>
         </StackPanel>

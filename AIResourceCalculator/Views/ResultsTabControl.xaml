@@ -25,46 +25,99 @@
         <StackPanel Margin="15" HorizontalAlignment="Stretch">
             <TextBlock Text="{loc:Loc results.title}" Style="{StaticResource SectionHeader}"/>
 
-            <!-- KPI-картки (завжди видимі) -->
-            <Border Background="{DynamicResource CardBg}" Padding="12" CornerRadius="8" Margin="0,0,0,12">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" Background="{DynamicResource AccentBg}" CornerRadius="6" Padding="6" Margin="2" ToolTip="{loc:Loc tip.cpu}">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalCpu}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                            <TextBlock Text="{loc:Loc results.totalVcpu}" FontSize="10" Foreground="{DynamicResource TextOnDark}"/>
+            <!-- KPI-картки (завжди видимі): ліва кольорова смужка-акцент + м'який бейдж-іконка, як у референс-макеті. -->
+            <UniformGrid Columns="5" Margin="0,0,0,14">
+                <Border Style="{StaticResource KpiCard}" Margin="0,0,10,0" ToolTip="{loc:Loc tip.cpu}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{DynamicResource AccentBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="CPU" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource AccentSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE950;" Foreground="{DynamicResource AccentBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalCpu}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalVcpu}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
                         </StackPanel>
-                    </Border>
-                    <Border Grid.Column="1" Background="{DynamicResource SuccessBg}" CornerRadius="6" Padding="6" Margin="2" ToolTip="{loc:Loc tip.ram}">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalRam}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                            <TextBlock Text="{loc:Loc results.totalRam}" FontSize="10" Foreground="{DynamicResource TextOnDark}"/>
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource KpiCard}" Margin="0,0,10,0" ToolTip="{loc:Loc tip.ram}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{DynamicResource SuccessBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="RAM" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource SuccessSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xEC7A;" Foreground="{DynamicResource SuccessBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalRam}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalRam}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
                         </StackPanel>
-                    </Border>
-                    <Border Grid.Column="2" Background="{DynamicResource WarningBg}" CornerRadius="6" Padding="6" Margin="2" ToolTip="{loc:Loc tip.storage}">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalStorage}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                            <TextBlock Text="{loc:Loc results.totalStorage}" FontSize="10" Foreground="{DynamicResource TextOnDark}"/>
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource KpiCard}" Margin="0,0,10,0" ToolTip="{loc:Loc tip.storage}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{DynamicResource WarningBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="DISKS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource WarningSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE8B7;" Foreground="{DynamicResource WarningBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalStorage}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalStorage}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
                         </StackPanel>
-                    </Border>
-                    <Border Grid.Column="3" Background="{DynamicResource PurpleBg}" CornerRadius="6" Padding="6" Margin="2" ToolTip="{loc:Loc tip.iops}">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalIops}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                            <TextBlock Text="{loc:Loc results.totalIops}" FontSize="10" Foreground="{DynamicResource TextOnDark}"/>
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource KpiCard}" Margin="0,0,10,0" ToolTip="{loc:Loc tip.iops}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{DynamicResource PurpleBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="IOPS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource PurpleSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE945;" Foreground="{DynamicResource PurpleBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalIops}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalIops}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
                         </StackPanel>
-                    </Border>
-                    <Border Grid.Column="4" Background="{DynamicResource DangerBg}" CornerRadius="6" Padding="6" Margin="2" ToolTip="{loc:Loc tip.vms}">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalNodes}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextWhite}"/>
-                            <TextBlock Text="{loc:Loc col.nodes}" FontSize="10" Foreground="{DynamicResource TextOnDark}"/>
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource KpiCard}" ToolTip="{loc:Loc tip.vms}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{DynamicResource DangerBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="VMS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource DangerSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE977;" Foreground="{DynamicResource DangerBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalNodes}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc col.nodes}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
                         </StackPanel>
-                    </Border>
-                </Grid>
-            </Border>
+                    </Grid>
+                </Border>
+            </UniformGrid>
 
             <!-- Розділ: Підсумок потреб + Вимоги до дисків поруч (дві колонки) -->
             <Grid>
@@ -73,29 +126,48 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <!-- Ліворуч: підсумок потреб -->
-                <Expander Grid.Column="0" Style="{StaticResource SectionExpander}" Header="{loc:Loc results.summaryTitle}"
-                          Margin="0,0,8,10" VerticalAlignment="Top"
-                          Visibility="{Binding HasResultSummary, Converter={StaticResource VisibilityConverter}}">
-                    <StackPanel Margin="4,6,0,0">
-                        <TextBlock Text="{Binding ResultSummary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
-                                   TextWrapping="Wrap" LineHeight="20"/>
-                        <TextBlock Text="{Binding PodRequests}" FontSize="11" FontStyle="Italic" FontWeight="Normal"
-                                   Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,8,0,0"
-                                   Visibility="{Binding HasPodRequests, Converter={StaticResource VisibilityConverter}}"/>
-                    </StackPanel>
-                </Expander>
+                <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,8,10" VerticalAlignment="Top"
+                        Visibility="{Binding HasResultSummary, Converter={StaticResource VisibilityConverter}}">
+                    <Expander Style="{StaticResource SectionExpander}" Margin="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource IconBadge}" Width="26" Height="26" Background="{DynamicResource AccentSoftBg}" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource IconGlyph}" FontSize="12" Text="&#xE8FD;" Foreground="{DynamicResource AccentBg}"/>
+                                </Border>
+                                <TextBlock Text="{loc:Loc results.summaryTitle}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="4,10,0,0">
+                            <TextBlock Text="{Binding ResultSummary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                                       TextWrapping="Wrap" LineHeight="20"/>
+                            <TextBlock Text="{Binding PodRequests}" FontSize="11" FontStyle="Italic" FontWeight="Normal"
+                                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Visibility="{Binding HasPodRequests, Converter={StaticResource VisibilityConverter}}"/>
+                        </StackPanel>
+                    </Expander>
+                </Border>
                 <!-- Праворуч: вимоги до дисків (поруч, бо є вільне місце) -->
-                <Expander Grid.Column="1" Style="{StaticResource SectionExpander}" Header="{loc:Loc results.disksTitle}"
-                          Margin="8,0,0,10" VerticalAlignment="Top"
-                          Visibility="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
-                    <TextBlock Text="{Binding DiskRecommendations}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
-                               TextWrapping="Wrap" LineHeight="18" FontFamily="Consolas" Margin="4,6,0,0"/>
-                </Expander>
+                <Border Grid.Column="1" Style="{StaticResource Card}" Margin="8,0,0,10" VerticalAlignment="Top"
+                        Visibility="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
+                    <Expander Style="{StaticResource SectionExpander}" Margin="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource IconBadge}" Width="26" Height="26" Background="{DynamicResource WarningSoftBg}" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource IconGlyph}" FontSize="12" Text="&#xE8B7;" Foreground="{DynamicResource WarningBg}"/>
+                                </Border>
+                                <TextBlock Text="{loc:Loc results.disksTitle}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <TextBlock Text="{Binding DiskRecommendations}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap" LineHeight="18" FontFamily="Consolas" Margin="4,10,0,0"/>
+                    </Expander>
+                </Border>
             </Grid>
 
             <!-- Розділ: Середовища (порівняння + розбивка по середовищах, із власною прокруткою) -->
-            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc env.compare}"
-                      Visibility="{Binding HasEnvironments, Converter={StaticResource VisibilityConverter}}">
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14"
+                    Visibility="{Binding HasEnvironments, Converter={StaticResource VisibilityConverter}}">
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc env.compare}" Margin="0">
                 <StackPanel Margin="0,6,0,0">
                     <DataGrid ItemsSource="{Binding Environments}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal" CanUserSortColumns="False">
                         <DataGrid.Columns>
@@ -176,11 +248,13 @@
                         </ItemsControl>
                 </StackPanel>
             </Expander>
+            </Border>
 
             <!-- Розділ: Інфраструктура (PROD) — лише коли немає розбивки по середовищах
                  (інакше PROD уже показано у «ВМ по середовищах» вище). -->
-            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.infraProd}"
-                      Visibility="{Binding ShowProdInfraSection, Converter={StaticResource VisibilityConverter}}">
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14"
+                    Visibility="{Binding ShowProdInfraSection, Converter={StaticResource VisibilityConverter}}">
+            <Expander Style="{StaticResource SectionExpander}" Header="{loc:Loc results.infraProd}" Margin="0">
                 <StackPanel Margin="0,6,0,0">
                     <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
                                TextWrapping="Wrap" Margin="0,0,0,6"/>
@@ -206,30 +280,20 @@
                     </DataGrid>
                 </StackPanel>
             </Expander>
+            </Border>
 
-            <Border Background="{DynamicResource CardBg}" Padding="14" CornerRadius="10" Margin="0,10,0,0"
-                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
                 <StackPanel>
-                    <TextBlock Text="Експорт звіту" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
-                    <CheckBox Content="Включати компоненти (поди) у звіт" IsChecked="{Binding IncludeComponentsInReport, Mode=TwoWay}"
-                              Margin="0,0,0,8"
-                              ToolTip="Якщо вимкнено — розділи/аркуші з компонентами (подами) не потрапляють у Excel/PDF. На сам розрахунок не впливає."/>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Style="{StaticResource ExportButton}" Background="{DynamicResource SuccessBg}"
-                                Command="{Binding ExportExcelCommand}" ToolTip="Зберегти звіт у форматі Excel (.xlsx)">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Excel" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource ExportButton}" Background="{DynamicResource DangerBg}"
-                                Command="{Binding ExportPdfCommand}" ToolTip="Зберегти звіт у форматі PDF">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xEA90;" FontFamily="Segoe MDL2 Assets" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="PDF" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <Border Style="{StaticResource IconBadge}" Background="{DynamicResource SuccessSoftBg}" Margin="0,0,10,0">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE898;" Foreground="{DynamicResource SuccessBg}"/>
+                        </Border>
+                        <TextBlock Text="Налаштування звіту" Style="{StaticResource CardHeader}" Margin="0" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <CheckBox Content="Включати компоненти (поди) у звіт" IsChecked="{Binding IncludeComponentsInReport, Mode=TwoWay}"
+                              ToolTip="Якщо вимкнено — розділи/аркуші з компонентами (подами) не потрапляють у Excel/PDF. На сам розрахунок не впливає."/>
+                    <TextBlock FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextMuted}" Margin="0,8,0,0"
+                               Text="Кнопки експорту Excel/PDF — зверху, біля перемикача теми."/>
                 </StackPanel>
             </Border>
         </StackPanel>

@@ -4,27 +4,29 @@
     <!-- Flat, theme-aware tabs (default WPF chrome looks light/dated in dark mode) -->
     <Style TargetType="TabItem">
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Padding" Value="16,9"/>
+        <Setter Property="Padding" Value="18,12"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">
-                    <Border x:Name="bd" Background="Transparent" CornerRadius="8,8,0,0"
-                            Padding="{TemplateBinding Padding}" Margin="0,0,3,0">
-                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Border x:Name="bd" Background="Transparent"
+                            Padding="{TemplateBinding Padding}" Margin="0,0,4,0">
+                        <StackPanel>
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border x:Name="underline" Height="3" CornerRadius="2" Margin="0,7,0,-1" Background="Transparent"/>
+                        </StackPanel>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource CardBg}"/>
                             <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+                            <Setter TargetName="underline" Property="Background" Value="{DynamicResource AccentBg}"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="IsSelected" Value="False"/>
                                 <Condition Property="IsMouseOver" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource GridAltBg}"/>
                             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                         </MultiTrigger>
                     </ControlTemplate.Triggers>
@@ -124,6 +126,128 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
     </Style>
 
+    <!-- Картка-контейнер із заокругленням і легкою тінню (сучасний "elevated card" вигляд). -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Padding" Value="18"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="2" Direction="270" Opacity="0.08"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Заголовок картки: іконка-емодзі + текст, у фірмовому синьому (uppercase, як лейбл секції). -->
+    <Style x:Key="CardHeader" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+        <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+
+    <!-- Квадратний м'який бейдж під іконку (світлий кольоровий фон + кольорова іконка, як у сучасних дашбордах). -->
+    <Style x:Key="IconBadge" TargetType="Border">
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="CornerRadius" Value="10"/>
+    </Style>
+
+    <Style x:Key="IconGlyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Рядок-"чіп" для елементів списку (модулі, додаткові вузли): нейтральна підкладка, що світлішає при наведенні. -->
+    <Style x:Key="ChipRow" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource GridAltBg}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Сегментований перемикач середовищ (DEV/TEST/PreProd): звичайний CheckBox, але як "pill" у групі. -->
+    <Style x:Key="EnvTogglePill" TargetType="CheckBox">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="bd" CornerRadius="8" Padding="14,8" Background="Transparent">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,6,0"
+                                       Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource CardBg}"/>
+                            <Setter TargetName="bd" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="1" Opacity="0.12"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="tick" Property="Foreground" Value="{DynamicResource AccentBg}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter TargetName="tick" Property="Text" Value="&#xE739;"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Контейнер-групувальник для набору EnvTogglePill (сірий "жолобок" навколо пігулок). -->
+    <Style x:Key="PillGroup" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="4"/>
+    </Style>
+
+    <!-- KPI-картка з лівою кольоровою смужкою-акцентом (без внутрішнього Padding — керується вмістом). -->
+    <Style x:Key="KpiCard" TargetType="Border" BasedOn="{StaticResource Card}">
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+    <!-- Овальний "pill"-бейдж (наприклад статус "АКТИВНЕ"). -->
+    <Style x:Key="Pill" TargetType="Border">
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="9,3"/>
+        <Setter Property="Background" Value="{DynamicResource HighlightBg}"/>
+    </Style>
+
+    <Style x:Key="PillText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+    </Style>
+
+    <!-- Кольорова крапка-індикатор середовища (DEV/TEST/PreProd). -->
+    <Style x:Key="EnvDot" TargetType="Ellipse">
+        <Setter Property="Width" Value="9"/>
+        <Setter Property="Height" Value="9"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
     <Style TargetType="DataGrid">
         <Setter Property="Background" Value="{DynamicResource GridBg}"/>
         <Setter Property="Foreground" Value="{DynamicResource GridFg}"/>
@@ -135,12 +259,15 @@
         <Setter Property="RowHeaderWidth" Value="0"/>
     </Style>
 
+    <!-- Легкий сучасний заголовок таблиці (світла підкладка + приглушений текст) замість суцільно-синього банера. -->
     <Style TargetType="DataGridColumnHeader">
-        <Setter Property="Background" Value="{DynamicResource GridHeaderBg}"/>
-        <Setter Property="Foreground" Value="{DynamicResource GridHeaderFg}"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Padding" Value="8,6"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="8,8"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
     </Style>
 
     <Style TargetType="DataGridRow">

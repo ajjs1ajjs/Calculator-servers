@@ -29,4 +29,12 @@
     <SolidColorBrush x:Key="DiagramBg" Color="#11111B"/>
     <SolidColorBrush x:Key="GridHeaderBg" Color="#1E66F5"/>
     <SolidColorBrush x:Key="GridHeaderFg" Color="#FFFFFF"/>
+
+    <!-- М'які кольорові підкладки для іконок-бейджів — темні відповідники (той самий принцип, приглушені тони). -->
+    <SolidColorBrush x:Key="AccentSoftBg" Color="#22304D"/>
+    <SolidColorBrush x:Key="SuccessSoftBg" Color="#1F3B2A"/>
+    <SolidColorBrush x:Key="WarningSoftBg" Color="#3B2E1A"/>
+    <SolidColorBrush x:Key="DangerSoftBg" Color="#3B1F26"/>
+    <SolidColorBrush x:Key="PurpleSoftBg" Color="#2A1F3B"/>
+    <SolidColorBrush x:Key="SurfaceBg" Color="#282939"/>
 </ResourceDictionary>

@@ -22,32 +22,52 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{DynamicResource HeaderBg}" Padding="10">
+        <Border Grid.Row="0" Background="{DynamicResource HeaderBg}" Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="{loc:Loc app.title}" Foreground="{DynamicResource TextWhite}" FontSize="22" FontWeight="Bold"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{loc:Loc app.subtitle}" Foreground="{DynamicResource TextOnDark}" FontSize="13"/>
-                        <TextBlock Text="{Binding AppVersion}" Foreground="{DynamicResource TextOnDark}" FontSize="13" Opacity="0.7" Margin="8,0,0,0"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#2AFFFFFF" CornerRadius="10" Width="42" Height="42" Margin="0,0,12,0">
+                        <TextBlock Text="&#xE977;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource TextWhite}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Loc app.title}" Foreground="{DynamicResource TextWhite}" FontSize="20" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{loc:Loc app.subtitle}" Foreground="{DynamicResource TextOnDark}" FontSize="12"/>
+                            <TextBlock Text="{Binding AppVersion}" Foreground="{DynamicResource TextOnDark}" FontSize="12" Opacity="0.7" Margin="8,0,0,0"/>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Background="Transparent" Foreground="{DynamicResource TextWhite}" Padding="10,5" FontSize="14"
+                    <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="12,7" FontSize="13" Margin="0,0,6,0"
+                            Command="{Binding ExportExcelCommand}" ToolTip="Зберегти звіт у форматі Excel (.xlsx)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="{DynamicResource DangerBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="12,7" FontSize="13" Margin="0,0,16,0"
+                            Command="{Binding ExportPdfCommand}" ToolTip="Зберегти звіт у форматі PDF">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xEA90;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="PDF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13" Margin="0,0,8,0"
                             Command="{Binding ThemeSwitchCommand}" ToolTip="{loc:Loc tooltip.themeSwitch}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding ThemeIcon}" FontSize="18" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding ThemeIcon}" FontSize="15" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding ThemeName}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button Background="Transparent" Foreground="{DynamicResource TextWhite}" Padding="10,5" FontSize="14"
+                    <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13"
                             Command="{Binding LangSwitchCommand}" ToolTip="{loc:Loc tooltip.langSwitch}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding LangFlag}" FontSize="18" Margin="0,0,5,0"/>
+                            <TextBlock Text="{Binding LangFlag}" FontSize="15" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding LangName}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
@@ -57,10 +77,22 @@
 
         <TabControl Grid.Row="1" Name="MainTabControl" Background="{DynamicResource WindowBg}"
                     SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
-            <TabItem Header="{Binding TabSetupHeader}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TabSetupHeader}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <views:CalculatorTabControl/>
             </TabItem>
-            <TabItem Header="{Binding TabResultsHeader}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TabResultsHeader}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <views:ResultsTabControl/>
             </TabItem>
         </TabControl>
