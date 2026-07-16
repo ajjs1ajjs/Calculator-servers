@@ -45,6 +45,7 @@
       <ComponentRef Id="MainExecutable" />
     </Feature>
 
+    <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
     <ui:WixUI Id="WixUI_Minimal" />
 
   </Package>
