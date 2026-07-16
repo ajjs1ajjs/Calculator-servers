@@ -29,8 +29,8 @@ public class InfrastructureNode
     public string Notes { get; set; } = "";
     // Версія/редакція СУБД для вузлів БД, напр. "MS SQL Server 2022 Standard". Порожнє для не-БД вузлів.
     public string DbVersion { get; set; } = "";
-    // Прапорці "не застосовно" (а не просто не порахували) — керують сірим/"н/д"
-    // форматуванням клітинки у звіті замість порожньої, щоб відрізняти свідомий N/A від прогалини.
+    // Прапорці "не застосовно" (а не просто не порахували) — керують форматуванням клітинки
+    // у звіті (довге тире замість порожньої), щоб відрізняти свідомий N/A від прогалини.
     public bool DiskSplitNotApplicable { get; set; }
     public bool PageFileNotApplicable { get; set; }
     public bool IopsNotApplicable { get; set; }

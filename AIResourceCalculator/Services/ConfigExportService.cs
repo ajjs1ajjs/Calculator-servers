@@ -755,16 +755,22 @@ public class ConfigExportService
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
     }
 
-    // Сіра "н/д" клітинка для показників, які свідомо не застосовні до ролі вузла (а не просто
-    // не порахувані) — щоб відрізнити це від порожньої клітинки (яка читається як "забули заповнити").
+    // Довге тире для показників, які свідомо не застосовні до ролі вузла (а не просто не порахували).
+    // Без контрастної сірої заливки — лише тонка світло-сіра рамка, щоб клітинка не "рябіла" на тлі решти таблиці.
     private static void WriteNaCell(ExcelWorksheet ws, int row, int col)
     {
         var cell = ws.Cells[row, col];
-        cell.Value = "н/д";
-        cell.Style.Font.Italic = true;
+        cell.Value = "—";
         cell.Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(108, 111, 133));
-        cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
-        cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(220, 224, 232));
+        cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+        cell.Style.Border.Top.Style = ExcelBorderStyle.Hair;
+        cell.Style.Border.Bottom.Style = ExcelBorderStyle.Hair;
+        cell.Style.Border.Left.Style = ExcelBorderStyle.Hair;
+        cell.Style.Border.Right.Style = ExcelBorderStyle.Hair;
+        cell.Style.Border.Top.Color.SetColor(System.Drawing.Color.FromArgb(230, 232, 237));
+        cell.Style.Border.Bottom.Color.SetColor(System.Drawing.Color.FromArgb(230, 232, 237));
+        cell.Style.Border.Left.Color.SetColor(System.Drawing.Color.FromArgb(230, 232, 237));
+        cell.Style.Border.Right.Color.SetColor(System.Drawing.Color.FromArgb(230, 232, 237));
     }
 
     // Один блок таблиці інфраструктури (для одного середовища), починаючи з рядка startRow.
