@@ -457,6 +457,9 @@ public class ConfigExportService
             "Призначення", "ОС", "Версія СУБД", "Примітки" };
         int headerRow = startRow + 1;
         WriteHeader(ws, headers, headerRow);
+        // Вужчі колонки (диски/IOPS) переносять довгі заголовки у 3 рядки — типової висоти 26pt
+        // не вистачає, і текст обрізається (напр. "Диск/сервер" → "Диск/се").
+        ws.Row(headerRow).Height = 44;
 
         int row = headerRow + 1;
         foreach (var n in e.Requirement.Infrastructure.Where(x => x.NodeCount > 0))
@@ -793,6 +796,9 @@ public class ConfigExportService
             "Призначення", "ОС", "Версія СУБД", "Примітки" };
         int headerRow = startRow + 1;
         WriteHeader(ws, headers, headerRow);
+        // Вужчі колонки (диски/IOPS) переносять довгі заголовки у 3 рядки — типової висоти 26pt
+        // не вистачає, і текст обрізається (напр. "Диск Logs/TempDB" → "Диск Logs/Te").
+        ws.Row(headerRow).Height = 44;
 
         int row = headerRow + 1;
         foreach (var n in req.Infrastructure.Where(x => x.NodeCount > 0))
