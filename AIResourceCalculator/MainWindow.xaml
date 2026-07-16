@@ -6,7 +6,10 @@
         Title="{loc:Loc app.title}" Height="900" Width="1300"
         MinHeight="600" MinWidth="900"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
-        Background="{DynamicResource WindowBg}">
+        Background="{DynamicResource WindowBg}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

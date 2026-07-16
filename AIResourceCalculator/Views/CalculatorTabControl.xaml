@@ -372,9 +372,6 @@
                     </Border>
                     <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="24,14"
                             Command="{Binding CalculateCommand}" FontSize="15" Margin="0,15,0,0" HorizontalAlignment="Stretch">
-                        <Button.Effect>
-                            <DropShadowEffect Color="#1E66F5" BlurRadius="16" ShadowDepth="2" Opacity="0.3"/>
-                        </Button.Effect>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <TextBlock Text="&#xE9D9; " FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                             <TextBlock Text="{loc:Loc setup.calculate}" VerticalAlignment="Center"/>

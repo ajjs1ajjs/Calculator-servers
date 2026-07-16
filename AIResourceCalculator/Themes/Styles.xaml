@@ -104,21 +104,6 @@
         </Setter>
     </Style>
 
-    <!-- Велика акцентна кнопка експорту: біла напівжирна підпис, тінь, плавна анімація. -->
-    <Style x:Key="ExportButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Foreground" Value="{DynamicResource TextWhite}"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Padding" Value="22,11"/>
-        <Setter Property="MinWidth" Value="150"/>
-        <Setter Property="Margin" Value="0,0,12,0"/>
-        <Setter Property="Effect">
-            <Setter.Value>
-                <DropShadowEffect Color="#1E66F5" BlurRadius="14" ShadowDepth="2" Opacity="0.28"/>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <Style TargetType="TextBlock" x:Key="SectionHeader">
         <Setter Property="FontSize" Value="18"/>
         <Setter Property="FontWeight" Value="Bold"/>
@@ -126,18 +111,15 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
     </Style>
 
-    <!-- Картка-контейнер із заокругленням і легкою тінню (сучасний "elevated card" вигляд). -->
+    <!-- Картка-контейнер із заокругленням (без DropShadowEffect: Effect рендерить весь вміст,
+         разом із текстом, через проміжний растеризований шар — у деяких середовищах (RDP/VM/
+         певні відеодрайвери) це вимикає чітке згладжування шрифтів і текст виглядає розмитим). -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource CardBg}"/>
         <Setter Property="CornerRadius" Value="16"/>
         <Setter Property="Padding" Value="18"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Effect">
-            <Setter.Value>
-                <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="2" Direction="270" Opacity="0.08"/>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Заголовок картки: іконка-емодзі + текст, у фірмовому синьому (uppercase, як лейбл секції). -->
@@ -194,11 +176,6 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="bd" Property="Background" Value="{DynamicResource CardBg}"/>
-                            <Setter TargetName="bd" Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="1" Opacity="0.12"/>
-                                </Setter.Value>
-                            </Setter>
                             <Setter TargetName="tick" Property="Foreground" Value="{DynamicResource AccentBg}"/>
                             <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
                         </Trigger>
