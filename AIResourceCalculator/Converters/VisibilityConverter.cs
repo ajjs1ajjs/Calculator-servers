@@ -6,8 +6,6 @@ namespace AIResourceCalculator.Converters;
 
 public class VisibilityConverter : IValueConverter
 {
-    public static readonly VisibilityConverter Instance = new();
-
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool b)

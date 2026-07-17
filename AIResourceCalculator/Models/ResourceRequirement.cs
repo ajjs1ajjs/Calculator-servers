@@ -29,7 +29,15 @@ public class ResourceRequirement
     {
         var r = (ResourceRequirement)MemberwiseClone();
         r.Infrastructure = Infrastructure.Select(n => n.Clone()).ToList();
-        r.Components = Components.ToList();
+        r.Components = Components.Select(c => new ServiceComponent
+        {
+            Name = c.Name, Cpu = c.Cpu, RamGb = c.RamGb,
+            CpuPerReplica = c.CpuPerReplica, RamPerReplicaGb = c.RamPerReplicaGb,
+            Replicas = c.Replicas, FixedReplicas = c.FixedReplicas,
+            Instances = c.Instances, HasLocalSql = c.HasLocalSql,
+            HasRedis = c.HasRedis, Notes = c.Notes, Category = c.Category,
+            Formula = c.Formula
+        }).ToList();
         return r;
     }
 

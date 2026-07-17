@@ -16,6 +16,18 @@ public class ValidationEngine : IValidationEngine
 
     public ValidationEngine(ILocalizationService loc) => _loc = loc;
 
+    private void AddResult(List<ValidationResult> results, string resKey,
+        double req, double alloc, string unit, Func<double, double, string> getRec)
+    {
+        results.Add(new ValidationResult
+        {
+            ResourceName = _loc[resKey],
+            Required = req, Allocated = alloc, Unit = unit,
+            Severity = GetSeverity(req, alloc),
+            Recommendation = getRec(req, alloc)
+        });
+    }
+
     private string LF(string key, params object[] args) => string.Format(_loc[key], args);
 
     public List<ValidationResult> CompareProfiles(ResourceRequirement profile1, ResourceRequirement profile2)
@@ -25,65 +37,12 @@ public class ValidationEngine : IValidationEngine
     {
         var results = new List<ValidationResult>();
 
-        results.Add(new ValidationResult
-        {
-            ResourceName = _loc["val.res.vcpu"],
-            Required = required.TotalCpu,
-            Allocated = allocated.TotalCpu,
-            Unit = "cores",
-            Severity = GetSeverity(required.TotalCpu, allocated.TotalCpu),
-            Recommendation = GetCpuRecommendation(required.TotalCpu, allocated.TotalCpu)
-        });
-
-        results.Add(new ValidationResult
-        {
-            ResourceName = _loc["val.res.ram"],
-            Required = required.TotalRamGb,
-            Allocated = allocated.TotalRamGb,
-            Unit = "GB",
-            Severity = GetSeverity(required.TotalRamGb, allocated.TotalRamGb),
-            Recommendation = GetRamRecommendation(required.TotalRamGb, allocated.TotalRamGb)
-        });
-
-        results.Add(new ValidationResult
-        {
-            ResourceName = _loc["val.res.storage"],
-            Required = required.TotalStorageGb,
-            Allocated = allocated.TotalStorageGb,
-            Unit = "GB",
-            Severity = GetSeverity(required.TotalStorageGb, allocated.TotalStorageGb),
-            Recommendation = GetStorageRecommendation(required.TotalStorageGb, allocated.TotalStorageGb)
-        });
-
-        results.Add(new ValidationResult
-        {
-            ResourceName = _loc["val.res.iops"],
-            Required = required.TotalIops,
-            Allocated = allocated.TotalIops,
-            Unit = "IOPS",
-            Severity = GetSeverity(required.TotalIops, allocated.TotalIops),
-            Recommendation = GetRecommendation(required.TotalIops, allocated.TotalIops)
-        });
-
-        results.Add(new ValidationResult
-        {
-            ResourceName = _loc["val.res.workerNodes"],
-            Required = required.WorkerNodeCount,
-            Allocated = allocated.WorkerNodeCount,
-            Unit = "nodes",
-            Severity = GetSeverity(required.WorkerNodeCount, allocated.WorkerNodeCount),
-            Recommendation = GetNodeRecommendation(required.WorkerNodeCount, allocated.WorkerNodeCount)
-        });
-
-        results.Add(new ValidationResult
-        {
-            ResourceName = _loc["val.res.masterNodes"],
-            Required = required.MasterNodeCount,
-            Allocated = allocated.MasterNodeCount,
-            Unit = "nodes",
-            Severity = GetSeverity(required.MasterNodeCount, allocated.MasterNodeCount),
-            Recommendation = GetNodeRecommendation(required.MasterNodeCount, allocated.MasterNodeCount)
-        });
+        AddResult(results, "val.res.vcpu", required.TotalCpu, allocated.TotalCpu, "cores", GetCpuRecommendation);
+        AddResult(results, "val.res.ram", required.TotalRamGb, allocated.TotalRamGb, "GB", GetRamRecommendation);
+        AddResult(results, "val.res.storage", required.TotalStorageGb, allocated.TotalStorageGb, "GB", GetStorageRecommendation);
+        AddResult(results, "val.res.iops", required.TotalIops, allocated.TotalIops, "IOPS", GetRecommendation);
+        AddResult(results, "val.res.workerNodes", required.WorkerNodeCount, allocated.WorkerNodeCount, "nodes", GetNodeRecommendation);
+        AddResult(results, "val.res.masterNodes", required.MasterNodeCount, allocated.MasterNodeCount, "nodes", GetNodeRecommendation);
 
         return results;
     }

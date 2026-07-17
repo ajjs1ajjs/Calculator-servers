@@ -140,7 +140,7 @@ public class ProjectModule : INotifyPropertyChanged
         foreach (var comp in Components)
         {
             int replicas = ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount, auxUsers);
-            if (replicas == 0) replicas = 1;
+            if (replicas <= 0) replicas = Math.Max(1, comp.FixedReplicas);
 
             var cpu = profile == LoadProfile.Performance && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
             var ram = profile == LoadProfile.Performance && comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;

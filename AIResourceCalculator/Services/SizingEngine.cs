@@ -122,7 +122,7 @@ public class SizingEngine : ISizingEngine
             foreach (var comp in module.Components ?? new())
             {
                 int rep = CalcReplicas(comp, moduleUsers, hrUsers);
-                if (rep == 0) rep = 1;
+                if (rep <= 0) rep = Math.Max(1, comp.FixedReplicas);
 
                 var cpu = isPerf && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
                 var ram = isPerf && comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;

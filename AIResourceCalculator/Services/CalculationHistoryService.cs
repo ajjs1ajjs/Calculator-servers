@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AIResourceCalculator.Interfaces;
 using AIResourceCalculator.Models;
 
@@ -8,6 +9,17 @@ namespace AIResourceCalculator.Services;
 
 public class CalculationHistoryService : ICalculationHistoryService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
+
+    private static readonly JsonSerializerOptions WriteOptions = new(JsonOptions)
+    {
+        WriteIndented = true
+    };
+
     private readonly string HistoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "AIResourceCalculator", "history.json");
@@ -20,7 +32,7 @@ public class CalculationHistoryService : ICalculationHistoryService
             if (File.Exists(HistoryPath))
             {
                 var json = File.ReadAllText(HistoryPath);
-                return JsonSerializer.Deserialize<List<CalculationHistoryItem>>(json) ?? new();
+                return JsonSerializer.Deserialize<List<CalculationHistoryItem>>(json, JsonOptions) ?? new();
             }
         }
         catch (Exception ex) { Debug.WriteLine($"CalculationHistoryService.LoadHistory failed: {ex.Message}"); }
@@ -48,7 +60,7 @@ public class CalculationHistoryService : ICalculationHistoryService
             var dir = Path.GetDirectoryName(HistoryPath);
             if (dir != null && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
-            File.WriteAllText(HistoryPath, JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(HistoryPath, JsonSerializer.Serialize(history, WriteOptions));
         }
         catch (Exception ex) { Debug.WriteLine($"CalculationHistoryService.SaveToHistory failed: {ex.Message}"); }
     }

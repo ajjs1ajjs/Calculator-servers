@@ -21,7 +21,12 @@ public class UpdateCheckService : IUpdateCheckService
 
     private static HttpClient CreateHttpClient()
     {
-        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        var handler = new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2)
+        };
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ITE.ResourceCalculator", GetCurrentVersion()));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
@@ -31,11 +36,11 @@ public class UpdateCheckService : IUpdateCheckService
     {
         try
         {
-            using var response = await Http.GetAsync(LatestReleaseUrl);
+            using var response = await Http.GetAsync(LatestReleaseUrl).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) return null;
 
-            using var stream = await response.Content.ReadAsStreamAsync();
-            using var json = await JsonDocument.ParseAsync(stream);
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var json = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
             var root = json.RootElement;
 
             var tagName = root.GetProperty("tag_name").GetString();

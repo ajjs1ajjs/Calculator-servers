@@ -48,12 +48,16 @@ public partial class App : Application
         mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
         mainWindow.Show();
 
-        _ = CheckForUpdatesAsync();
+        _ = CheckForUpdatesAsync().ContinueWith(t =>
+        {
+            if (t.IsFaulted)
+                Debug.WriteLine($"Update check crashed: {t.Exception?.InnerException?.Message}");
+        }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task CheckForUpdatesAsync()
     {
-        var update = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync();
+        var update = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync().ConfigureAwait(false);
         if (update is null) return;
 
         var loc = LocalizationService.Instance;
