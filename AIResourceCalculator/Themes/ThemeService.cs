@@ -13,7 +13,7 @@ public static class ThemeService
     {
         IsDark = dark;
         var app = Application.Current;
-        if (app == null) return;
+        if (app?.Resources.MergedDictionaries is not { Count: > 0 }) return;
 
         var uri = new Uri(dark ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative);
         app.Resources.MergedDictionaries[0] = new ResourceDictionary { Source = uri };

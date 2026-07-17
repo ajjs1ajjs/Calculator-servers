@@ -34,6 +34,7 @@ public partial class App : Application
         sc.AddSingleton<MatrixManager>();
         sc.AddTransient<ConfigExportService>();
         sc.AddTransient<ResultsPresenter>();
+        sc.AddTransient<EnvironmentBuilder>();
         sc.AddSingleton<ISizingEngine>(sp =>
         {
             var mm = sp.GetRequiredService<MatrixManager>();

@@ -36,7 +36,8 @@ public class MainViewModelTests
         history = new FakeHistoryService();
         var presenter = new ResultsPresenter(new ConfigExportService(), new ValidationEngine(loc));
         var engine = new SizingEngine(manager.Matrix);
-        return new MainViewModel(loc, data, history, manager, presenter, engine);
+        var envBuilder = new EnvironmentBuilder(engine, loc);
+        return new MainViewModel(loc, data, history, manager, presenter, envBuilder, engine);
     }
 
     [Fact]

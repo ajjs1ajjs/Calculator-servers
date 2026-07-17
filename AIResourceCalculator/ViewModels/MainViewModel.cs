@@ -19,6 +19,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly ICalculationHistoryService _historyService;
     private readonly ILocalizationService _loc;
     private readonly ResultsPresenter _results;
+    private readonly EnvironmentBuilder _envBuilder;
     private ResourceRequirement? _lastResult;
 
     public MatrixViewModel MatrixVM { get; }
@@ -39,11 +40,13 @@ public class MainViewModel : INotifyPropertyChanged
         ICalculationHistoryService historyService,
         MatrixManager matrixManager,
         ResultsPresenter results,
+        EnvironmentBuilder envBuilder,
         ISizingEngine engine)
     {
         _loc = localization;
         _historyService = historyService;
         _results = results;
+        _envBuilder = envBuilder;
         _engine = engine;
 
         MatrixVM = new MatrixViewModel(_loc, matrixManager);
@@ -412,7 +415,23 @@ public class MainViewModel : INotifyPropertyChanged
     {
         // Спершу будуємо середовища — це додає бекап-резерв і до PROD (req),
         // тож KPI нижче вже відображають повний диск PROD з бекапом.
-        BuildEnvironments(config, req);
+        var envSettings = _envBuilder.ParseSettings(
+            DevUserCount, TestUserCount, PredProdUserCount,
+            ProdDbSizeGb, DevDbSizeGb, TestDbSizeGb, PredProdDbSizeGb,
+            DevContentDbSizeGb, TestContentDbSizeGb, PredProdContentDbSizeGb,
+            IncludeDev, IncludeTest, IncludePredProd,
+            out var resolvedTestDbSize, out var resolvedPredProdDbSize, out var resolvedDevDbSize);
+
+        // Відображаємо застосовані значення (успадкування від PROD і підняття до мінімуму).
+        DevDbSizeGb = resolvedDevDbSize.ToString();
+        TestDbSizeGb = resolvedTestDbSize.ToString();
+        PredProdDbSizeGb = resolvedPredProdDbSize.ToString();
+
+        _environments = _envBuilder.Build(config, req, envSettings, Modules, EnvModuleCounts, EnvNodeToggles);
+        Environments = new ObservableCollection<EnvironmentReport>(_environments);
+        OnPropertyChanged(nameof(Environments));
+        OnPropertyChanged(nameof(HasEnvironments));
+        OnPropertyChanged(nameof(ShowProdInfraSection));
 
         TotalCpu = $"{req.TotalCpu:F1}";
         TotalRam = $"{req.TotalRamGb:F1} GB";
@@ -437,145 +456,6 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasDocComparison));
     }
 
-    // Чи увімкнено опціональний вузол для конкретного похідного середовища (перемикачі внизу).
-    private bool NodeEnabledFor(string key, DeployEnvironment env)
-        => EnvNodeToggles.FirstOrDefault(r => r.Key == key)?.EnabledFor(env) ?? false;
-
-    private EnvironmentSettings GetEnvSettings()
-    {
-        if (!int.TryParse(DevUserCount, out var dev) || dev < 1) dev = 10;
-        if (!int.TryParse(TestUserCount, out var test) || test < 1) test = 25;
-        if (!int.TryParse(PredProdUserCount, out var pp) || pp < 1) pp = 50;
-
-        if (!int.TryParse(ProdDbSizeGb, out var prodDbSize) || prodDbSize < 0) prodDbSize = 0;
-        if (!int.TryParse(DevDbSizeGb, out var devDbSize) || devDbSize < 0) devDbSize = prodDbSize;
-        if (!int.TryParse(TestDbSizeGb, out var testDbSize) || testDbSize <= 0) testDbSize = prodDbSize;
-        if (!int.TryParse(PredProdDbSizeGb, out var ppDbSize) || ppDbSize <= 0) ppDbSize = prodDbSize;
-        // Test/PreProd не можуть бути менше PROD (можуть бути більше) — Dev без обмеження знизу.
-        testDbSize = Math.Max(testDbSize, prodDbSize);
-        ppDbSize = Math.Max(ppDbSize, prodDbSize);
-
-        // Відображаємо застосоване значення в полях (успадкування від PROD і підняття до мінімуму
-        // видно одразу після розрахунку, а не лише "мовчки" застосовується в обчисленні).
-        DevDbSizeGb = devDbSize.ToString();
-        TestDbSizeGb = testDbSize.ToString();
-        PredProdDbSizeGb = ppDbSize.ToString();
-
-        // Обсяг Content — незалежне значення для кожного середовища (0 = диск не виділяється,
-        // без успадкування від PROD і без нижньої межі).
-        if (!int.TryParse(DevContentDbSizeGb, out var devContentSize) || devContentSize < 0) devContentSize = 0;
-        if (!int.TryParse(TestContentDbSizeGb, out var testContentSize) || testContentSize < 0) testContentSize = 0;
-        if (!int.TryParse(PredProdContentDbSizeGb, out var ppContentSize) || ppContentSize < 0) ppContentSize = 0;
-
-        return new EnvironmentSettings
-        {
-            IncludeDev = IncludeDev,
-            IncludeTest = IncludeTest,
-            IncludePredProd = IncludePredProd,
-            DevUserCount = Math.Clamp(dev, 1, 5000),
-            TestUserCount = Math.Clamp(test, 1, 5000),
-            PredProdUserCount = Math.Clamp(pp, 1, 5000),
-            DevDbSizeGb = devDbSize,
-            TestDbSizeGb = testDbSize,
-            PredProdDbSizeGb = ppDbSize,
-            DevContentDbSizeGb = devContentSize,
-            TestContentDbSizeGb = testContentSize,
-            PredProdContentDbSizeGb = ppContentSize
-        };
-    }
-
-    // PROD завжди; DEV/TEST/PreProd додаються за вибором. КОЖНЕ середовище рахується рушієм
-    // ОКРЕМО за власною кількістю користувачів (з урахуванням к-сті користувачів по модулях) —
-    // як у Excel-табличці, а не масштабуванням PROD. Редакцію СУБД визначає Environment
-    // (non-prod → Developer Edition). Диски — фіксовані з матриці.
-    private void BuildEnvironments(ProjectConfig config, ResourceRequirement prodReq)
-    {
-        var s = GetEnvSettings();
-
-        EnvironmentReport BuildEnv(DeployEnvironment env, string name, int users)
-        {
-            var envDbSize = env switch
-            {
-                DeployEnvironment.Dev => s.DevDbSizeGb,
-                DeployEnvironment.Test => s.TestDbSizeGb,
-                DeployEnvironment.PredProd => s.PredProdDbSizeGb,
-                _ => config.DbSizeGb
-            };
-            var envContentSize = env switch
-            {
-                DeployEnvironment.Dev => s.DevContentDbSizeGb,
-                DeployEnvironment.Test => s.TestContentDbSizeGb,
-                DeployEnvironment.PredProd => s.PredProdContentDbSizeGb,
-                _ => config.ContentDbSizeGb
-            };
-            var envConfig = new ProjectConfig
-            {
-                ProjectName = config.ProjectName, UserCount = users,
-                DeploymentType = config.DeploymentType,
-                LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType,
-                Environment = env,
-                DbSizeGb = envDbSize,
-                ContentDbSizeGb = envContentSize,
-                // Опціональні вузли — ОКРЕМО для кожного похідного середовища (перемикачі внизу).
-                IncludeReportingServer = NodeEnabledFor("reporting", env),
-                IncludeSqlFailover = NodeEnabledFor("failover", env),
-                IncludeHaProxy = NodeEnabledFor("haproxy", env)
-            };
-            // Похідне середовище має ВЛАСНІ к-сті користувачів по модулях (LMS/HR/ForceBPM).
-            // Значення 0 = модуль не потрібен у цьому середовищі (виключаємо — «віднімаємо зайве»).
-            var envModules = Modules.Select(m => m.Clone()).ToList();
-            foreach (var m in envModules)
-            {
-                var rowx = EnvModuleCounts.FirstOrDefault(r => r.ModuleName == m.Name);
-                if (rowx == null) continue;
-                var cnt = rowx.CountFor(env);
-                // Виключаємо модуль, якщо знято галочку для цього середовища або к-сть = 0.
-                if (!rowx.EnabledFor(env) || cnt <= 0) m.IsEnabled = false;
-                else m.UserCount = Math.Clamp(cnt, 1, 5000);
-            }
-            _engine.SetModules(envModules);
-            var req = _engine.Calculate(envConfig);
-            // Інфо про к-сті опціональних модулів цього середовища (увімкнені).
-            var mods = string.Join(" · ", EnvModuleCounts
-                .Where(r => r.EnabledFor(env) && r.CountFor(env) > 0)
-                .Select(r => $"{r.ModuleName}: {r.CountFor(env)}"));
-            return new EnvironmentReport { Environment = env, Name = name, UserCount = users, Requirement = req, ModulesInfo = mods };
-        }
-
-        // PROD: к-сті опціональних модулів — з полів модулів угорі (0/порожньо = усі користувачі).
-        var prodMods = string.Join(" · ", Modules.Where(m => !m.IsMandatory && m.IsEnabled)
-            .Select(m => $"{m.Name}: {(m.UserCount > 0 ? m.UserCount.ToString() : "усі")}"));
-        var reports = new List<EnvironmentReport>
-        {
-            new() { Environment = DeployEnvironment.Prod, Name = "PROD", UserCount = config.UserCount, Requirement = prodReq, ModulesInfo = prodMods }
-        };
-
-        if (s.IncludePredProd) reports.Add(BuildEnv(DeployEnvironment.PredProd, "PreProd", s.PredProdUserCount));
-        if (s.IncludeTest) reports.Add(BuildEnv(DeployEnvironment.Test, "TEST", s.TestUserCount));
-        if (s.IncludeDev) reports.Add(BuildEnv(DeployEnvironment.Dev, "DEV", s.DevUserCount));
-
-        // Порядок середовищ: PROD → PreProd → TEST → DEV (від робочого до найменш критичного).
-        // PROD завжди перший і розгорнутий (IsProd). Сортування захищає порядок незалежно від
-        // того, які середовища ввімкнені.
-        static int EnvOrder(DeployEnvironment e) => e switch
-        {
-            DeployEnvironment.Prod => 0,
-            DeployEnvironment.PredProd => 1,
-            DeployEnvironment.Test => 2,
-            DeployEnvironment.Dev => 3,
-            _ => 9
-        };
-        reports = reports.OrderBy(r => EnvOrder(r.Environment)).ToList();
-
-        // Відновити стан рушія до PROD-конфігурації для подальших дій.
-        _engine.SetModules(Modules.ToList());
-
-        _environments = reports;
-        Environments = new ObservableCollection<EnvironmentReport>(reports);
-        OnPropertyChanged(nameof(Environments));
-        OnPropertyChanged(nameof(HasEnvironments));
-        OnPropertyChanged(nameof(ShowProdInfraSection));
-    }
 
     // Plain-language summary of what to provision, so the numbers read as understandable needs.
     private string BuildSummary(ResourceRequirement req, ProjectConfig config)
