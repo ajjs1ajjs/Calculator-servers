@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Signs the published ITE.ResourceCalculator.exe with an Authenticode signature.
 
