@@ -16,7 +16,7 @@
 
 **WPF · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
 
-<a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/⬇️_Завантажити-2.0.1-00A0C6?style=for-the-badge"></a>
+<a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/⬇️_Завантажити-2.0.2-00A0C6?style=for-the-badge"></a>
 
 </div>
 
