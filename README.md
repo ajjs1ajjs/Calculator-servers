@@ -46,7 +46,7 @@
 
 <div align="center">
 
-<img src="docs/screenshots/app.png?v=4" width="700" alt="IT-Enterprise Resource Calculator">
+<img src="docs/screenshots/main.png" width="700" alt="IT-Enterprise Resource Calculator">
 
 </div>
 
