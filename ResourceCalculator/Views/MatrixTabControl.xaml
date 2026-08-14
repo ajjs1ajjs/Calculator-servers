@@ -5,7 +5,10 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="15">
             <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,0,0,10">
-                <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                <StackPanel>
+                    <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{loc:Loc access.lockedHint}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
             </Border>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                 <Button Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
@@ -18,6 +21,12 @@
                 </Button>
                 <Button Command="{Binding MatrixVM.ResetMatrixCommand}" Padding="12,8">
                     <TextBlock Text="{loc:Loc matrix.reset}"/>
+                </Button>
+                <Button Command="{Binding MatrixVM.ChangePasswordCommand}" Padding="12,8" Margin="0,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Loc access.changePassword}" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </Button>
             </StackPanel>
 

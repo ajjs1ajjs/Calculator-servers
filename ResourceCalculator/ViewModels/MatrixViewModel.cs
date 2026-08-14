@@ -15,7 +15,9 @@ public class MatrixViewModel : INotifyPropertyChanged
 {
     private readonly ILocalizationService _loc;
     private readonly MatrixManager _matrixManager;
+    private readonly AccessService _access;
     private SizingMatrix _matrix;
+    private bool _unlocked;
 
     // Діапазони навантаження (єдиний профіль «Документообіг»).
     public ObservableCollection<UserLoadRange> MsSqlRanges { get; private set; } = new();
@@ -38,6 +40,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     public ICommand SaveMatrixCommand { get; }
     public ICommand RecalculateMatrixCommand { get; }
     public ICommand ResetMatrixCommand { get; }
+    public ICommand ChangePasswordCommand { get; }
 
     public event System.Action? MatrixChanged;
 
@@ -48,15 +51,34 @@ public class MatrixViewModel : INotifyPropertyChanged
         set { _matrix = value; LoadMatrixGrids(); }
     }
 
-    public MatrixViewModel(ILocalizationService loc, MatrixManager matrixManager)
+    public MatrixViewModel(ILocalizationService loc, MatrixManager matrixManager, AccessService? access = null)
     {
         _loc = loc;
         _matrixManager = matrixManager;
+        _access = access ?? new AccessService();
         _matrix = matrixManager.Matrix;
+
+        _access.EnsureInitialized();
 
         SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
         RecalculateMatrixCommand = new RelayCommand(_ => RecalculateMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
+        ChangePasswordCommand = new RelayCommand(_ => ChangePassword());
+    }
+
+    // Розблоковано (пароль підтверджено) — дозволяє змінювати чутливі дані матриці.
+    public bool IsUnlocked
+    {
+        get => _unlocked;
+        private set { _unlocked = value; OnPropertyChanged(); }
+    }
+
+    // Зміна пароля: потребує поточний пароль і новий (мін. 8 символів).
+    public bool ChangePassword(string current, string newPassword, string confirm)
+    {
+        if (newPassword.Length < 8) return false;
+        if (newPassword != confirm) return false;
+        return _access.ChangePassword(current, newPassword);
     }
 
     public void LoadMatrixGrids()
@@ -111,6 +133,7 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     private void SaveMatrix()
     {
+        if (!EnsureUnlocked()) return;
         SyncGridsToMatrix();
         _matrixManager.Save();
         MatrixChanged?.Invoke();
@@ -122,16 +145,39 @@ public class MatrixViewModel : INotifyPropertyChanged
     // щоб вплив на розрахунок було видно без збереження матриці.
     private void RecalculateMatrix()
     {
+        if (!EnsureUnlocked()) return;
         SyncGridsToMatrix();
         MatrixChanged?.Invoke();
     }
 
     private void ResetMatrix()
     {
+        if (!EnsureUnlocked()) return;
         _matrixManager.Reset();
         _matrix = _matrixManager.Matrix;
         LoadMatrixGrids();
         MatrixChanged?.Invoke();
+    }
+
+    // Розблокування паролем (один раз на сесію). Показує діалог з контактами розробника,
+    // якщо пароль забуто. Помилка введення не блокує повторні спроби.
+    private bool EnsureUnlocked()
+    {
+        if (IsUnlocked) return true;
+        var dialog = new Views.PasswordDialog(_access, System.Windows.Application.Current.MainWindow);
+        if (dialog.ShowDialog() == true && dialog.Unlocked)
+        {
+            IsUnlocked = true;
+            return true;
+        }
+        return false;
+    }
+
+    private void ChangePassword()
+    {
+        if (!EnsureUnlocked()) return;
+        var dialog = new Views.ChangePasswordDialog(_access, System.Windows.Application.Current.MainWindow);
+        dialog.ShowDialog();
     }
 
     private void NotifyAllCollections()

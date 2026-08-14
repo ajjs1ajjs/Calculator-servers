@@ -52,6 +52,6 @@ public partial class CalculatorTabControl : UserControl
     // Посилання "Детальніше у вкладці «Результати»" у картці швидкого підсумку — просто перемикає вкладку.
     private void OpenResultsTab_Click(object sender, RoutedEventArgs e)
     {
-        if (DataContext is MainViewModel vm) vm.SelectedTabIndex = 1;
+        if (DataContext is MainViewModel vm) vm.SelectedTabIndex = 2; // 0=Матриця, 1=Параметри, 2=Результати
     }
 }

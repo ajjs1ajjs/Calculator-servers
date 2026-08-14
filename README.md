@@ -9,14 +9,14 @@
 [![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?style=for-the-badge&label=Останній+реліз&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?style=for-the-badge&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?style=for-the-badge&label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Tests](https://img.shields.io/badge/tests-130_passing-00C853?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![Tests](https://img.shields.io/badge/tests-135_passing-00C853?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
 [![Platform](https://img.shields.io/badge/platform-Windows_10_11-00E5FF?style=for-the-badge)]()
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/license-MIT-26A69A?style=for-the-badge)](LICENSE)
 
 **WPF · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
 
-<a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/⬇️_Завантажити-1.2.1-00A0C6?style=for-the-badge"></a>
+<a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/⬇️_Завантажити-2.0.0-00A0C6?style=for-the-badge"></a>
 
 </div>
 
@@ -28,6 +28,7 @@
 |---|---|
 | 🧮 **3 кроки** | «Матриця» → «Параметри розрахунку» → «Результати». |
 | 🛠️ **Редагування матриці** | Усі діапазони (SQL/Postgres/Oracle/App/Web), компоненти та формули модулів, вузли інфраструктури — змінюються в UI та зберігаються в `matrix.json` без передеплою. |
+| 🔐 **Захист матриці** | Зміна чутливих даних (діапазони, формули, вузли) потребує пароля; при забутому паролі — контакти розробника для відновлення доступу. |
 | ⚙️ **Налаштування рушія** | Константи розрахунку (SmartID, IOPS-профілі, ліміти SQL, pagefile) редагуються через матрицю. |
 | 🖥️ **3 режими розгортання** | Kubernetes, Windows та Hybrid (app/web — Windows-VM, ForceBPM та інші — K8s, БД — Windows). |
 | 🌍 **4 середовища** | PROD (завжди), DEV, TEST та PreProd — з порівняльною таблицею. |
@@ -136,7 +137,7 @@ GitHub Release з обома артефактами (`.exe` і `.msi`).
 **Платформа:** C# / WPF · .NET 10 · MVVM
 **Архітектура:** Microsoft.Extensions.DependencyInjection (DI-контейнер)
 **Excel:** EPPlus 7.6 (читання та експорт)
-**Тести:** xUnit (130 тестів) + збір звітів покриття (ReportGenerator)
+**Тести:** xUnit (135 тестів) + збір звітів покриття (ReportGenerator)
 
 ---
 
@@ -153,7 +154,7 @@ ResourceCalculator.slnx
 │   ├── Data/                        # матриця сайзингу за замовчуванням, імпорт Excel
 │   ├── Localization/                # рядки інтерфейсу (uk/en)
 │   └── Themes/                      # теми оформлення
-├── ResourceCalculator.Tests/      # модульні тести (xUnit, 130)
+├── ResourceCalculator.Tests/      # модульні тести (xUnit, 135)
 ├── ResourceCalculator.Installer/  # WiX-проєкт MSI-інсталятора (Package.wxs)
 ├── docs/                            # банер та скріншоти
 ├── release.ps1                      # публікація GitHub Release (exe + msi)

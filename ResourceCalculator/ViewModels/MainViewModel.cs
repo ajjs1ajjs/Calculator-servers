@@ -388,7 +388,7 @@ public class MainViewModel : INotifyPropertyChanged
             ShowResults(req, config);
             _historyService.SaveToHistory(config, req);
             LoadHistory();
-            SelectedTabIndex = 1;   // вкладка «Результати» (після видалення вкладки матриці)
+            SelectedTabIndex = 2;   // вкладка «Результати» (0=Матриця, 1=Параметри, 2=Результати)
             StatusText = string.Format(_loc["status.calculated"],
                 config.UserCount, req.TotalCpu.ToString("F1"), req.TotalRamGb.ToString("F1"));
         }
