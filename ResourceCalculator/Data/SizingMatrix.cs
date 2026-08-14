@@ -14,7 +14,7 @@ public class SizingMatrix
     //     Старі збереження відкидаються.
     // v9: Додано EngineSettings (константи рушія — SmartID, IOPS-профілі, pagefile, ліміти SQL)
     //     та повні редактори всіх діапазонів/вузлів. Старі збереження відкидаються.
-    // v10: Лише один профіль «Документообіг» (Performance) — прибрано Basic-версії діапазонів
+    // v10: Лише один профіль навантаження (Performance) — прибрано Basic-версії діапазонів
     //      MSSQL/App/Web. Старі збереження відкидаються.
     public const int CurrentSchemaVersion = 10;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
@@ -25,8 +25,8 @@ public class SizingMatrix
     // Значення узгоджені з документом D-AD-ADM-E, таблиця зведення конфігурацій (розділ 1.3):
     // CPU/RAM/IOPS/латенсі/MiB-с. Латенсі (Lat <=, мс): 8,7,5,4,3,2,1,0.6,0.2,0.1,0.1,0.1 —
     // саме ця таблиця містить колонку MiB/s і збігається з еталонним калькулятором. Профіль — 50r/50w.
-    // Єдиний профіль — «Документообіг» (Performance). Значення з еталонного калькулятора
-    // (вкладка MSSQL, стовпець «Документообіг»). Латенсі: 8,7,5,4,3,2,1,0.6,0.2,0.1,0.1,0.1.
+    // Єдиний профіль навантаження (Performance). Значення з еталонного калькулятора
+    // (вкладка MSSQL). Латенсі: 8,7,5,4,3,2,1,0.6,0.2,0.1,0.1,0.1.
     // MiB/s — зі зведення (1.3). Профіль IOPS — 50r/50w.
     public List<UserLoadRange> MsSqlRanges { get; set; } = new()
     {
@@ -43,8 +43,8 @@ public class SizingMatrix
         new() { MinUsers = 3001, MaxUsers = 4000, Cpu = 16, RamMin = 512, RamRec = 768, Iops = 64000, Latency = 0.1, ThroughputMiBs = 1600 },
         new() { MinUsers = 4001, MaxUsers = 5000, Cpu = 24, RamMin = 768, RamRec = 1024, Iops = 128000, Latency = 0.1, ThroughputMiBs = 2048 },
     };
-    // Сервери додатків (профіль «Документообіг») — значення з еталонного калькулятора
-    // (вкладка Windows → AppServers «Документообіг»): IOPS 1200 (30r/70w), RAM 24/32, к-сть 1…67.
+    // Сервери додатків — значення з еталонного калькулятора
+    // (вкладка Windows → AppServers): IOPS 1200 (30r/70w), RAM 24/32, к-сть 1…67.
     public List<UserLoadRange> AppServerRanges { get; set; } = new()
     {
         new() { MinUsers=1, MaxUsers=10, InstanceCount=1, Ghz=2.4, Cpu=4, Iops=250, RamMin=6, RamRec=8 },

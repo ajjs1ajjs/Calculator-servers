@@ -74,10 +74,9 @@
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <!-- Kubernetes-only модулі (ForceBPM) — галочка заблокована (керується типом розгортання). -->
+                                                <!-- Кожен модуль можна вмикати/вимикати окремо. -->
                                                 <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled, Mode=TwoWay}" Content="{Binding Name}" FontSize="13" FontWeight="SemiBold"
-                                                          VerticalAlignment="Center" ToolTip="{Binding Description}"
-                                                          IsEnabled="{Binding IsUserToggleable}"/>
+                                                          VerticalAlignment="Center" ToolTip="{Binding Description}"/>
                                                 <!-- Поле к-сті лише для модулів із власним контингентом (LMS/HR); ForceBPM — без к-сті. -->
                                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                                                             Visibility="{Binding HasOwnUserCount, Converter={StaticResource VisibilityConverter}}">
@@ -113,8 +112,7 @@
                                 </Border>
                                 <Border Style="{StaticResource ChipRow}">
                                     <CheckBox Content="HAProxy" IsChecked="{Binding IncludeHaProxy, Mode=TwoWay}" FontWeight="SemiBold" FontSize="12"
-                                              IsEnabled="{Binding CanToggleHaProxy}"
-                                              ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол. У Гібриді керується автоматично."/>
+                                              ToolTip="Балансувальник навантаження 2 ядра / 4 ГБ (Linux), 1 вузол."/>
                                 </Border>
                             </UniformGrid>
                         </StackPanel>

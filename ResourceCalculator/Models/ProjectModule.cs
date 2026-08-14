@@ -107,11 +107,8 @@ public class ProjectModule : INotifyPropertyChanged
     // Чи має модуль власну к-сть користувачів (LMS/HR Portal — так; ForceBPM — ні, він масштабується
     // від загальної к-сті за формулами). Керує показом поля к-сті в UI.
     public bool HasOwnUserCount { get; set; } = true;
-    // За замовчуванням Kubernetes-only модулі (ForceBPM) керуються типом розгортання автоматично,
-    // тож їхня галочка заблокована. У Гібриді MainViewModel знімає це обмеження (AllowManualToggle),
-    // бо там ForceBPM — не обов'язковий компонент і користувач може свідомо його прибрати.
-    public bool AllowManualToggle { get; set; }
-    public bool IsUserToggleable => !IsKubernetesOnly || AllowManualToggle;
+    // Кожен модуль керується користувачем окремо, незалежно від типу розгортання.
+    public bool IsUserToggleable => true;
     // Окрема кількість користувачів для цього модуля (напр., LMS/HR Portal використовує не вся
     // компанія). 0 = брати загальну кількість користувачів проєкту. Понад загальну не піднімається.
     public int UserCount { get; set; }

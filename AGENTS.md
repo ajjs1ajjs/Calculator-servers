@@ -34,6 +34,7 @@
 - `ResourceCalculator/Services/AccessService.cs` — SHA-256 + сіль, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\`.
 - Дефолтний пароль: `yF2jrX7inC4w`.
 - Діалоги: `Views/PasswordDialog.*` (розблокування + кнопка **«Перегенерувати пароль»**) та `Views/ChangePasswordDialog.*`.
+  ⚠️ Діалоги лежать у `Views/`, тож шлях до тем у їхньому XAML — `../Themes/Styles.xaml` (не `Themes/...`).
 - Перегенерація: генерує новий пароль, зберігає, відкриває `mailto:` на контакти розробника:
   `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`, телефон `+380979454941`.
 - `AccessService` зареєстровано в DI (`App.xaml.cs`), передається в `MatrixViewModel`.
@@ -47,6 +48,10 @@
 (K8s SQL/Master/Worker, Windows SQL/App/Web, Сервер звітів, HAProxy), константи рушія (`EngineSettings`:
 SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, worker-вузол).
 
+**Керування модулями/кнопками:** усі модулі (App Server / ROBOT / Web / ForceBPM / LMS / HR) та всі
+опціональні вузли (Сервер звітів / SQL Secondary / HAProxy) вільно вмикаються/вимикаються користувачем
+окремо — без автоматичних блокувань за типом розгортання (`IsUserToggleable` завжди `true`, HAProxy не блокується).
+
 **Лише кодом (не матрицею):**
 - Нові **типи** формул — enum `ReplicaFormula` + `ReplicaMath.Resolve` у `Models/ProjectModule.cs`.
 - Еталон D-AD-ADM-E — `Data/DocumentRequirements.cs` (стовпець «За документом» у звірці).
@@ -54,7 +59,7 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 ## Ключові рішення/обмеження
 
-- **Єдиний профіль навантаження** «Документообіг» (Performance). Enum `LoadProfile` має лише `Performance`.
+- **Єдиний профіль навантаження** (Performance). Enum `LoadProfile` має лише `Performance`.
   Basic-діапазони прибрано з матриці. Движок завжди використовує PerfCpu/PerfRamGb.
 - `SizingMatrix.SchemaVersion = 10`. При зміні структури матриці в коді підвищувати — старі `matrix.json` відкидаються.
 - SQL Server Standard ліміти: 128 ГБ RAM / 24 ядра (в `EngineSettings`, редагуються). Увага: для SQL 2025 ліміт ядер = 32 (2022 = 24) — користувач поки не просив міняти.

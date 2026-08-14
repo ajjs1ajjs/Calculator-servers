@@ -19,7 +19,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     private SizingMatrix _matrix;
     private bool _unlocked;
 
-    // Діапазони навантаження (єдиний профіль «Документообіг»).
+    // Діапазони навантаження (єдиний профіль).
     public ObservableCollection<UserLoadRange> MsSqlRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> AppServerRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> WebServerRanges { get; private set; } = new();

@@ -6,7 +6,7 @@ public class ServiceComponent
     // Cpu/RamGb — СУМАРНІ ресурси компонента (на 1 репліку × кількість реплік).
     public double Cpu { get; set; }
     public double RamGb { get; set; }
-    // Ресурси для профілю «Документообіг» (Perf) — якщо задані, використовуються замість Basic.
+    // Ресурси для профілю Performance (Perf) — якщо задані, використовуються замість базових.
     public double PerfCpu { get; set; }
     public double PerfRamGb { get; set; }
     // Ресурси на ОДНУ репліку (щоб у звітах було видно, де сума, а де на под).

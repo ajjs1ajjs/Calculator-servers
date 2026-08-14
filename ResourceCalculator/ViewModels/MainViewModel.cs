@@ -281,8 +281,9 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<ProjectModule> Modules { get; private set; }
 
-    // Лише опціональні модулі — обов'язкові (App Server / ROBOT / Web) у вибір не виносимо.
-    public IEnumerable<ProjectModule> SelectableModules => Modules.Where(m => !m.IsMandatory);
+    // Усі модулі (включно з App Server / ROBOT / Web) — кожен можна вмикати/вимикати окремо,
+    // оскільки бувають різні конфігурації розгортання.
+    public IEnumerable<ProjectModule> SelectableModules => Modules;
 
     // К-сть користувачів опціональних модулів (LMS/HR/ForceBPM) ОКРЕМО для DEV/TEST/PreProd.
     public ObservableCollection<EnvModuleCount> EnvModuleCounts { get; private set; } = new();
@@ -506,7 +507,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string BuildDiskRecommendations(ResourceRequirement req, ProjectConfig config)
         => DiskAdvisor.Build(req, config, _loc);
 
-    // Поточні (редаговані) діапазони MS SQL з матриці — єдиний профіль «Документообіг».
+    // Поточні (редаговані) діапазони MS SQL з матриці — єдиний профіль навантаження.
     private IEnumerable<UserLoadRange> MatrixRangesForProfile(LoadProfile profile)
         => MatrixVM.MsSqlRanges;
 
@@ -564,52 +565,14 @@ public class MainViewModel : INotifyPropertyChanged
             _ => DeploymentType.Hybrid
         };
 
-        foreach (var mod in Modules)
-        {
-            // Обов'язкові сервіси (App Server / ROBOT / Web) — завжди ввімкнені.
-            if (mod.IsMandatory) { mod.IsEnabled = true; continue; }
+        // Кожен модуль і кнопка керуються користувачем окремо — жодних примусових вмикань
+        // чи блокувань залежно від типу розгортання. Користувач сам вирішує, що ввімкнути.
 
-            // Kubernetes-only сервіси (ForceBPM): Windows — вимкнено (на чистому Windows їх немає).
-            // K8s — увімкнено автоматично, галочка заблокована (не обов'язковий компонент, але
-            // в чистому K8s завжди потрібен). Гібрид — так само типово увімкнено, але галочка
-            // розблокована: користувач може свідомо прибрати ForceBPM (живе на Ubuntu-вузлах поруч
-            // із Windows-VM, тож у гібриді це реальний вибір, а не обов'язковість).
-            if (mod.IsKubernetesOnly)
-            {
-                mod.IsEnabled = deploymentType != DeploymentType.Windows;
-                mod.AllowManualToggle = deploymentType == DeploymentType.Hybrid;
-                continue;
-            }
+        // HAProxy — вільний перемикач у будь-якому типі розгортання.
+        CanToggleHaProxy = true;
 
-            // Решта опціональних (LMS/HR) застосовні скрізь; зберігають свій стан (типово вимкнені).
-        }
-
-        // Гібрид: для PROD HAProxy керується типом розгортання автоматично (балансувальник потрібен
-        // між Windows-VM і K8s-частиною) — верхній прапорець залишається заблокованим. Для DEV/TEST/PreProd
-        // це не обов'язковий компонент, тож чекбокси там завжди клікабельні — користувач сам вирішує,
-        // чи потрібен HAProxy на цих середовищах, незалежно від типу розгортання.
         var haproxy = EnvNodeToggles.FirstOrDefault(r => r.Key == "haproxy");
-        if (deploymentType == DeploymentType.Hybrid)
-        {
-            IncludeHaProxy = true;
-            CanToggleHaProxy = false;
-        }
-        else
-        {
-            IncludeHaProxy = false;
-            CanToggleHaProxy = true;
-        }
-        if (haproxy != null)
-        {
-            haproxy.IsEditable = true;
-        }
-        if (haproxy != null)
-        {
-            // EnvNodeToggle не сповіщає про зміну властивостей — перевиставляємо колекцію,
-            // щоб DataGrid-чекбокси в картках середовищ показали нові значення/стан одразу.
-            EnvNodeToggles = new ObservableCollection<EnvNodeToggle>(EnvNodeToggles);
-            OnPropertyChanged(nameof(EnvNodeToggles));
-        }
+        if (haproxy != null) haproxy.IsEditable = true;
 
         Modules = new ObservableCollection<ProjectModule>(Modules);
         OnPropertyChanged(nameof(Modules));

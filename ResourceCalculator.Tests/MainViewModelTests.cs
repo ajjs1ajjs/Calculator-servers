@@ -168,42 +168,40 @@ public class MainViewModelTests
         Assert.True(vm.HasPodRequests);
     }
 
-    // --- Гібрид: для PROD HAProxy увімкнений автоматично й заблокований; DEV/TEST/PreProd лишаються клікабельними ---
+    // --- Гібрид: HAProxy та всі кнопки вільно керуються користувачем (без блокувань) ---
     [Fact]
-    public void DeploymentIndex_Hybrid_LocksHaProxyForProd_ButKeepsEnvTogglesEditable()
+    public void DeploymentIndex_Hybrid_AllTogglesEditable()
     {
         var vm = BuildVm(out _);
         vm.DeploymentIndex = 2;                         // Hybrid
 
-        Assert.True(vm.IncludeHaProxy);                 // PROD
-        Assert.False(vm.CanToggleHaProxy);              // заблоковано на час Гібриду
+        Assert.True(vm.CanToggleHaProxy);               // HAProxy вільно вмикається/вимикається
         var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
-        Assert.True(haproxy.IsEditable);                // DEV/TEST/PreProd — не заблоковано
+        Assert.True(haproxy.IsEditable);                // DEV/TEST/PreProd — теж клікабельні
     }
 
     [Fact]
-    public void DeploymentIndex_SwitchFromHybridToKubernetes_UnlocksProdHaProxy()
+    public void DeploymentIndex_SwitchDeployment_KeepsUserTogglesEditable()
     {
         var vm = BuildVm(out _);
-        vm.DeploymentIndex = 2;                         // Hybrid — PROD вмикається й блокується
-        vm.DeploymentIndex = 0;                         // Kubernetes — має розблокуватись
+        vm.DeploymentIndex = 2;                         // Hybrid
+        vm.DeploymentIndex = 0;                         // Kubernetes
 
-        Assert.False(vm.IncludeHaProxy);
         Assert.True(vm.CanToggleHaProxy);
         var haproxy = vm.EnvNodeToggles.First(r => r.Key == "haproxy");
         Assert.True(haproxy.IsEditable);
     }
 
-    // --- ForceBPM: заблокований у K8s, клікабельний у Гібриді ---
+    // --- ForceBPM: клікабельний у будь-якому типі розгортання (кожен модуль керується окремо) ---
     [Fact]
-    public void DeploymentIndex_Kubernetes_ForceBpmIsLocked()
+    public void DeploymentIndex_Kubernetes_ForceBpmIsToggleable()
     {
         var vm = BuildVm(out _);
         vm.DeploymentIndex = 0;                         // Kubernetes
 
         var forceBpm = vm.Modules.First(m => m.Name == "ForceBPM");
         Assert.True(forceBpm.IsEnabled);
-        Assert.False(forceBpm.IsUserToggleable);
+        Assert.True(forceBpm.IsUserToggleable);
     }
 
     [Fact]
