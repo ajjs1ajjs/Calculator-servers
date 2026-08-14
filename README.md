@@ -4,7 +4,7 @@
 
 **Калькулятор ресурсів IT-інфраструктури на основі матриці сайзингу**
 
-![banner](docs/banner.svg?v=3)
+![banner](docs/banner.svg?v=4)
 
 [![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?style=for-the-badge&label=Останній+реліз&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?style=for-the-badge&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
@@ -46,7 +46,7 @@
 
 <div align="center">
 
-<img src="docs/screenshots/app.png?v=3" width="700" alt="IT-Enterprise Resource Calculator">
+<img src="docs/screenshots/app.png?v=4" width="700" alt="IT-Enterprise Resource Calculator">
 
 </div>
 
