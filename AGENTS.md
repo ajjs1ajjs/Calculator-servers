@@ -31,6 +31,9 @@
 ## Захист матриці (фіча від користувача)
 
 - Зміна чутливих даних матриці (Save/Recalculate/Reset) потребує пароля.
+- Спроба відредагувати будь-яке значення в матриці (клік у комірку) теж потребує пароля —
+  перехоплюється `Grid_BeginningEdit` у `Views/MatrixTabControl.xaml.cs` (усі DataGrid).
+- `AccessService.EnsureUnlocked()` — публічний, викликається і командами, і редактором комірок.
 - `ResourceCalculator/Services/AccessService.cs` — SHA-256 + сіль, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\`.
 - Дефолтний пароль: `yF2jrX7inC4w`.
 - Діалоги: `Views/PasswordDialog.*` (розблокування + кнопка **«Перегенерувати пароль»**) та `Views/ChangePasswordDialog.*`.

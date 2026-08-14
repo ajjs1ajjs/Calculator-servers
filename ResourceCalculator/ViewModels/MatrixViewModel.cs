@@ -161,7 +161,7 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     // Розблокування паролем (один раз на сесію). Показує діалог з контактами розробника,
     // якщо пароль забуто. Помилка введення не блокує повторні спроби.
-    private bool EnsureUnlocked()
+    public bool EnsureUnlocked()
     {
         if (IsUnlocked) return true;
         var dialog = new Views.PasswordDialog(_access, System.Windows.Application.Current.MainWindow);

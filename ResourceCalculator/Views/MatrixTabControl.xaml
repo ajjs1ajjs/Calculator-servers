@@ -31,7 +31,7 @@
             </StackPanel>
 
             <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True">
-                <DataGrid x:Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid x:Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.MsSqlRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
@@ -47,7 +47,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.appServer}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.AppServerRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
@@ -63,7 +63,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.webServer}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.WebServerRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
@@ -79,7 +79,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.postgres}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.PostgresRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
@@ -94,7 +94,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.oracle}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.OracleRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
@@ -109,7 +109,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.k8sDocumentFlow}" IsExpanded="True">
-                <DataGrid Height="160" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="160" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.K8sDocumentFlowComponents}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
@@ -125,7 +125,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True">
-                <DataGrid x:Name="GridMatrixInfra" Height="150" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid x:Name="GridMatrixInfra" Height="150" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.InfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="120"/>
@@ -140,7 +140,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infraWindows}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.WindowsInfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="140"/>
@@ -154,7 +154,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infraOptional}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True"
+                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
                           ItemsSource="{Binding MatrixVM.OptionalInfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="140"/>
