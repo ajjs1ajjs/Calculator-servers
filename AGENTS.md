@@ -68,6 +68,7 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 ## Скрипти та реліз
 
 - `release.ps1` — повний реліз: перевірка версії/тегів → build → test → publish+sign → MSI → push+tag → GitHub Release (exe+MSI). **Версію бампати в `Directory.Build.props` ПЕРЕД релізом.**
+- ⚠️ Нотатки GitHub-релізу (`-ReleaseNotes`) — **тільки українською** (README/CHANGELOG/UI українські). Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
 - `sign.ps1` — підпис exe. Самопідписаний сертифікат `CN=IT-Enterprise ResourceCalculator` (25 років), `.cer` у корені.
 - **⚠️ Кодування `.ps1`**: файли мають бути **UTF-8 з BOM** (PowerShell 5.1 інакше ламає кирилицю). Не перезаписувати через Set-Content без BOM.
 - `.github/workflows/ci.yml` — CI: build + test + coverage (ReportGenerator) + publish. Шляхи: `ResourceCalculator/...`.
