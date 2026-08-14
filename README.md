@@ -12,7 +12,7 @@
 [![Tests](https://img.shields.io/badge/tests-108_passing-00C853?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
 [![Platform](https://img.shields.io/badge/platform-Windows_10_11-00E5FF?style=for-the-badge)]()
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge)]()
-[![Coverage](https://img.shields.io/badge/coverage-report-FF6B6B?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![License](https://img.shields.io/badge/license-MIT-26A69A?style=for-the-badge)](LICENSE)
 
 **WPF · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
 
@@ -162,6 +162,12 @@ Calculator-servers.slnx
 ## 📄 Історія змін
 
 Повний журнал змін — у [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## 📜 Ліцензія
+
+[MIT](LICENSE) © [ajjs1ajjs](https://github.com/ajjs1ajjs)
 
 ---
 
