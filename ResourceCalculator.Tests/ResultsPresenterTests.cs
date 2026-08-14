@@ -15,7 +15,7 @@ public class ResultsPresenterTests
         _req = new ResourceRequirement
         {
             UserCount = 100, DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic, TotalCpu = 24, TotalRamGb = 96,
+            LoadProfile = LoadProfile.Performance, TotalCpu = 24, TotalRamGb = 96,
             TotalStorageGb = 1500, TotalIops = 5000, WorkerNodeCount = 3, MasterNodeCount = 1
         };
         _req.Components.Add(new ServiceComponent { Name = "AS", Cpu = 10, RamGb = 80, Replicas = 4 });
@@ -32,7 +32,7 @@ public class ResultsPresenterTests
         _config = new ProjectConfig
         {
             ProjectName = "Test", UserCount = 100,
-            DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         };
     }
 

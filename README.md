@@ -32,7 +32,7 @@
 | 🖥️ **3 режими розгортання** | Kubernetes, Windows та Hybrid (app/web — Windows-VM, ForceBPM та інші — K8s, БД — Windows). |
 | 🌍 **4 середовища** | PROD (завжди), DEV, TEST та PreProd — з порівняльною таблицею. |
 | 🗄️ **3 типи СУБД** | MS SQL Server, PostgreSQL, Oracle 19c. |
-| ⚡ **Профілі навантаження** | Стандарт (Basic) та Документообіг (Performance) — з порівнянням. |
+| ⚡ **Профіль навантаження** | Документообіг (Performance) — єдиний продуктивний профіль. |
 | 💾 **Вимоги до дисків** | Окрема розкладка для БД (OS / Logs+TempDB / Data / Content) та файл підкачки для app/web-вузлів. |
 | 🧩 **Опціональні вузли** | Сервер звітів, SQL Secondary (failover) та HAProxy з режимом High Availability (2 вузли, keepalived/VRRP, спільний VIP). |
 | 📥 **Імпорт Excel** | Завантаження та редагування матриці сайзингу. |

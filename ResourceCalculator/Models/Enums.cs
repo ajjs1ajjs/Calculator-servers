@@ -9,7 +9,6 @@ public enum DeploymentType
 
 public enum LoadProfile
 {
-    Basic,
     Performance
 }
 

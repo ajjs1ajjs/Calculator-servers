@@ -38,11 +38,8 @@ public class MatrixManager
             => src.Select(r => r.Clone()).ToList();
 
         target.MsSqlRanges = CloneRanges(source.MsSqlRanges);
-        target.MsSqlPerformanceRanges = CloneRanges(source.MsSqlPerformanceRanges);
         target.AppServerRanges = CloneRanges(source.AppServerRanges);
-        target.AppServerPerformanceRanges = CloneRanges(source.AppServerPerformanceRanges);
         target.WebServerRanges = CloneRanges(source.WebServerRanges);
-        target.WebServerPerformanceRanges = CloneRanges(source.WebServerPerformanceRanges);
         target.PostgresRanges = CloneRanges(source.PostgresRanges);
         target.OracleRanges = CloneRanges(source.OracleRanges);
         target.DocumentFlowModules = source.DocumentFlowModules.ToClonedList();
@@ -79,11 +76,8 @@ public class MatrixManager
 
     public void SyncGridsToMatrix(
         List<UserLoadRange> msSqlRanges,
-        List<UserLoadRange> msSqlPerfRanges,
         List<UserLoadRange> appServerRanges,
-        List<UserLoadRange> appServerPerfRanges,
         List<UserLoadRange> webServerRanges,
-        List<UserLoadRange> webServerPerfRanges,
         List<UserLoadRange> postgresRanges,
         List<UserLoadRange> oracleRanges,
         List<ServiceComponent> k8sDocFlow,
@@ -93,11 +87,8 @@ public class MatrixManager
         EngineSettings engine)
     {
         _matrix.MsSqlRanges = msSqlRanges;
-        _matrix.MsSqlPerformanceRanges = msSqlPerfRanges;
         _matrix.AppServerRanges = appServerRanges;
-        _matrix.AppServerPerformanceRanges = appServerPerfRanges;
         _matrix.WebServerRanges = webServerRanges;
-        _matrix.WebServerPerformanceRanges = webServerPerfRanges;
         _matrix.PostgresRanges = postgresRanges;
         _matrix.OracleRanges = oracleRanges;
 

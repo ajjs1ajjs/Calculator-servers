@@ -224,7 +224,6 @@ public class MainViewModel : INotifyPropertyChanged
     #region Matrix Properties (delegated to MatrixVM)
 
     public ObservableCollection<UserLoadRange> MsSqlRanges => MatrixVM.MsSqlRanges;
-    public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges => MatrixVM.MsSqlPerformanceRanges;
     public ObservableCollection<ServiceComponent> K8sDocumentFlowComponents => MatrixVM.K8sDocumentFlowComponents;
     public ObservableCollection<InfrastructureNode> InfraNodes => MatrixVM.InfraNodes;
 
@@ -507,10 +506,9 @@ public class MainViewModel : INotifyPropertyChanged
     private string BuildDiskRecommendations(ResourceRequirement req, ProjectConfig config)
         => DiskAdvisor.Build(req, config, _loc);
 
-    // Поточні (редаговані) діапазони MS SQL з матриці для активного профілю навантаження —
-    // використовуються у звірці для стовпця «За матрицею».
+    // Поточні (редаговані) діапазони MS SQL з матриці — єдиний профіль «Документообіг».
     private IEnumerable<UserLoadRange> MatrixRangesForProfile(LoadProfile profile)
-        => profile == LoadProfile.Performance ? MatrixVM.MsSqlPerformanceRanges : MatrixVM.MsSqlRanges;
+        => MatrixVM.MsSqlRanges;
 
     private void LoadHistory()
     {

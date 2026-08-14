@@ -94,7 +94,7 @@ public class SizingEngine : ISizingEngine
     private void CalculateK8s(ResourceRequirement req, ProjectConfig config,
         bool includeDatabase = true, HashSet<string>? excludeModules = null, bool includeSmartId = true)
     {
-        var sqlRange = FindDatabaseRange(config.UserCount, config.LoadProfile, config.DatabaseType);
+        var sqlRange = FindDatabaseRange(config.UserCount, config.DatabaseType);
         var masterNode = _matrix.DefaultK8sMaster ?? _defaultMaster;
         var workerNode = _matrix.DefaultK8sWorker ?? _defaultWorker;
 
@@ -114,18 +114,17 @@ public class SizingEngine : ISizingEngine
         foreach (var module in enabledModules)
         {
             var moduleUsers = module.EffectiveUsers(config.UserCount);
-            var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, config.LoadProfile, hrUsers);
+            var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, hrUsers);
             totalCpu += modCpu;
             totalRam += modRam;
 
-            var isPerf = config.LoadProfile == LoadProfile.Performance;
             foreach (var comp in module.Components ?? new())
             {
                 int rep = CalcReplicas(comp, moduleUsers, hrUsers);
                 if (rep <= 0) rep = Math.Max(1, comp.FixedReplicas);
 
-                var cpu = isPerf && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
-                var ram = isPerf && comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;
+                var cpu = comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
+                var ram = comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;
                 req.Components.Add(new ServiceComponent
                 {
                     Name = ComponentDisplayName.Localize(comp.Name),
@@ -255,11 +254,9 @@ public class SizingEngine : ISizingEngine
 
     private void CalculateWindows(ResourceRequirement req, ProjectConfig config)
     {
-        var appRange = FindWindowsRange(config.UserCount, _matrix.AppServerRanges,
-            _matrix.AppServerPerformanceRanges, config.LoadProfile);
-        var webRange = FindWindowsRange(config.UserCount, _matrix.WebServerRanges,
-            _matrix.WebServerPerformanceRanges ?? new(), config.LoadProfile);
-        var sqlRange = FindDatabaseRange(config.UserCount, config.LoadProfile, config.DatabaseType);
+        var appRange = FindWindowsRange(config.UserCount, _matrix.AppServerRanges);
+        var webRange = FindWindowsRange(config.UserCount, _matrix.WebServerRanges);
+        var sqlRange = FindDatabaseRange(config.UserCount, config.DatabaseType);
 
         var sqlNode = _matrix.DefaultWindowsSql ?? _defaultSql;
         var appNode = _matrix.DefaultWindowsApp;
@@ -371,8 +368,8 @@ public class SizingEngine : ISizingEngine
         var k8sReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile };
         var winReq = new ResourceRequirement { UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile };
 
-        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb, ContentDbSizeGb = config.ContentDbSizeGb };
-        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, LoadProfile = config.LoadProfile, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb, ContentDbSizeGb = config.ContentDbSizeGb };
+        var k8sConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Kubernetes, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb, ContentDbSizeGb = config.ContentDbSizeGb };
+        var winConfig = new ProjectConfig { ProjectName = config.ProjectName, UserCount = config.UserCount, DeploymentType = DeploymentType.Windows, DatabaseType = config.DatabaseType, Environment = config.Environment, DbSizeGb = config.DbSizeGb, ContentDbSizeGb = config.ContentDbSizeGb };
 
         // SmartID у гібриді: завжди под у Kubernetes (окрема ВМ на веб-серверах IIS не додається).
         CalculateK8s(k8sReq, k8sConfig, includeDatabase: false, excludeModules: HybridWindowsModules,
@@ -396,25 +393,20 @@ public class SizingEngine : ISizingEngine
         req.TotalStorageGb = req.Infrastructure.Sum(n => n.TotalStorageGb);
     }
 
-    private UserLoadRange? FindDatabaseRange(int userCount, LoadProfile profile, DatabaseType dbType)
+    private UserLoadRange? FindDatabaseRange(int userCount, DatabaseType dbType)
     {
         var ranges = dbType switch
         {
             DatabaseType.PostgreSQL => _matrix.PostgresRanges,
             DatabaseType.Oracle => _matrix.OracleRanges,
-            _ => profile == LoadProfile.Performance
-                ? _matrix.MsSqlPerformanceRanges
-                : _matrix.MsSqlRanges
+            _ => _matrix.MsSqlRanges
         };
         return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
                ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }
 
-    private UserLoadRange? FindWindowsRange(int userCount,
-        List<UserLoadRange> basic, List<UserLoadRange> performance, LoadProfile profile)
+    private UserLoadRange? FindWindowsRange(int userCount, List<UserLoadRange> ranges)
     {
-        var ranges = profile == LoadProfile.Performance && performance.Count > 0
-            ? performance : basic;
         return ranges.FirstOrDefault(r => userCount >= r.MinUsers && userCount <= r.MaxUsers)
                ?? ranges.OrderByDescending(r => r.MaxUsers).FirstOrDefault();
     }

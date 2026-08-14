@@ -132,7 +132,7 @@ public class ProjectModule : INotifyPropertyChanged
         Components = Components.Select(c => c.Clone()).ToList()
     };
 
-    public (double cpu, double ram) CalculateReplicas(int userCount, LoadProfile profile = LoadProfile.Basic, int auxUsers = -1)
+    public (double cpu, double ram) CalculateReplicas(int userCount, int auxUsers = -1)
     {
         if (userCount < 0) userCount = 0;
         double totalCpu = 0, totalRam = 0;
@@ -142,8 +142,8 @@ public class ProjectModule : INotifyPropertyChanged
             int replicas = ReplicaMath.Resolve(comp.Formula, comp.FixedReplicas, userCount, auxUsers);
             if (replicas <= 0) replicas = Math.Max(1, comp.FixedReplicas);
 
-            var cpu = profile == LoadProfile.Performance && comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
-            var ram = profile == LoadProfile.Performance && comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;
+            var cpu = comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
+            var ram = comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;
             totalCpu += cpu * replicas;
             totalRam += ram * replicas;
         }

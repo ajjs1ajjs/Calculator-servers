@@ -17,13 +17,10 @@ public class MatrixViewModel : INotifyPropertyChanged
     private readonly MatrixManager _matrixManager;
     private SizingMatrix _matrix;
 
-    // Діапазони навантаження (усі типи/профілі).
+    // Діапазони навантаження (єдиний профіль «Документообіг»).
     public ObservableCollection<UserLoadRange> MsSqlRanges { get; private set; } = new();
-    public ObservableCollection<UserLoadRange> MsSqlPerformanceRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> AppServerRanges { get; private set; } = new();
-    public ObservableCollection<UserLoadRange> AppServerPerformanceRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> WebServerRanges { get; private set; } = new();
-    public ObservableCollection<UserLoadRange> WebServerPerformanceRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> PostgresRanges { get; private set; } = new();
     public ObservableCollection<UserLoadRange> OracleRanges { get; private set; } = new();
 
@@ -65,11 +62,8 @@ public class MatrixViewModel : INotifyPropertyChanged
     public void LoadMatrixGrids()
     {
         MsSqlRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlRanges);
-        MsSqlPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.MsSqlPerformanceRanges);
         AppServerRanges = new ObservableCollection<UserLoadRange>(_matrix.AppServerRanges);
-        AppServerPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.AppServerPerformanceRanges);
         WebServerRanges = new ObservableCollection<UserLoadRange>(_matrix.WebServerRanges);
-        WebServerPerformanceRanges = new ObservableCollection<UserLoadRange>(_matrix.WebServerPerformanceRanges);
         PostgresRanges = new ObservableCollection<UserLoadRange>(_matrix.PostgresRanges);
         OracleRanges = new ObservableCollection<UserLoadRange>(_matrix.OracleRanges);
 
@@ -105,9 +99,9 @@ public class MatrixViewModel : INotifyPropertyChanged
     public void SyncGridsToMatrix()
     {
         _matrixManager.SyncGridsToMatrix(
-            MsSqlRanges.ToList(), MsSqlPerformanceRanges.ToList(),
-            AppServerRanges.ToList(), AppServerPerformanceRanges.ToList(),
-            WebServerRanges.ToList(), WebServerPerformanceRanges.ToList(),
+            MsSqlRanges.ToList(),
+            AppServerRanges.ToList(),
+            WebServerRanges.ToList(),
             PostgresRanges.ToList(), OracleRanges.ToList(),
             K8sDocumentFlowComponents.ToList(),
             InfraNodes.ToList(), WindowsInfraNodes.ToList(), OptionalInfraNodes.ToList(),
@@ -143,11 +137,8 @@ public class MatrixViewModel : INotifyPropertyChanged
     private void NotifyAllCollections()
     {
         OnPropertyChanged(nameof(MsSqlRanges));
-        OnPropertyChanged(nameof(MsSqlPerformanceRanges));
         OnPropertyChanged(nameof(AppServerRanges));
-        OnPropertyChanged(nameof(AppServerPerformanceRanges));
         OnPropertyChanged(nameof(WebServerRanges));
-        OnPropertyChanged(nameof(WebServerPerformanceRanges));
         OnPropertyChanged(nameof(PostgresRanges));
         OnPropertyChanged(nameof(OracleRanges));
         OnPropertyChanged(nameof(K8sDocumentFlowComponents));

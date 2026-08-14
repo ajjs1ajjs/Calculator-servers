@@ -59,10 +59,7 @@ public class MatrixManagerTests
 
         manager.SyncGridsToMatrix(
             new List<UserLoadRange> { appRange },
-            new List<UserLoadRange>(),
             new List<UserLoadRange> { appRange },
-            new List<UserLoadRange>(),
-            new List<UserLoadRange>(),
             new List<UserLoadRange>(),
             new List<UserLoadRange> { pgRange },
             new List<UserLoadRange>(),
@@ -72,9 +69,9 @@ public class MatrixManagerTests
             new List<InfrastructureNode> { reporting },
             new EngineSettings { SmartIdCpuPerReplica = 0.5, PageFileMultiplier = 6 });
 
-        Assert.Equal(1, manager.Matrix.AppServerRanges.Count);
+        Assert.Single(manager.Matrix.AppServerRanges);
         Assert.Equal(2.4, manager.Matrix.AppServerRanges[0].Ghz);
-        Assert.Equal(1, manager.Matrix.PostgresRanges.Count);
+        Assert.Single(manager.Matrix.PostgresRanges);
         Assert.Equal(100, manager.Matrix.PostgresRanges[0].Iops);
         Assert.NotNull(manager.Matrix.DefaultK8sSql);
         Assert.Equal(8, manager.Matrix.DefaultK8sSql!.Cpu);

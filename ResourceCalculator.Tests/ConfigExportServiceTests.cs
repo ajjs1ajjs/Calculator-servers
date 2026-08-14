@@ -19,7 +19,7 @@ public class ConfigExportServiceTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic,
+            LoadProfile = LoadProfile.Performance,
             TotalCpu = 24,
             TotalRamGb = 96,
             TotalStorageGb = 1500,
@@ -36,7 +36,7 @@ public class ConfigExportServiceTests
             ProjectName = "TestProject",
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
     }
 

@@ -27,7 +27,7 @@ public class SizingEngineTests
             ProjectName = "Test",
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = engine.Calculate(config);
@@ -68,7 +68,7 @@ public class SizingEngineTests
             ProjectName = "Test",
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -90,7 +90,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
         var perfConfig = new ProjectConfig
         {
@@ -119,7 +119,7 @@ public class SizingEngineTests
         {
             UserCount = 50,
             DeploymentType = DeploymentType.Windows,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -137,7 +137,7 @@ public class SizingEngineTests
         {
             UserCount = 200,
             DeploymentType = DeploymentType.Hybrid,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         _engine.SetModules(_engine.Modules.Where(m => m.Name != "Windows Infrastructure").ToList());
@@ -158,11 +158,11 @@ public class SizingEngineTests
 
         var win = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 200, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 200, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         var hybrid = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 200, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic
+            UserCount = 200, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Performance
         });
 
         // Windows: master-вузлів немає ні в полі, ні в інфраструктурі.
@@ -182,7 +182,7 @@ public class SizingEngineTests
     {
         var config = new ProjectConfig
         {
-            UserCount = 10, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic
+            UserCount = 10, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -206,7 +206,7 @@ public class SizingEngineTests
     {
         var config = new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -229,7 +229,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         var master = result.Infrastructure.First(n => n.Name.Contains("Master"));
@@ -243,7 +243,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("звіт"));
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("Secondary"));
@@ -256,7 +256,7 @@ public class SizingEngineTests
     {
         ProjectConfig Cfg(bool reporting) => new()
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance,
             IncludeReportingServer = reporting
         };
         var baseReq = _engine.Calculate(Cfg(false));
@@ -275,7 +275,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance,
             IncludeSqlFailover = true
         });
         var primary = result.Infrastructure.First(n => n.Name == "SQL Server");
@@ -291,7 +291,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
         var smartIds = result.Components.Where(c => c.Name == "SmartID").ToList();
         Assert.Single(smartIds);
@@ -304,7 +304,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Performance
         });
         Assert.Contains(result.Components, c => c.Name == "SmartID");
     }
@@ -315,7 +315,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             IncludeHaProxy = true
         });
         var node = result.Infrastructure.First(n => n.Name.Contains("HAProxy"));
@@ -332,7 +332,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             IncludeHaProxy = true
         });
         var node = result.Infrastructure.First(n => n.Name.Contains("HAProxy"));
@@ -345,7 +345,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             IncludeHaProxy = false
         });
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("HAProxy"));
@@ -357,7 +357,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Performance,
             IncludeReportingServer = true, IncludeHaProxy = true
         });
         Assert.Equal(1, result.Infrastructure.Count(n => n.Name.Contains("звіт")));
@@ -370,7 +370,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         var comp = result.Components.First(c => c.Cpu > 0 && c.Replicas > 1);
@@ -417,7 +417,7 @@ public class SizingEngineTests
         {
             UserCount = 0,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -432,7 +432,7 @@ public class SizingEngineTests
         {
             UserCount = 500,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -449,7 +449,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var fullResult = _engine.Calculate(allEnabled);
@@ -470,7 +470,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Windows,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -486,7 +486,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Windows,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var forceBpm = _engine.Modules.FirstOrDefault(m => m.Name == "ForceBPM");
@@ -505,7 +505,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Kubernetes,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -521,7 +521,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Windows,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var k8sOnlyModules = _engine.Modules.Where(m => m.IsKubernetesOnly).ToList();
@@ -618,7 +618,7 @@ public class SizingEngineTests
     {
         var config = new ProjectConfig
         {
-            UserCount = 100, DeploymentType = deploy, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = deploy, LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -633,7 +633,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
         Assert.True(result.PodCpu > 0);
         Assert.True(result.PodRamGb > 0);
@@ -646,7 +646,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         Assert.Equal(0, result.PodCpu);
         Assert.Equal(0, result.PodRamGb);
@@ -659,7 +659,7 @@ public class SizingEngineTests
         {
             UserCount = 100,
             DeploymentType = DeploymentType.Windows,
-            LoadProfile = LoadProfile.Basic
+            LoadProfile = LoadProfile.Performance
         };
 
         var result = _engine.Calculate(config);
@@ -673,7 +673,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         foreach (var node in result.Infrastructure.Where(n => n.NodeCount > 0))
@@ -685,7 +685,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
 
         foreach (var node in result.Infrastructure.Where(n => n.NodeCount > 0))
@@ -698,12 +698,12 @@ public class SizingEngineTests
     {
         var prod = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance,
             Environment = DeployEnvironment.Prod
         });
         var dev = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance,
             Environment = DeployEnvironment.Dev
         });
         var dbProd = prod.Infrastructure.First(n => n.Name.Contains("SQL"));
@@ -723,7 +723,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
         Assert.Equal(db.Iops, result.TotalIops);
@@ -772,7 +772,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
         Assert.Equal("50r/50w", db.IopsProfile);
@@ -796,7 +796,7 @@ public class SizingEngineTests
 
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 50, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 50, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         // SmartID централізовано (один на систему за загальною к-стю користувачів), тож попередні
@@ -833,7 +833,7 @@ public class SizingEngineTests
 
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
@@ -871,7 +871,7 @@ public class SizingEngineTests
     {
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         var app = result.Infrastructure.First(n => n.Name.Contains("App") || n.Name.Contains("додатк"));
         var web = result.Infrastructure.First(n => n.Name.Contains("Web") || n.Name.Contains("еб"));
@@ -887,7 +887,7 @@ public class SizingEngineTests
         // 5000 користувачів → RamRec 1152 ГБ > 128 → Enterprise + примітка.
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 5000, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Basic
+            UserCount = 5000, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance
         });
         var db = result.Infrastructure.First(n => n.Name.Contains("SQL"));
         Assert.Contains("Enterprise", db.DbVersion);
@@ -921,7 +921,7 @@ public class SizingEngineTests
 
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         // LMS-GraphQL = Per25Users → 25 користувачів дають 1 репліку (а не 4, як було б на 100).
@@ -950,11 +950,11 @@ public class SizingEngineTests
     {
         var withoutSize = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
         var withSize = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             DbSizeGb = 5000
         });
 
@@ -974,7 +974,7 @@ public class SizingEngineTests
     {
         var withSmallSize = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             DbSizeGb = 150
         });
         var db = withSmallSize.Infrastructure.First(n => n.Name.Contains("SQL"));
@@ -989,7 +989,7 @@ public class SizingEngineTests
     {
         var req = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             Environment = DeployEnvironment.Prod, ContentDbSizeGb = 777
         });
         var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
@@ -1004,7 +1004,7 @@ public class SizingEngineTests
         // лише типова поведінка non-prod (без явного вводу) лишається "без Content".
         var req = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             Environment = DeployEnvironment.Test, ContentDbSizeGb = 777
         });
         var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
@@ -1016,7 +1016,7 @@ public class SizingEngineTests
     {
         var req = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic,
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
             Environment = DeployEnvironment.Test
         });
         var db = req.Infrastructure.First(n => n.Name.Contains("SQL"));
@@ -1049,7 +1049,7 @@ public class SizingEngineTests
 
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
@@ -1074,7 +1074,7 @@ public class SizingEngineTests
 
         var result = _engine.Calculate(new ProjectConfig
         {
-            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Basic
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance
         });
 
         var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("LMS-GraphQL"));
