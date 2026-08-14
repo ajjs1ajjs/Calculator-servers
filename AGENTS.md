@@ -13,8 +13,8 @@
 
 ## Ключові факти стану (на 2026-08-14)
 
-- **Поточна версія: 2.0.0** (тег `v2.0.0`, реліз опубліковано з exe+MSI). `AppVersion` у `Directory.Build.props`.
-- Останні коміти (від новіших): `b2ebc9e` (BOM скриптів), `d792528` (захист паролем + фікси), `026d54c` (єдиний профіль), `820a185` (ренейм + 3 вкладки + матриця).
+- **Поточна версія: 2.0.2** (тег `v2.0.2`, реліз опубліковано з exe+MSI). `AppVersion` у `Directory.Build.props`.
+- Останні коміти (від новіших): `dbd9cca` (main.png для обходу кешу), `74b5971` (скріншот «Параметри»), `c9f436b` (пароль при редагуванні комірки), `31acd43` (версія 2.0.2), `b1ae2c6` (вільне керування модулями), `b2ebc9e` (BOM скриптів), `d792528` (захист паролем + фікси), `026d54c` (єдиний профіль), `820a185` (ренейм + 3 вкладки + матриця).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
 - **Тестів: 135, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
@@ -64,6 +64,10 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 - **Єдиний профіль навантаження** (Performance). Enum `LoadProfile` має лише `Performance`.
   Basic-діапазони прибрано з матриці. Движок завжди використовує PerfCpu/PerfRamGb.
+- ⚠️ **«Документообіг» (DocumentFlow) прибрано з UI-описів** (локалізація, README) — профіль один.
+  Технічні назви (модулі DocumentFlowModules, product.documentflow→"Resource Calculator") лишились у коді.
+- ⚠️ **Імпорт Excel прибрано** (немає кнопки; видалено ключі локалізації setup.import/status.imported/matrix.importHint).
+  Експорт у Excel (.xlsx) лишився.
 - `SizingMatrix.SchemaVersion = 10`. При зміні структури матриці в коді підвищувати — старі `matrix.json` відкидаються.
 - SQL Server Standard ліміти: 128 ГБ RAM / 24 ядра (в `EngineSettings`, редагуються). Увага: для SQL 2025 ліміт ядер = 32 (2022 = 24) — користувач поки не просив міняти.
 - Формули реплік: `ReplicaMath.Resolve` (Per25Users, Per100Users, Per50Users, Per100Plus1000, Per50Plus500, OnePlusPer100, Per1000Users, LmsGraphqlLoadTest, Fixed).
@@ -85,6 +89,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 ## Контакти та поточні домовленості
 
 - Розробник: пошти `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`, тел. `+380979454941`.
-- Користувач зараз тестує v2.0.0. Наступні зміни/релізи — за його відгуком після тестів.
+- Користувач тестує v2.0.2. Наступні зміни/релізи — за його відгуком після тестів.
 - Пароль матриці можна змінювати через UI (кнопка «Змінити пароль»), дефолт див. вище.
-- README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 135/License), скріншот `docs/screenshots/app.png`, банер `docs/banner.svg`.
+- README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 135/License), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
+- ⚠️ GitHub кешує зображення через camo. Якщо прев'ю/фото на сторінці «не те»: додавати кеш-бастер `?v=N` до URL у README, а найнадійніше — **перейменувати файл** (новий шлях = новий URL без кешу). Останній скріншот — `main.png` (вкладка «Параметри розрахунку»).
+- ⚠️ Оновлення `AGENTS.md`: після кожної значущої зміни оновлювати цей файл (версія, коміти, рішення). Нова сесія має спершу прочитати його.
