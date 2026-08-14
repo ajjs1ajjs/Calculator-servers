@@ -43,7 +43,7 @@
 
 <div align="center">
 
-<img src="docs/screenshots/calculator.png" width="700" alt="IT-Enterprise Resource Calculator">
+<img src="docs/screenshots/calculator.png?v=2" width="700" alt="IT-Enterprise Resource Calculator">
 
 </div>
 
