@@ -1,0 +1,17 @@
+<Project Sdk="WixToolset.Sdk/4.0.6">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platforms>x64</Platforms>
+    <!-- Джерело exe для MSI — публікується заздалегідь через release.ps1
+         (dotnet publish ResourceCalculator -o publish), сюди лише пакується. -->
+    <AppPublishDir Condition="'$(AppPublishDir)' == ''">$(MSBuildThisFileDirectory)..\publish\</AppPublishDir>
+    <AppIconPath>$(MSBuildThisFileDirectory)..\ResourceCalculator\icon.ico</AppIconPath>
+    <DefineConstants>AppVersion=$(AppVersion);AppPublishDir=$(AppPublishDir);AppIconPath=$(AppIconPath)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.6" />
+  </ItemGroup>
+
+</Project>

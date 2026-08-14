@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Публікує новий реліз: перевіряє версію, білдить, тестує, публікує exe та MSI,
     підписує, комітить, тегує й створює GitHub Release.
@@ -38,24 +38,24 @@ if ($localTag -or $remoteTag) {
 
 # --- 3. Build + тести ---
 Write-Host "Білд і тести..." -ForegroundColor Cyan
-dotnet build AIResourceCalculator.slnx -c Release
+dotnet build ResourceCalculator.slnx -c Release
 if ($LASTEXITCODE -ne 0) { throw "Build failed" }
-dotnet test AIResourceCalculator.slnx -c Release
+dotnet test ResourceCalculator.slnx -c Release
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
 # --- 4. Publish self-contained exe (+ підпис через SignPublishedExe target) ---
 Write-Host "Публікація exe..." -ForegroundColor Cyan
-dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --output publish
+dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
 if ($LASTEXITCODE -ne 0) { throw "Publish failed" }
 
 # --- 5. Збірка MSI-інсталятора (класичне оновлення через MajorUpgrade/UpgradeCode) ---
 Write-Host "Збірка MSI..." -ForegroundColor Cyan
-Push-Location "$root/AIResourceCalculator.Installer"
+Push-Location "$root/ResourceCalculator.Installer"
 try {
     wix build Package.wxs `
         -d "AppVersion=$version" `
         -d "AppPublishDir=$root/publish/" `
-        -d "AppIconPath=$root/AIResourceCalculator/icon.ico" `
+        -d "AppIconPath=$root/ResourceCalculator/icon.ico" `
         -ext WixToolset.UI.wixext `
         -arch x64 `
         -o "$root/publish/ITE.ResourceCalculator.msi"

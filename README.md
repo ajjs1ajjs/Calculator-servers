@@ -9,7 +9,7 @@
 [![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?style=for-the-badge&label=Останній+реліз&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?style=for-the-badge&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?style=for-the-badge&label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Tests](https://img.shields.io/badge/tests-108_passing-00C853?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![Tests](https://img.shields.io/badge/tests-130_passing-00C853?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
 [![Platform](https://img.shields.io/badge/platform-Windows_10_11-00E5FF?style=for-the-badge)]()
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/license-MIT-26A69A?style=for-the-badge)](LICENSE)
@@ -26,6 +26,9 @@
 
 | | |
 |---|---|
+| 🧮 **3 кроки** | «Матриця» → «Параметри розрахунку» → «Результати». |
+| 🛠️ **Редагування матриці** | Усі діапазони (SQL/Postgres/Oracle/App/Web), компоненти та формули модулів, вузли інфраструктури — змінюються в UI та зберігаються в `matrix.json` без передеплою. |
+| ⚙️ **Налаштування рушія** | Константи розрахунку (SmartID, IOPS-профілі, ліміти SQL, pagefile) редагуються через матрицю. |
 | 🖥️ **3 режими розгортання** | Kubernetes, Windows та Hybrid (app/web — Windows-VM, ForceBPM та інші — K8s, БД — Windows). |
 | 🌍 **4 середовища** | PROD (завжди), DEV, TEST та PreProd — з порівняльною таблицею. |
 | 🗄️ **3 типи СУБД** | MS SQL Server, PostgreSQL, Oracle 19c. |
@@ -54,14 +57,14 @@
 ### З вихідного коду
 
 ```bash
-dotnet run --project AIResourceCalculator/AIResourceCalculator.csproj
+dotnet run --project ResourceCalculator/ResourceCalculator.csproj
 ```
 
 ### Збірка та тести
 
 ```bash
-dotnet build AIResourceCalculator.slnx -c Release
-dotnet test  AIResourceCalculator.slnx -c Release
+dotnet build ResourceCalculator.slnx -c Release
+dotnet test  ResourceCalculator.slnx -c Release
 ```
 
 > Потрібен [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) (версія зафіксована у [`global.json`](global.json)).
@@ -69,7 +72,7 @@ dotnet test  AIResourceCalculator.slnx -c Release
 ### Публікація self-contained exe
 
 ```bash
-dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --output publish
+dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
 ```
 
 ---
@@ -81,14 +84,14 @@ dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --out
 | | Портативний `.exe` | MSI-інсталятор |
 |---|---|---|
 | Файл | `publish/ITE.ResourceCalculator.exe` | `publish/ITE.ResourceCalculator.msi` |
-| Оновлення | Перевірка версії з GitHub Release у фоні ([`UpdateCheckService`](AIResourceCalculator/Services/UpdateCheckService.cs)) | Класичний Windows Installer upgrade (за `UpgradeCode`, [`Package.wxs`](AIResourceCalculator.Installer/Package.wxs)) |
+| Оновлення | Перевірка версії з GitHub Release у фоні ([`UpdateCheckService`](ResourceCalculator/Services/UpdateCheckService.cs)) | Класичний Windows Installer upgrade (за `UpgradeCode`, [`Package.wxs`](ResourceCalculator.Installer/Package.wxs)) |
 | Автоматичне | Ні — заміна вручну | Ні — користувач сам запускає новий MSI (або GPO/SCCM) |
 
 Поточна версія показана в шапці вікна (поруч із підзаголовком).
 
 ### 🔏 Цифровий підпис exe
 
-[`sign.ps1`](sign.ps1) підписує опублікований `publish\AIResourceCalculator.exe`:
+[`sign.ps1`](sign.ps1) підписує опублікований `publish\ITE.ResourceCalculator.exe`:
 
 ```powershell
 # Самопідписаний сертифікат (для внутрішнього використання)
@@ -133,16 +136,16 @@ GitHub Release з обома артефактами (`.exe` і `.msi`).
 **Платформа:** C# / WPF · .NET 10 · MVVM
 **Архітектура:** Microsoft.Extensions.DependencyInjection (DI-контейнер)
 **Excel:** EPPlus 7.6 (читання та експорт)
-**Тести:** xUnit (108 тестів) + збір звітів покриття (ReportGenerator)
+**Тести:** xUnit (130 тестів) + збір звітів покриття (ReportGenerator)
 
 ---
 
 ## 📁 Структура проєкту
 
 ```
-Calculator-servers.slnx
+ResourceCalculator.slnx
 ├── Directory.Build.props            # спільна версія (AppVersion)
-├── AIResourceCalculator/            # WPF-застосунок
+├── ResourceCalculator/            # WPF-застосунок
 │   ├── Models/                      # моделі даних (вузли, діапазони, модулі)
 │   ├── Services/                    # рушій сайзингу, експорт, валідація, диски
 │   ├── ViewModels/                  # ViewModel'и MVVM
@@ -150,8 +153,8 @@ Calculator-servers.slnx
 │   ├── Data/                        # матриця сайзингу за замовчуванням, імпорт Excel
 │   ├── Localization/                # рядки інтерфейсу (uk/en)
 │   └── Themes/                      # теми оформлення
-├── AIResourceCalculator.Tests/      # модульні тести (xUnit, 108)
-├── AIResourceCalculator.Installer/  # WiX-проєкт MSI-інсталятора (Package.wxs)
+├── ResourceCalculator.Tests/      # модульні тести (xUnit, 130)
+├── ResourceCalculator.Installer/  # WiX-проєкт MSI-інсталятора (Package.wxs)
 ├── docs/                            # банер та скріншоти
 ├── release.ps1                      # публікація GitHub Release (exe + msi)
 └── sign.ps1                         # цифровий підпис exe

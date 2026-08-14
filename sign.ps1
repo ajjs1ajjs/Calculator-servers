@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Signs the published AIResourceCalculator.exe with an Authenticode signature.
+    Signs the published ITE.ResourceCalculator.exe with an Authenticode signature.
 
 .DESCRIPTION
     If -PfxPath is given (a purchased / corporate code-signing certificate), signs with it.
@@ -13,11 +13,11 @@
     ./sign.ps1 -PfxPath C:\certs\company.pfx -PfxPassword (Read-Host -AsSecureString)
 #>
 param(
-    [string]$ExePath = "publish/AIResourceCalculator.exe",
+    [string]$ExePath = "publish/ITE.ResourceCalculator.exe",
     [string]$PfxPath,
     [System.Security.SecureString]$PfxPassword,
     [string]$TimestampUrl = "http://timestamp.digicert.com",
-    [string]$SelfSignedSubject = "CN=IT-Enterprise AIResourceCalculator",
+    [string]$SelfSignedSubject = "CN=IT-Enterprise ResourceCalculator",
     # Термін дії самопідписаного сертифіката, років. Великий строк = практично «без терміну».
     # Мітка часу (timestamp) і так лишає підпис чинним після завершення строку дії.
     [int]$Years = 25,
@@ -31,7 +31,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $ExePath)) {
-    throw "$ExePath not found. Run first: dotnet publish AIResourceCalculator/AIResourceCalculator.csproj -c Release --output publish"
+    throw "$ExePath not found. Run first: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish"
 }
 
 if ($PfxPath) {

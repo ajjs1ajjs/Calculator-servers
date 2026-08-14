@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <!-- Видима назва програми та ім'я exe. Кодовий namespace лишається ResourceCalculator
+         (RootNamespace зафіксовано явно, щоб зміна AssemblyName його не зачіпала). -->
+    <AssemblyName>ITE.ResourceCalculator</AssemblyName>
+    <RootNamespace>ResourceCalculator</RootNamespace>
+    <Product>IT-Enterprise Калькулятор ресурсів</Product>
+    <AssemblyTitle>IT-Enterprise Калькулятор ресурсів</AssemblyTitle>
+    <Company>IT-Enterprise</Company>
+    <!-- Версія береться з Directory.Build.props ($(AppVersion)) — те саме значення використовує
+         й інсталятор (MSI ProductVersion). UpdateCheckService порівнює InformationalVersion
+         з останнім GitHub Release, щоб показати користувачам сповіщення про оновлення. -->
+    <Version>$(AppVersion).0</Version>
+    <FileVersion>$(AppVersion).0</FileVersion>
+    <InformationalVersion>$(AppVersion)</InformationalVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EPPlus" Version="7.6.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="QuestPDF" Version="2026.6.1" />
+  </ItemGroup>
+
+  <!-- Автопідпис опублікованого exe. Спрацьовує ЛИШЕ при `dotnet publish` (не при звичайному
+       build/run), тож майбутні зміни програми підписуються самі. Використовує наявний
+       самопідписаний 25-річний сертифікат «CN=IT-Enterprise ResourceCalculator» через sign.ps1.
+       ContinueOnError: тимчасовий збій підпису (зайнятий файл / недоступний timestamp) не валить publish. -->
+  <Target Name="SignPublishedExe" AfterTargets="Publish">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\sign.ps1&quot; -ExePath &quot;$(PublishDir)$(AssemblyName).exe&quot;" ContinueOnError="true" />
+  </Target>
+
+  <!-- Чистий one-file дистрибутив: прибираємо з publish зайве — папку шрифтів QuestPDF (Lato
+       вшитий у бібліотеку, з диска не читається — перевірено) та .pdb (символи лагодження,
+       користувачам не потрібні). Лишається єдиний exe. -->
+  <Target Name="CleanPublishExtras" AfterTargets="Publish">
+    <RemoveDir Directories="$(PublishDir)LatoFont" />
+    <Delete Files="$(PublishDir)$(AssemblyName).pdb" />
+  </Target>
+
+</Project>

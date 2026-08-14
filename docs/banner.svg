@@ -64,7 +64,7 @@
 
   <text x="282" y="168" font-family="'Segoe UI', Arial, sans-serif" font-size="56" font-weight="700" fill="#FFFFFF" filter="url(#textGlow)">IT-Enterprise<tspan fill="#00E5FF"> Resource Calculator</tspan></text>
   <text x="286" y="222" font-family="'Segoe UI', Arial, sans-serif" font-size="24" font-weight="400" fill="#A6B4CC">Автоматизований розрахунок ресурсів IT-інфраструктури</text>
-  <text x="286" y="258" font-family="'Segoe UI', Arial, sans-serif" font-size="18" font-weight="400" fill="#00E5FF" opacity="0.85">WPF · .NET 10 · MVVM · K8s / Windows / Hybrid</text>
+  <text x="286" y="258" font-family="'Segoe UI', Arial, sans-serif" font-size="18" font-weight="400" fill="#00E5FF" opacity="0.85">WPF · .NET 10 · MVVM · Editable Matrix</text>
 
   <g font-family="'Segoe UI', Arial, sans-serif" font-size="15" font-weight="600">
     <rect x="980" y="300" width="132" height="34" rx="17" fill="#7B2FFF"/>

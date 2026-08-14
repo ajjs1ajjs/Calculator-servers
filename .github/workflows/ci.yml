@@ -40,4 +40,4 @@ jobs:
         path: coverage/report
 
     - name: Publish (self-contained)
-      run: dotnet publish AIResourceCalculator/AIResourceCalculator.csproj --configuration Release --output publish
+      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish

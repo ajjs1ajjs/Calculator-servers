@@ -1,4 +1,0 @@
-<Solution>
-  <Project Path="AIResourceCalculator.Tests/AIResourceCalculator.Tests.csproj" />
-  <Project Path="AIResourceCalculator/AIResourceCalculator.csproj" />
-</Solution>
