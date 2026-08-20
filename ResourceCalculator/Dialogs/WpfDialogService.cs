@@ -18,23 +18,33 @@ public class WpfDialogService : IDialogService, IFileSaveService
         _owner = owner;
     }
 
-    public bool Confirm(string message, string title)
-        => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+    public Task<bool> ConfirmAsync(string message, string title)
+        => Task.FromResult(MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes);
 
-    public void Info(string message, string title)
-        => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-
-    public void Error(string message, string title)
-        => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-
-    public bool ShowPasswordDialog()
+    public Task InfoAsync(string message, string title)
     {
-        var dialog = new PasswordDialog(_access, _owner());
-        return dialog.ShowDialog() == true && dialog.Unlocked;
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        return Task.CompletedTask;
     }
 
-    public void ShowChangePasswordDialog()
-        => new ChangePasswordDialog(_access, _owner()).ShowDialog();
+    public Task ErrorAsync(string message, string title)
+    {
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> ShowPasswordDialogAsync()
+    {
+        var dialog = new PasswordDialog(_access, _owner());
+        var result = dialog.ShowDialog() == true && dialog.Unlocked;
+        return Task.FromResult(result);
+    }
+
+    public Task ShowChangePasswordDialogAsync()
+    {
+        new ChangePasswordDialog(_access, _owner()).ShowDialog();
+        return Task.CompletedTask;
+    }
 
     public string? PickSavePath(string defaultFileName, string filterDescription, string extension)
     {

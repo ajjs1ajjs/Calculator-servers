@@ -345,12 +345,12 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void InitializeCommands()
     {
-        CalculateCommand = new RelayCommand(_ => Calculate());
-        ExportExcelCommand = new RelayCommand(_ => ExportExcel());
-        ExportPdfCommand = new RelayCommand(_ => ExportPdf());
+        CalculateCommand = new AsyncRelayCommand(_ => CalculateAsync());
+        ExportExcelCommand = new AsyncRelayCommand(_ => ExportExcelAsync());
+        ExportPdfCommand = new AsyncRelayCommand(_ => ExportPdfAsync());
         LangSwitchCommand = new RelayCommand(_ => SwitchLanguage());
         ThemeSwitchCommand = new RelayCommand(_ => SwitchTheme());
-        RecallHistoryCommand = new RelayCommand(_ => RecallHistory());
+        RecallHistoryCommand = new AsyncRelayCommand(_ => RecallHistoryAsync());
 
         LoadHistory();
     }
@@ -386,7 +386,7 @@ public class MainViewModel : INotifyPropertyChanged
         };
     }
 
-    private void Calculate()
+    private Task CalculateAsync()
     {
         try
         {
@@ -403,11 +403,12 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            ShowError(ex, "error.calculation_failed");
+            return ShowErrorAsync(ex, "error.calculation_failed");
         }
+        return Task.CompletedTask;
     }
 
-    private void ShowError(Exception ex, string defaultKey)
+    private async Task ShowErrorAsync(Exception ex, string defaultKey)
     {
         var key = ex switch
         {
@@ -416,7 +417,7 @@ public class MainViewModel : INotifyPropertyChanged
             _ => string.IsNullOrEmpty(defaultKey) ? "error.unknown" : defaultKey
         };
         var message = string.Format(_loc[key], ex.Message);
-        _dialogs.Error(message, _loc["error.title"]);
+        await _dialogs.ErrorAsync(message, _loc["error.title"]);
     }
 
     private void ShowResults(ResourceRequirement req, ProjectConfig config)
@@ -526,9 +527,9 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasHistory));
     }
 
-    private void RecallHistory()
+    private Task RecallHistoryAsync()
     {
-        if (SelectedHistoryIndex < 0 || SelectedHistoryIndex >= HistoryItems.Count) return;
+        if (SelectedHistoryIndex < 0 || SelectedHistoryIndex >= HistoryItems.Count) return Task.CompletedTask;
 
         var item = HistoryItems[SelectedHistoryIndex];
         var config = item.Config;
@@ -551,7 +552,7 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(Modules));
         }
 
-        Calculate();
+        return CalculateAsync();
     }
 
     private void OnMatrixChanged()
@@ -598,8 +599,13 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExportExcel()
     {
+        _ = ExportExcelAsync();
+    }
+
+    private async Task ExportExcelAsync()
+    {
         if (_lastResult == null) return;
-        var path = _files.PickSavePath("resources.xlsx", "Excel files (*.xlsx)", ".xlsx");
+        var path = await Task.Run(() => _files.PickSavePath("resources.xlsx", "Excel files (*.xlsx)", ".xlsx"));
         if (path is null) return;
         var cfg = GetConfig();
         var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
@@ -609,8 +615,13 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExportPdf()
     {
+        _ = ExportPdfAsync();
+    }
+
+    private async Task ExportPdfAsync()
+    {
         if (_lastResult == null) return;
-        var path = _files.PickSavePath("resources.pdf", "PDF files (*.pdf)", ".pdf");
+        var path = await Task.Run(() => _files.PickSavePath("resources.pdf", "PDF files (*.pdf)", ".pdf"));
         if (path is null) return;
         var cfg = GetConfig();
         var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));

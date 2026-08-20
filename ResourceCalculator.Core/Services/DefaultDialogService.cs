@@ -6,18 +6,24 @@ namespace ResourceCalculator.Services;
 // (наприклад, у тестах): повідомлення виводимо в консоль, парольні діалоги — «скасовано».
 public class DefaultDialogService : IDialogService
 {
-    public bool Confirm(string message, string title)
+    public Task<bool> ConfirmAsync(string message, string title)
     {
         System.Diagnostics.Debug.WriteLine($"Dialog: {title} — {message}");
-        return false;
+        return Task.FromResult(false);
     }
 
-    public void Info(string message, string title)
-        => System.Diagnostics.Debug.WriteLine($"Info: {title} — {message}");
+    public Task InfoAsync(string message, string title)
+    {
+        System.Diagnostics.Debug.WriteLine($"Info: {title} — {message}");
+        return Task.CompletedTask;
+    }
 
-    public void Error(string message, string title)
-        => System.Diagnostics.Debug.WriteLine($"Error: {title} — {message}");
+    public Task ErrorAsync(string message, string title)
+    {
+        System.Diagnostics.Debug.WriteLine($"Error: {title} — {message}");
+        return Task.CompletedTask;
+    }
 
-    public bool ShowPasswordDialog() => false;
-    public void ShowChangePasswordDialog() { }
+    public Task<bool> ShowPasswordDialogAsync() => Task.FromResult(false);
+    public Task ShowChangePasswordDialogAsync() => Task.CompletedTask;
 }

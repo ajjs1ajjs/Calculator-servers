@@ -135,25 +135,40 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     private void SaveMatrix()
     {
-        if (!EnsureUnlocked()) return;
+        _ = SaveMatrixAsync();
+    }
+
+    private async Task SaveMatrixAsync()
+    {
+        if (!await EnsureUnlockedAsync()) return;
         SyncGridsToMatrix();
         _matrixManager.Save();
         MatrixChanged?.Invoke();
-        _dialogs?.Info(_loc["dialog.matrixSaved"], "Info");
+        if (_dialogs is not null) await _dialogs.InfoAsync(_loc["dialog.matrixSaved"], "Info");
     }
 
     // Перерахувати: застосовує змінені значення грідів до движка одразу (без запису на диск),
     // щоб вплив на розрахунок було видно без збереження матриці.
     private void RecalculateMatrix()
     {
-        if (!EnsureUnlocked()) return;
+        _ = RecalculateMatrixAsync();
+    }
+
+    private async Task RecalculateMatrixAsync()
+    {
+        if (!await EnsureUnlockedAsync()) return;
         SyncGridsToMatrix();
         MatrixChanged?.Invoke();
     }
 
     private void ResetMatrix()
     {
-        if (!EnsureUnlocked()) return;
+        _ = ResetMatrixAsync();
+    }
+
+    private async Task ResetMatrixAsync()
+    {
+        if (!await EnsureUnlockedAsync()) return;
         _matrixManager.Reset();
         _matrix = _matrixManager.Matrix;
         LoadMatrixGrids();
@@ -162,10 +177,10 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     // Розблокування паролем (один раз на сесію). Показує діалог з контактами розробника,
     // якщо пароль забуто. Помилка введення не блокує повторні спроби.
-    public bool EnsureUnlocked()
+    public async Task<bool> EnsureUnlockedAsync()
     {
         if (IsUnlocked) return true;
-        if (_dialogs?.ShowPasswordDialog() == true)
+        if (_dialogs is not null && await _dialogs.ShowPasswordDialogAsync())
         {
             IsUnlocked = true;
             return true;
@@ -173,10 +188,19 @@ public class MatrixViewModel : INotifyPropertyChanged
         return false;
     }
 
+    // Синхронна перевірка для код-біхинд (WPF BeginningEdit): у WPF діалог синхронний.
+    public bool EnsureUnlocked()
+        => EnsureUnlockedAsync().GetAwaiter().GetResult();
+
     private void ChangePassword()
     {
-        if (!EnsureUnlocked()) return;
-        _dialogs?.ShowChangePasswordDialog();
+        _ = ChangePasswordAsync();
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (!await EnsureUnlockedAsync()) return;
+        if (_dialogs is not null) await _dialogs.ShowChangePasswordDialogAsync();
     }
 
     private void NotifyAllCollections()

@@ -1,17 +1,18 @@
 namespace ResourceCalculator.Interfaces;
 
 // Абстракції UI-діалогів, щоб ViewModels лишались незалежними від UI-фреймворку
-// (WPF на Windows, Avalonia на Linux/macOS).
+// (WPF на Windows, Avalonia на Linux/macOS). Методи асинхронні, бо модальні діалоги
+// Avalonia (ShowDialog) повертають Task.
 public interface IDialogService
 {
     // Так/Ні (підтвердження).
-    bool Confirm(string message, string title);
+    Task<bool> ConfirmAsync(string message, string title);
     // Інформаційне повідомлення.
-    void Info(string message, string title);
+    Task InfoAsync(string message, string title);
     // Повідомлення про помилку.
-    void Error(string message, string title);
+    Task ErrorAsync(string message, string title);
     // Розблокування матриці паролем. true = розблоковано.
-    bool ShowPasswordDialog();
+    Task<bool> ShowPasswordDialogAsync();
     // Зміна пароля матриці.
-    void ShowChangePasswordDialog();
+    Task ShowChangePasswordDialogAsync();
 }
