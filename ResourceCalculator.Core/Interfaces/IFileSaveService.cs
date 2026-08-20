@@ -1,7 +1,8 @@
 namespace ResourceCalculator.Interfaces;
 
 // Вибір файлу для збереження (Excel/PDF). Повертає шлях або null, якщо користувач скасував.
+// Асинхронний, бо Avalonia StorageProvider.SaveFilePickerAsync повертає Task.
 public interface IFileSaveService
 {
-    string? PickSavePath(string defaultFileName, string filterDescription, string extension);
+    Task<string?> PickSavePathAsync(string defaultFileName, string filterDescription, string extension);
 }

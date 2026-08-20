@@ -605,7 +605,7 @@ public class MainViewModel : INotifyPropertyChanged
     private async Task ExportExcelAsync()
     {
         if (_lastResult == null) return;
-        var path = await Task.Run(() => _files.PickSavePath("resources.xlsx", "Excel files (*.xlsx)", ".xlsx"));
+        var path = await _files.PickSavePathAsync("resources.xlsx", "Excel files (*.xlsx)", ".xlsx");
         if (path is null) return;
         var cfg = GetConfig();
         var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
@@ -621,7 +621,7 @@ public class MainViewModel : INotifyPropertyChanged
     private async Task ExportPdfAsync()
     {
         if (_lastResult == null) return;
-        var path = await Task.Run(() => _files.PickSavePath("resources.pdf", "PDF files (*.pdf)", ".pdf"));
+        var path = await _files.PickSavePathAsync("resources.pdf", "PDF files (*.pdf)", ".pdf");
         if (path is null) return;
         var cfg = GetConfig();
         var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));

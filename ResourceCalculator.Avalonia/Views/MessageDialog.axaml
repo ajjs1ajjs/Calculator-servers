@@ -1,0 +1,27 @@
+<Window x:Class="ResourceCalculator.Avalonia.Views.MessageDialog"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="480" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" CanResize="False" ShowInTaskbar="False"
+        Background="{DynamicResource WindowBg}">
+    <Border Margin="20" Padding="4">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <Border Classes="IconBadge" Background="{DynamicResource AccentSoftBg}" Margin="0,0,10,0">
+                    <TextBlock Classes="IconGlyph" Text="💡" Foreground="{DynamicResource AccentBg}"/>
+                </Border>
+                <TextBlock x:Name="TxtTitle" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtMessage" FontSize="13" Foreground="{DynamicResource TextPrimary}"
+                       TextWrapping="Wrap" Margin="0,0,0,16"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnNo" Content="Скасувати" Padding="16,7" Margin="0,0,6,0" Click="BtnNo_Click"/>
+                <Button x:Name="BtnYes" Content="Так" Padding="20,7" Margin="0,0,6,0" Click="BtnYes_Click"
+                        Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"/>
+                <Button x:Name="BtnOk" Content="OK" Padding="20,7" Click="BtnOk_Click"
+                        Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

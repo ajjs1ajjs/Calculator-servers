@@ -46,13 +46,13 @@ public class WpfDialogService : IDialogService, IFileSaveService
         return Task.CompletedTask;
     }
 
-    public string? PickSavePath(string defaultFileName, string filterDescription, string extension)
+    public Task<string?> PickSavePathAsync(string defaultFileName, string filterDescription, string extension)
     {
         var dialog = new SaveFileDialog
         {
             Filter = $"{filterDescription}|*{extension}",
             FileName = defaultFileName
         };
-        return dialog.ShowDialog() == true ? dialog.FileName : null;
+        return Task.FromResult<string?>(dialog.ShowDialog() == true ? dialog.FileName : null);
     }
 }

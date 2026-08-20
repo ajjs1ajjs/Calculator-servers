@@ -38,10 +38,15 @@ public class MatrixViewModel : INotifyPropertyChanged
     // Налаштування рушія (редагування через матрицю).
     public EngineSettings Engine { get; private set; } = new();
 
+    // Допустимі формули реплік для колонки «Формула» (DataGridComboBoxColumn).
+    public IReadOnlyList<ReplicaFormula> FormulaOptions { get; } = Enum.GetValues<ReplicaFormula>();
+
     public ICommand SaveMatrixCommand { get; }
     public ICommand RecalculateMatrixCommand { get; }
     public ICommand ResetMatrixCommand { get; }
     public ICommand ChangePasswordCommand { get; }
+    // Додавання нового рядка в одну з таблиць матриці (Avalonia DataGrid не має CanUserAddRows).
+    public ICommand AddRowCommand { get; }
 
     public event System.Action? MatrixChanged;
 
@@ -66,6 +71,7 @@ public class MatrixViewModel : INotifyPropertyChanged
         RecalculateMatrixCommand = new RelayCommand(_ => RecalculateMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
         ChangePasswordCommand = new RelayCommand(_ => ChangePassword());
+        AddRowCommand = new RelayCommand(p => AddRow(p?.ToString()));
     }
 
     // Розблоковано (пароль підтверджено) — дозволяє змінювати чутливі дані матриці.
@@ -214,6 +220,22 @@ public class MatrixViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(InfraNodes));
         OnPropertyChanged(nameof(WindowsInfraNodes));
         OnPropertyChanged(nameof(OptionalInfraNodes));
+    }
+
+    private void AddRow(string? key)
+    {
+        switch (key)
+        {
+            case "MsSql": MsSqlRanges.Add(new UserLoadRange()); break;
+            case "AppServer": AppServerRanges.Add(new UserLoadRange()); break;
+            case "WebServer": WebServerRanges.Add(new UserLoadRange()); break;
+            case "Postgres": PostgresRanges.Add(new UserLoadRange()); break;
+            case "Oracle": OracleRanges.Add(new UserLoadRange()); break;
+            case "K8s": K8sDocumentFlowComponents.Add(new ServiceComponent { Name = "New component", Formula = ReplicaFormula.Fixed }); break;
+            case "Infra": InfraNodes.Add(new InfrastructureNode()); break;
+            case "WindowsInfra": WindowsInfraNodes.Add(new InfrastructureNode()); break;
+            case "OptionalInfra": OptionalInfraNodes.Add(new InfrastructureNode()); break;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

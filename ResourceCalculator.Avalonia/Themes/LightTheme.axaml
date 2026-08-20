@@ -1,0 +1,39 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Сучасна палітра (Catppuccin Latte) — узгоджена зі звітами Excel/PDF. -->
+    <SolidColorBrush x:Key="WindowBg" Color="#EFF1F5"/>
+    <SolidColorBrush x:Key="HeaderBg" Color="#1E66F5"/>
+    <SolidColorBrush x:Key="StatusBarBg" Color="#4C4F69"/>
+    <SolidColorBrush x:Key="CardBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputFg" Color="#4C4F69"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#CCD0DA"/>
+    <SolidColorBrush x:Key="GridBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="GridAltBg" Color="#F2F4FA"/>
+    <SolidColorBrush x:Key="GridFg" Color="#4C4F69"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#3C3F58"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#6C6F85"/>
+    <SolidColorBrush x:Key="TextOnDark" Color="#DCE0F0"/>
+    <SolidColorBrush x:Key="TextWhite" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="AccentBg" Color="#1E66F5"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#1857D6"/>
+    <SolidColorBrush x:Key="SuccessBg" Color="#40A02B"/>
+    <SolidColorBrush x:Key="WarningBg" Color="#FE640B"/>
+    <SolidColorBrush x:Key="DangerBg" Color="#D20F39"/>
+    <SolidColorBrush x:Key="PurpleBg" Color="#8839EF"/>
+    <SolidColorBrush x:Key="HighlightBg" Color="#E6ECFE"/>
+    <SolidColorBrush x:Key="InfoBg" Color="#E6ECFE"/>
+    <SolidColorBrush x:Key="PanelCompareBg" Color="#E6E9EF"/>
+    <SolidColorBrush x:Key="DiagramBg" Color="#4C4F69"/>
+    <SolidColorBrush x:Key="GridHeaderBg" Color="#1E66F5"/>
+    <SolidColorBrush x:Key="GridHeaderFg" Color="#FFFFFF"/>
+
+    <!-- М'які кольорові підкладки для іконок-бейджів (у стилі Tailwind *-50). -->
+    <SolidColorBrush x:Key="AccentSoftBg" Color="#EFF6FF"/>
+    <SolidColorBrush x:Key="SuccessSoftBg" Color="#ECFDF5"/>
+    <SolidColorBrush x:Key="WarningSoftBg" Color="#FFFBEB"/>
+    <SolidColorBrush x:Key="DangerSoftBg" Color="#FFF1F2"/>
+    <SolidColorBrush x:Key="PurpleSoftBg" Color="#F5F3FF"/>
+    <SolidColorBrush x:Key="SurfaceBg" Color="#F8FAFC"/>
+</ResourceDictionary>
