@@ -13,6 +13,6 @@ public partial class MainWindow : Window
 
     private async void CheckUpdates_Click(object? sender, RoutedEventArgs e)
     {
-        await ((App)Application.Current).CheckForUpdatesAsync(silent: false);
+        await ((App)Application.Current!).CheckForUpdatesAsync(silent: false);
     }
 }
