@@ -63,6 +63,16 @@ public partial class App : Application
         }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
+    // Поточна версія застосунку для показу: чистий вигляд (без суфікса SourceLink +<sha>).
+    private static string DisplayVersion()
+    {
+        var informational = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (string.IsNullOrWhiteSpace(informational)) return "?";
+        var plus = informational.IndexOf('+');
+        return plus > 0 ? informational[..plus] : informational;
+    }
+
     // Перевірка оновлень із показом результату. silent=true — фонова перевірка при старті:
     // показує діалог лише коли є нова версія; ручна перевірка (кнопка) показує і «немає
     // оновлень», і помилку перевірки.
@@ -74,8 +84,7 @@ public partial class App : Application
         switch (update.Status)
         {
             case UpdateCheckStatus.UpdateAvailable:
-                var currentVersion = Assembly.GetExecutingAssembly()
-                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+                var currentVersion = DisplayVersion();
                 var result = MessageBox.Show(
                     string.Format(loc["update.message"], update.Update!.Version, currentVersion),
                     loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);

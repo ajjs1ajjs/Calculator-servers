@@ -93,9 +93,16 @@ public class UpdateCheckService : IUpdateCheckService
         catch { /* logging must never break the app */ }
     }
 
-    private static string GetCurrentVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-        ?? "0.0.0";
+    private static string GetCurrentVersion()
+    {
+        // Версію беремо з entry-assembly (exe застосунку: ITE.ResourceCalculator.exe),
+        // а НЕ з Assembly.GetExecutingAssembly() — тут виконується код Core, і версія
+        // Core завжди 1.0.0 (не задана), через що апка вічно пропонувала оновлення.
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+               ?? assembly.GetName().Version?.ToString()
+               ?? "0.0.0";
+    }
 
     private static Version? ParseVersion(string raw)
     {

@@ -88,8 +88,7 @@ public partial class App : Application
             var result = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync().ConfigureAwait(false);
 
             var loc = LocalizationService.Instance;
-            var currentVersion = Assembly.GetExecutingAssembly()
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+            var currentVersion = DisplayVersion();
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var dialogs = Services.GetRequiredService<IDialogService>();
@@ -120,6 +119,16 @@ public partial class App : Application
         {
             Debug.WriteLine($"Update check crashed: {ex.Message}");
         }
+    }
+
+    // Поточна версія застосунку для показу: чистий вигляд (без суфікса SourceLink +<sha>).
+    private static string DisplayVersion()
+    {
+        var informational = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (string.IsNullOrWhiteSpace(informational)) return "?";
+        var plus = informational.IndexOf('+');
+        return plus > 0 ? informational[..plus] : informational;
     }
 
     private static void LogError(string message)
