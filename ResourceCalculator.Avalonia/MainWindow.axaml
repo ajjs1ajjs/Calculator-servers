@@ -41,6 +41,13 @@
                         </StackPanel>
                     </Button>
                     <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13" Margin="0,0,8,0"
+                            Click="CheckUpdates_Click" ToolTip.Tip="{loc:Loc update.check}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Loc update.check}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13" Margin="0,0,8,0"
                             Command="{Binding ThemeSwitchCommand}" ToolTip.Tip="{loc:Loc tooltip.themeSwitch}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding ThemeIcon}" FontSize="15" Margin="0,0,6,0"/>

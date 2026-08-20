@@ -56,28 +56,45 @@ public partial class App : Application
         mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
         mainWindow.Show();
 
-        _ = CheckForUpdatesAsync().ContinueWith(t =>
+        _ = CheckForUpdatesAsync(silent: true).ContinueWith(t =>
         {
             if (t.IsFaulted)
                 Debug.WriteLine($"Update check crashed: {t.Exception?.InnerException?.Message}");
         }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
-    private async Task CheckForUpdatesAsync()
+    // Перевірка оновлень із показом результату. silent=true — фонова перевірка при старті:
+    // показує діалог лише коли є нова версія; ручна перевірка (кнопка) показує і «немає
+    // оновлень», і помилку перевірки.
+    internal async Task CheckForUpdatesAsync(bool silent)
     {
         var update = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync().ConfigureAwait(false);
-        if (update is null) return;
-
         var loc = LocalizationService.Instance;
-        var currentVersion = Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
-        var result = MessageBox.Show(
-            string.Format(loc["update.message"], update.Version, currentVersion),
-            loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);
 
-        if (result == MessageBoxResult.Yes)
+        switch (update.Status)
         {
-            Process.Start(new ProcessStartInfo(update.DownloadUrl) { UseShellExecute = true });
+            case UpdateCheckStatus.UpdateAvailable:
+                var currentVersion = Assembly.GetExecutingAssembly()
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+                var result = MessageBox.Show(
+                    string.Format(loc["update.message"], update.Update!.Version, currentVersion),
+                    loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    Process.Start(new ProcessStartInfo(update.Update.DownloadUrl) { UseShellExecute = true });
+                }
+                break;
+
+            case UpdateCheckStatus.NoUpdate:
+                if (!silent)
+                    MessageBox.Show(loc["update.none"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Information);
+                break;
+
+            case UpdateCheckStatus.Failed:
+                if (!silent)
+                    MessageBox.Show(loc["update.failed"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Warning);
+                break;
         }
     }
 

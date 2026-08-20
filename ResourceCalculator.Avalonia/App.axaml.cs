@@ -75,18 +75,17 @@ public partial class App : Application
             desktop.MainWindow = mainWindow;
             mainWindow.Show();
 
-            _ = CheckForUpdatesAsync();
+            _ = CheckForUpdatesAsync(silent: true);
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private async System.Threading.Tasks.Task CheckForUpdatesAsync()
+    internal async System.Threading.Tasks.Task CheckForUpdatesAsync(bool silent)
     {
         try
         {
-            var update = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync().ConfigureAwait(false);
-            if (update is null) return;
+            var result = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync().ConfigureAwait(false);
 
             var loc = LocalizationService.Instance;
             var currentVersion = Assembly.GetExecutingAssembly()
@@ -94,11 +93,26 @@ public partial class App : Application
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var dialogs = Services.GetRequiredService<IDialogService>();
-                if (await dialogs.ConfirmAsync(
-                    string.Format(loc["update.message"], update.Version, currentVersion),
-                    loc["update.title"]))
+                switch (result.Status)
                 {
-                    Process.Start(new ProcessStartInfo(update.DownloadUrl) { UseShellExecute = true });
+                    case UpdateCheckStatus.UpdateAvailable:
+                        if (await dialogs.ConfirmAsync(
+                            string.Format(loc["update.message"], result.Update!.Version, currentVersion),
+                            loc["update.title"]))
+                        {
+                            Process.Start(new ProcessStartInfo(result.Update.DownloadUrl) { UseShellExecute = true });
+                        }
+                        break;
+
+                    case UpdateCheckStatus.NoUpdate:
+                        if (!silent)
+                            await dialogs.InfoAsync(loc["update.none"], loc["update.title"]);
+                        break;
+
+                    case UpdateCheckStatus.Failed:
+                        if (!silent)
+                            await dialogs.ErrorAsync(loc["update.failed"], loc["update.title"]);
+                        break;
                 }
             });
         }

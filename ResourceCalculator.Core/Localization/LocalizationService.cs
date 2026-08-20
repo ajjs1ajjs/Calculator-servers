@@ -237,6 +237,9 @@ public class LocalizationService : ILocalizationService
         ["dialog.matrixSaved"] = "Матрицю збережено",
         ["update.title"] = "Доступне оновлення",
         ["update.message"] = "Вийшла нова версія {0} (у вас — {1}).\n\nВідкрити сторінку завантаження?",
+        ["update.check"] = "Перевірити оновлення",
+        ["update.none"] = "У вас найновіша версія.",
+        ["update.failed"] = "Не вдалося перевірити наявність оновлень.\nПеревірте інтернет-з'єднання та спробуйте ще раз.",
     };
 
     private static readonly Dictionary<string, string> StringsEn = new()
@@ -470,6 +473,9 @@ public class LocalizationService : ILocalizationService
         ["dialog.matrixSaved"] = "Matrix saved",
         ["update.title"] = "Update available",
         ["update.message"] = "A new version {0} is available (you have {1}).\n\nOpen the download page?",
+        ["update.check"] = "Check for updates",
+        ["update.none"] = "You're up to date.",
+        ["update.failed"] = "Couldn't check for updates.\nCheck your internet connection and try again.",
     };
 
     private static readonly LocalizationService _instance = new();

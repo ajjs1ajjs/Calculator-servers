@@ -9,8 +9,8 @@ namespace ResourceCalculator.Services;
 
 /// <summary>
 /// Перевіряє GitHub Releases репозиторію на наявність версії, новішої за поточну.
-/// Мережеві/парсинг-помилки (немає інтернету, rate limit) навмисно проковтуються —
-/// це фонова перевірка, вона не повинна заважати роботі застосунку.
+/// Мережеві/парсинг-помилки (немає інтернету, rate limit, повільна мережа) не кидаються —
+/// повертається Failed зі записом у лог, щоб ручна перевірка могла показати користувачу.
 /// </summary>
 public class UpdateCheckService : IUpdateCheckService
 {
@@ -26,38 +26,71 @@ public class UpdateCheckService : IUpdateCheckService
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2)
         };
-        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+        // 15с замість 5с: GitHub API іноді повільний, короткий таймаут тихо вбивав перевірку.
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ITE.ResourceCalculator", GetCurrentVersion()));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
     }
 
-    public async Task<UpdateInfo?> CheckForUpdateAsync()
+    public async Task<UpdateCheckResult> CheckForUpdateAsync()
     {
+        // Ретраї з невеликим бек-офом: після публікації релізу /releases/latest кілька хвилин
+        // кешує старий стан, а rate-limit (60/год на IP) теж зникає сам.
+        const int attempts = 3;
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            try
+            {
+                using var response = await Http.GetAsync(LatestReleaseUrl).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    LogCheck($"HTTP {(int)response.StatusCode}");
+                    if (attempt < attempts) { await DelayBackoff(attempt); continue; }
+                    return new UpdateCheckResult(UpdateCheckStatus.Failed);
+                }
+
+                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var json = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
+                var root = json.RootElement;
+
+                var tagName = root.GetProperty("tag_name").GetString();
+                var releaseUrl = root.GetProperty("html_url").GetString();
+                if (string.IsNullOrWhiteSpace(tagName) || string.IsNullOrWhiteSpace(releaseUrl))
+                    return new UpdateCheckResult(UpdateCheckStatus.Failed);
+
+                var latestVersion = ParseVersion(tagName);
+                var currentVersion = ParseVersion(GetCurrentVersion());
+                if (latestVersion is null || currentVersion is null)
+                    return new UpdateCheckResult(UpdateCheckStatus.Failed);
+
+                if (latestVersion > currentVersion)
+                    return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, releaseUrl));
+
+                return new UpdateCheckResult(UpdateCheckStatus.NoUpdate);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
+            {
+                LogCheck($"attempt {attempt}: {ex.GetType().Name}: {ex.Message}");
+                if (attempt < attempts) { await DelayBackoff(attempt); continue; }
+                return new UpdateCheckResult(UpdateCheckStatus.Failed);
+            }
+        }
+        return new UpdateCheckResult(UpdateCheckStatus.Failed);
+    }
+
+    private static Task DelayBackoff(int attempt) =>
+        Task.Delay(TimeSpan.FromSeconds(attempt));
+
+    private static void LogCheck(string message)
+    {
+        Debug.WriteLine($"Update check: {message}");
         try
         {
-            using var response = await Http.GetAsync(LatestReleaseUrl).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode) return null;
-
-            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            using var json = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
-            var root = json.RootElement;
-
-            var tagName = root.GetProperty("tag_name").GetString();
-            var releaseUrl = root.GetProperty("html_url").GetString();
-            if (string.IsNullOrWhiteSpace(tagName) || string.IsNullOrWhiteSpace(releaseUrl)) return null;
-
-            var latestVersion = ParseVersion(tagName);
-            var currentVersion = ParseVersion(GetCurrentVersion());
-            if (latestVersion is null || currentVersion is null) return null;
-
-            return latestVersion > currentVersion ? new UpdateInfo(tagName, releaseUrl) : null;
+            var logPath = Path.Combine(AppContext.BaseDirectory, "update-check.log");
+            File.AppendAllText(logPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}\n");
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
-        {
-            Debug.WriteLine($"Update check failed: {ex.Message}");
-            return null;
-        }
+        catch { /* logging must never break the app */ }
     }
 
     private static string GetCurrentVersion() =>
