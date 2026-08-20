@@ -130,6 +130,13 @@
         "type": "Transitive",
         "resolved": "5.0.0",
         "contentHash": "dMkqfy2el8A8/I76n2Hi1oBFEbG1SfxD2l5nhwXV3XjlnOmwxJlQbYpJH4W51odnU9sARCSAgv7S3CyAFMkpYg=="
+      },
+      "resourcecalculator.core": {
+        "type": "Project",
+        "dependencies": {
+          "EPPlus": "[7.6.0, )",
+          "QuestPDF": "[2026.6.1, )"
+        }
       }
     },
     "net10.0-windows7.0/win-x64": {

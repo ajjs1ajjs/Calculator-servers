@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using ResourceCalculator.Dialogs;
 using ResourceCalculator.Interfaces;
 using ResourceCalculator.Localization;
 using ResourceCalculator.Services;
@@ -33,6 +34,11 @@ public partial class App : Application
         sc.AddSingleton<ResourceCalculator.Data.SizingMatrix>();
         sc.AddSingleton<MatrixManager>();
         sc.AddSingleton<AccessService>();
+        sc.AddSingleton<IDialogService>(sp =>
+            new WpfDialogService(sp.GetRequiredService<AccessService>(),
+                () => System.Windows.Application.Current.MainWindow));
+        sc.AddSingleton<IFileSaveService>(sp => (IFileSaveService)sp.GetRequiredService<IDialogService>());
+        sc.AddSingleton<IThemeService, WpfThemeService>();
         sc.AddTransient<ConfigExportService>();
         sc.AddTransient<ResultsPresenter>();
         sc.AddTransient<EnvironmentBuilder>();

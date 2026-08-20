@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Input;
 using ResourceCalculator.Data;
 using ResourceCalculator.Interfaces;
@@ -20,6 +19,9 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _loc;
     private readonly ResultsPresenter _results;
     private readonly EnvironmentBuilder _envBuilder;
+    private readonly IDialogService _dialogs;
+    private readonly IFileSaveService _files;
+    private readonly IThemeService? _theme;
     private ResourceRequirement? _lastResult;
 
     public MatrixViewModel MatrixVM { get; }
@@ -41,15 +43,21 @@ public class MainViewModel : INotifyPropertyChanged
         MatrixManager matrixManager,
         ResultsPresenter results,
         EnvironmentBuilder envBuilder,
-        ISizingEngine engine)
+        ISizingEngine engine,
+        IDialogService? dialogs = null,
+        IFileSaveService? files = null,
+        IThemeService? theme = null)
     {
         _loc = localization;
         _historyService = historyService;
         _results = results;
         _envBuilder = envBuilder;
         _engine = engine;
+        _dialogs = dialogs ?? new DefaultDialogService();
+        _files = files ?? new DefaultFileSaveService();
+        _theme = theme;
 
-        MatrixVM = new MatrixViewModel(_loc, matrixManager);
+        MatrixVM = new MatrixViewModel(_loc, matrixManager, dialogs: dialogs);
 
         Modules = new ObservableCollection<ProjectModule>(_engine.Modules);
         _statusText = _loc["status.ready"];
@@ -408,7 +416,7 @@ public class MainViewModel : INotifyPropertyChanged
             _ => string.IsNullOrEmpty(defaultKey) ? "error.unknown" : defaultKey
         };
         var message = string.Format(_loc[key], ex.Message);
-        MessageBox.Show(message, _loc["error.title"], MessageBoxButton.OK, MessageBoxImage.Error);
+        _dialogs.Error(message, _loc["error.title"]);
     }
 
     private void ShowResults(ResourceRequirement req, ProjectConfig config)
@@ -591,35 +599,23 @@ public class MainViewModel : INotifyPropertyChanged
     private void ExportExcel()
     {
         if (_lastResult == null) return;
-        var saveDialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "Excel files (*.xlsx)|*.xlsx",
-            FileName = "resources.xlsx"
-        };
-        if (saveDialog.ShowDialog() == true)
-        {
-            var cfg = GetConfig();
-            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
-            System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
-            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
-        }
+        var path = _files.PickSavePath("resources.xlsx", "Excel files (*.xlsx)", ".xlsx");
+        if (path is null) return;
+        var cfg = GetConfig();
+        var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+        System.IO.File.WriteAllBytes(path, bytes);
+        StatusText = string.Format(_loc["status.saved"], path);
     }
 
     private void ExportPdf()
     {
         if (_lastResult == null) return;
-        var saveDialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Filter = "PDF files (*.pdf)|*.pdf",
-            FileName = "resources.pdf"
-        };
-        if (saveDialog.ShowDialog() == true)
-        {
-            var cfg = GetConfig();
-            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
-            System.IO.File.WriteAllBytes(saveDialog.FileName, bytes);
-            StatusText = string.Format(_loc["status.saved"], saveDialog.FileName);
-        }
+        var path = _files.PickSavePath("resources.pdf", "PDF files (*.pdf)", ".pdf");
+        if (path is null) return;
+        var cfg = GetConfig();
+        var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+        System.IO.File.WriteAllBytes(path, bytes);
+        StatusText = string.Format(_loc["status.saved"], path);
     }
 
     private void SwitchLanguage()
@@ -631,7 +627,7 @@ public class MainViewModel : INotifyPropertyChanged
     private void SwitchTheme()
     {
         IsDarkTheme = !IsDarkTheme;
-        ResourceCalculator.Themes.ThemeService.SetDark(IsDarkTheme);
+        _theme?.SetDark(IsDarkTheme);
     }
 
     #endregion

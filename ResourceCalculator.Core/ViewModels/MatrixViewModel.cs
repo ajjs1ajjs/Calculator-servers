@@ -16,6 +16,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _loc;
     private readonly MatrixManager _matrixManager;
     private readonly AccessService _access;
+    private readonly IDialogService? _dialogs;
     private SizingMatrix _matrix;
     private bool _unlocked;
 
@@ -51,11 +52,12 @@ public class MatrixViewModel : INotifyPropertyChanged
         set { _matrix = value; LoadMatrixGrids(); }
     }
 
-    public MatrixViewModel(ILocalizationService loc, MatrixManager matrixManager, AccessService? access = null)
+    public MatrixViewModel(ILocalizationService loc, MatrixManager matrixManager, AccessService? access = null, IDialogService? dialogs = null)
     {
         _loc = loc;
         _matrixManager = matrixManager;
         _access = access ?? new AccessService();
+        _dialogs = dialogs;
         _matrix = matrixManager.Matrix;
 
         _access.EnsureInitialized();
@@ -137,8 +139,7 @@ public class MatrixViewModel : INotifyPropertyChanged
         SyncGridsToMatrix();
         _matrixManager.Save();
         MatrixChanged?.Invoke();
-        System.Windows.MessageBox.Show(_loc["dialog.matrixSaved"], "Info",
-            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        _dialogs?.Info(_loc["dialog.matrixSaved"], "Info");
     }
 
     // Перерахувати: застосовує змінені значення грідів до движка одразу (без запису на диск),
@@ -164,8 +165,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     public bool EnsureUnlocked()
     {
         if (IsUnlocked) return true;
-        var dialog = new Views.PasswordDialog(_access, System.Windows.Application.Current.MainWindow);
-        if (dialog.ShowDialog() == true && dialog.Unlocked)
+        if (_dialogs?.ShowPasswordDialog() == true)
         {
             IsUnlocked = true;
             return true;
@@ -176,8 +176,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     private void ChangePassword()
     {
         if (!EnsureUnlocked()) return;
-        var dialog = new Views.ChangePasswordDialog(_access, System.Windows.Application.Current.MainWindow);
-        dialog.ShowDialog();
+        _dialogs?.ShowChangePasswordDialog();
     }
 
     private void NotifyAllCollections()

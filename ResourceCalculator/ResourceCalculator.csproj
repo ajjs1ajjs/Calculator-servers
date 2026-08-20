@@ -35,6 +35,10 @@
     <PackageReference Include="QuestPDF" Version="2026.6.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ResourceCalculator.Core\ResourceCalculator.Core.csproj" />
+  </ItemGroup>
+
   <!-- Автопідпис опублікованого exe. Спрацьовує ЛИШЕ при `dotnet publish` (не при звичайному
        build/run), тож майбутні зміни програми підписуються самі. Використовує наявний
        самопідписаний 25-річний сертифікат «CN=IT-Enterprise ResourceCalculator» через sign.ps1.
