@@ -1,22 +1,22 @@
 <div align="center">
 
+<img src="docs/banner.svg?v=4" width="100%" alt="IT-Enterprise Resource Calculator">
+
 # 🧮 IT-Enterprise Resource Calculator
 
 **Калькулятор ресурсів IT-інфраструктури на основі матриці сайзингу**
 
-![banner](docs/banner.svg?v=4)
-
-[![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?style=for-the-badge&label=Останній+реліз&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?style=for-the-badge&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?style=for-the-badge&label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Tests](https://img.shields.io/badge/tests-135_passing-00C853?style=for-the-badge)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Platform](https://img.shields.io/badge/platform-Windows_10_11-00E5FF?style=for-the-badge)]()
-[![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge)]()
-[![License](https://img.shields.io/badge/license-MIT-26A69A?style=for-the-badge)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?label=release&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![Tests](https://img.shields.io/badge/tests-135%20passing-00C853)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-00E5FF)]()
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4)]()
+[![License](https://img.shields.io/badge/license-MIT-26A69A)](LICENSE)
 
 **WPF · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
 
-<a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/⬇️_Завантажити-2.0.2-00A0C6?style=for-the-badge"></a>
+<a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/Download-latest-00A0C6"></a>
 
 </div>
 
