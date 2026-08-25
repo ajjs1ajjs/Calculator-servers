@@ -26,8 +26,20 @@ public class MainViewModel : INotifyPropertyChanged
 
     public MatrixViewModel MatrixVM { get; }
 
-    public string AppVersion => "v" + (Assembly.GetExecutingAssembly()
-        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?");
+    public string AppVersion
+    {
+        get
+        {
+            // MainViewModel живе в Core, тому ExecutingAssembly() повертає Core (1.0.0).
+            // Для UI потрібна версія entry executable, задана через AppVersion у props.
+            var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+            var informational = assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (string.IsNullOrWhiteSpace(informational)) return "v?";
+            var plus = informational.IndexOf('+');
+            return "v" + (plus > 0 ? informational[..plus] : informational);
+        }
+    }
 
     private string _userCount = "100";
     private int _deploymentIndex;
