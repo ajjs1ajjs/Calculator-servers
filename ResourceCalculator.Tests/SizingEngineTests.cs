@@ -807,15 +807,15 @@ public class SizingEngineTests
         // а не на 100, як типові поди), і після коригування LMS-GraphQL за навантажувальним тестом
         // (LMS_LT_results.pdf): CPU/репліку 0.25 (було 0.09), формула LmsGraphqlLoadTest замість
         // Per25Users (297 реплік на 7500 замість 300 — близько, але CPU/RAM на репліку інші).
-        Assert.Equal(95.63, result.PodCpu, 2);
-        Assert.Equal(173.53, result.PodRamGb, 2);
+        Assert.Equal(175.54, result.PodCpu, 2);
+        Assert.Equal(175.74, result.PodRamGb, 2);
 
         int Rep(string canonical) => result.Components
             .First(c => c.Name == ComponentDisplayName.Localize(canonical)).Replicas;
         Assert.Equal(3, Rep("ROBOT"));               // 1 + int(50/100) + int(2500/1000)
         Assert.Equal(7, Rep("WS (WebSocket)"));      // 1 + int(50/50) + int(2500/500)
-        Assert.Equal(2, Rep("SmartID"));             // центральний: ceil(50/25), за загальною к-стю
-        Assert.Equal(3, Rep("HR-GraphQL"));          // ceil(2500/1000) — легке навантаження HR-сесій
+        Assert.Equal(34, Rep("SmartID"));            // HR load-test profile: 1000 -> 14, extrapolation above 1000
+        Assert.Equal(20, Rep("HR-GraphQL"));         // HR load-test profile: 1000 -> 8, extrapolation above 1000
     }
 
     // --- Регресія: дрібний CPU модулів (HR Portal GraphQL) не зникає ---
@@ -828,7 +828,7 @@ public class SizingEngineTests
         var modules = _engine.Modules.ToClonedList();
         var hr = modules.First(m => m.Name == "HR Portal");
         hr.IsEnabled = true;
-        hr.UserCount = 100; // Per1000Users → ceil(100/1000) = 1 репліка GraphQL
+        hr.UserCount = 100; // HR load-test profile → 1 репліка GraphQL
         _engine.SetModules(modules);
 
         var result = _engine.Calculate(new ProjectConfig
@@ -840,12 +840,12 @@ public class SizingEngineTests
 
         // Рушій зберігає точні значення з матриці (1 репліка).
         Assert.Equal(1, graphql.Replicas);
-        Assert.Equal(0.01, graphql.Cpu, 3);
+        Assert.Equal(0.5, graphql.Cpu, 3);
 
         // Суть фікса: округлення до 2 знаків лишає значення видимим (>0),
         // тоді як старе округлення до 1 знака давало 0.
         Assert.True(Math.Round(graphql.Cpu, 2) > 0);
-        Assert.Equal(0, Math.Round(graphql.Cpu, 1)); // демонструє колишній баг
+        Assert.Equal(0.5, Math.Round(graphql.Cpu, 1));
     }
 
     // --- Відповідність еталону: профіль Документообіг (БД + сервери додатків), 200 ліцензій ---
@@ -1031,15 +1031,11 @@ public class SizingEngineTests
         Assert.Equal(182, node.DiskPerNodeGb);
     }
 
-    // --- HR-GraphQL: легке навантаження HR-сесій — 1 репліка на кожні 1000 (не 100) користувачів ---
+    // --- HR Portal: контрольні точки з "Результати тестування HR Portal.xlsx" ---
     [Theory]
-    [InlineData(100, 1)]
-    [InlineData(1000, 1)]
-    [InlineData(1001, 2)]
-    [InlineData(2500, 3)]
-    [InlineData(3000, 3)]
-    [InlineData(5000, 5)]
-    public void Calculate_HrGraphQl_ScalesPer1000Users(int hrUsers, int expectedReplicas)
+    [InlineData(500, 3, 2)]
+    [InlineData(1000, 8, 14)]
+    public void Calculate_HrPortal_MatchesTestedPodCounts(int hrUsers, int expectedGraphQl, int expectedSmartId)
     {
         var modules = _engine.Modules.ToClonedList();
         var hr = modules.First(m => m.Name == "HR Portal");
@@ -1053,7 +1049,19 @@ public class SizingEngineTests
         });
 
         var graphql = result.Components.First(c => c.Name == ComponentDisplayName.Localize("HR-GraphQL"));
-        Assert.Equal(expectedReplicas, graphql.Replicas);
+        Assert.Equal(expectedGraphQl, graphql.Replicas);
+        Assert.Equal(0.5, graphql.CpuPerReplica, 3);
+        Assert.Equal(0.5, graphql.RamPerReplicaGb, 3);
+
+        var smartId = result.Components.First(c => c.Name == "SmartID");
+        Assert.Equal(expectedSmartId, smartId.Replicas);
+        Assert.Equal(1.25, smartId.CpuPerReplica, 3);
+        Assert.Equal(0.5, smartId.RamPerReplicaGb, 3);
+
+        var robot = result.Components.First(c => c.Name == ComponentDisplayName.Localize("ROBOT"));
+        Assert.Equal(1, robot.Replicas);
+        Assert.Equal(10.58, robot.CpuPerReplica, 2);
+        Assert.Equal(2.13, robot.RamPerReplicaGb, 2);
     }
 
     // --- LMS-GraphQL: точки навантажувального тесту (LMS_LT_results.pdf) + екстраполяція за 250 ---

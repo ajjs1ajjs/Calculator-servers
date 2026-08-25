@@ -13,6 +13,9 @@ public enum ReplicaFormula
     Per50Plus500,       // 1 + Int(користувачі/50) + Int(користувачі/500)
     OnePlusPer100,      // 1 + Int(користувачі/100)
     Per1000Users,       // Ceiling(користувачі / 1000)
+    HrPortalGraphqlLoadTest, // HR Portal: емпірична матриця GraphQL з тестів 500/1000 користувачів
+    HrPortalSmartIdLoadTest, // HR Portal: емпірична матриця SmartID з тестів 500/1000 користувачів
+    HrPortalRobotLoadTest,   // HR Portal: ROBOT з тестів 500/1000 користувачів
     LmsGraphqlLoadTest  // Табличні точки з навантажувального тесту LMS-GraphQL (LMS_LT_results.pdf)
 }
 
@@ -42,10 +45,35 @@ public static class ReplicaMath
             // (не на 100, як типові поди), бо HR Portal — самообслуговуючий портал з рідкісними
             // короткими сесіями, а не постійним активним навантаженням.
             ReplicaFormula.Per1000Users => (int)Math.Ceiling(userCount / 1000.0),
+            ReplicaFormula.HrPortalGraphqlLoadTest => HrPortalGraphqlReplicas(userCount),
+            ReplicaFormula.HrPortalSmartIdLoadTest => HrPortalSmartIdReplicas(userCount),
+            ReplicaFormula.HrPortalRobotLoadTest => HrPortalRobotReplicas(userCount),
             ReplicaFormula.LmsGraphqlLoadTest => LmsGraphqlReplicas(userCount),
             _ => Math.Max(1, fixedReplicas)
         };
     }
+
+    // HR Portal load-test scenarios from "Результати тестування HR Portal.xlsx":
+    // GraphQL: 500 -> 3, 1000 -> 8; SmartID: 500 -> 2, 1000 -> 14.
+    // The two scenarios are the authoritative points for the tested deployment.
+    private static int HrPortalGraphqlReplicas(int userCount)
+    {
+        if (userCount <= 0) return 1;
+        if (userCount <= 500) return Math.Max(1, (int)Math.Ceiling(userCount * 3.0 / 500.0));
+        if (userCount <= 1000) return 3 + (int)Math.Ceiling((userCount - 500) * 5.0 / 500.0);
+        return 8 + (int)Math.Ceiling((userCount - 1000) / 125.0);
+    }
+
+    private static int HrPortalSmartIdReplicas(int userCount)
+    {
+        if (userCount <= 0) return 1;
+        if (userCount <= 500) return Math.Max(1, (int)Math.Ceiling(userCount * 2.0 / 500.0));
+        if (userCount <= 1000) return 2 + (int)Math.Ceiling((userCount - 500) * 12.0 / 500.0);
+        return 14 + (int)Math.Ceiling((userCount - 1000) / 75.0);
+    }
+
+    private static int HrPortalRobotReplicas(int userCount)
+        => userCount <= 1000 ? 1 : 1 + (int)Math.Ceiling((userCount - 1000) / 1000.0);
 
     // Реальні точки з навантажувального тесту LMS-GraphQL (LMS_LT_results.pdf): 50→1, 100→2,
     // 150→3, 200→5, 250→7 репліки. Не лягає на жодну з наявних формул (Per25Users/Per50Users

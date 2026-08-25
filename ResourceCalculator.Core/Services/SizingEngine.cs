@@ -114,17 +114,21 @@ public class SizingEngine : ISizingEngine
         foreach (var module in enabledModules)
         {
             var moduleUsers = module.EffectiveUsers(config.UserCount);
-            var (modCpu, modRam) = module.CalculateReplicas(moduleUsers, hrUsers);
-            totalCpu += modCpu;
-            totalRam += modRam;
-
             foreach (var comp in module.Components ?? new())
             {
-                int rep = CalcReplicas(comp, moduleUsers, hrUsers);
+                int rep = hrUsers > 0 && module.Name == "ROBOT" && comp.Name == "ROBOT"
+                    ? ReplicaMath.Resolve(ReplicaFormula.HrPortalRobotLoadTest, 1, hrUsers)
+                    : CalcReplicas(comp, moduleUsers, hrUsers);
                 if (rep <= 0) rep = Math.Max(1, comp.FixedReplicas);
 
                 var cpu = comp.PerfCpu > 0 ? comp.PerfCpu : comp.Cpu;
                 var ram = comp.PerfRamGb > 0 ? comp.PerfRamGb : comp.RamGb;
+                if (hrUsers > 0)
+                {
+                    (cpu, ram) = HrPortalResourceOverride(module.Name, comp.Name, cpu, ram);
+                }
+                totalCpu += cpu * rep;
+                totalRam += ram * rep;
                 req.Components.Add(new ServiceComponent
                 {
                     Name = ComponentDisplayName.Localize(comp.Name),
@@ -150,15 +154,37 @@ public class SizingEngine : ISizingEngine
         {
             var smartIdCpu = _matrix.Engine?.SmartIdCpuPerReplica > 0 ? _matrix.Engine.SmartIdCpuPerReplica : SmartIdCpuPerReplica;
             var smartIdRam = _matrix.Engine?.SmartIdRamPerReplicaGb > 0 ? _matrix.Engine.SmartIdRamPerReplicaGb : SmartIdRamPerReplicaGb;
-            int rep = Math.Max(1, (int)Math.Ceiling(config.UserCount / 25.0));
+            int rep = hrUsers > 0
+                ? ReplicaMath.Resolve(ReplicaFormula.HrPortalSmartIdLoadTest, 1, hrUsers)
+                : Math.Max(1, (int)Math.Ceiling(config.UserCount / 25.0));
+            if (hrUsers > 0)
+            {
+                smartIdCpu = _matrix.Engine?.HrPortalSmartIdCpuPerReplica > 0
+                    ? _matrix.Engine.HrPortalSmartIdCpuPerReplica : 1.25;
+                smartIdRam = _matrix.Engine?.HrPortalSmartIdRamPerReplicaGb > 0
+                    ? _matrix.Engine.HrPortalSmartIdRamPerReplicaGb : 0.5;
+            }
             totalCpu += smartIdCpu * rep;
             totalRam += smartIdRam * rep;
             req.Components.Add(new ServiceComponent
             {
                 Name = "SmartID", Cpu = smartIdCpu * rep, RamGb = smartIdRam * rep,
                 CpuPerReplica = smartIdCpu, RamPerReplicaGb = smartIdRam,
-                Replicas = rep, Formula = ReplicaFormula.Per25Users, Category = "SmartID"
+                Replicas = rep,
+                Formula = hrUsers > 0 ? ReplicaFormula.HrPortalSmartIdLoadTest : ReplicaFormula.Per25Users,
+                Category = "SmartID"
             });
+        }
+
+        (double cpu, double ram) HrPortalResourceOverride(string moduleName, string componentName,
+            double fallbackCpu, double fallbackRam)
+        {
+            if (_matrix.Engine is null) return (fallbackCpu, fallbackRam);
+            if (moduleName == "ROBOT" && componentName == "ROBOT")
+                return (_matrix.Engine.HrPortalRobotCpuPerReplica, _matrix.Engine.HrPortalRobotRamPerReplicaGb);
+            if (moduleName == "HR Portal" && componentName == "HR-GraphQL")
+                return (_matrix.Engine.HrPortalGraphqlCpuPerReplica, _matrix.Engine.HrPortalGraphqlRamPerReplicaGb);
+            return (fallbackCpu, fallbackRam);
         }
 
         var workerCpuCapacity = workerNode.Cpu > 0 ? workerNode.Cpu : DefaultWorkerCpu;

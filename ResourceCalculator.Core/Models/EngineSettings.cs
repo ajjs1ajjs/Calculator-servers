@@ -8,6 +8,16 @@ public class EngineSettings
     public double SmartIdCpuPerReplica { get; set; } = 0.2;
     public double SmartIdRamPerReplicaGb { get; set; } = 0.5;
 
+    // HR Portal load-test sizing (cold peak + 25% headroom):
+    // GraphQL 0.5 CPU / 0.5 GB, SmartID 1.25 CPU / 0.5 GB,
+    // ROBOT 10.58 CPU / 2.13 GB per pod at the 1000-user scenario.
+    public double HrPortalGraphqlCpuPerReplica { get; set; } = 0.5;
+    public double HrPortalGraphqlRamPerReplicaGb { get; set; } = 0.5;
+    public double HrPortalSmartIdCpuPerReplica { get; set; } = 1.25;
+    public double HrPortalSmartIdRamPerReplicaGb { get; set; } = 0.5;
+    public double HrPortalRobotCpuPerReplica { get; set; } = 10.58;
+    public double HrPortalRobotRamPerReplicaGb { get; set; } = 2.13;
+
     // Профілі читання/запису дисків за документом D-AD-ADM-E:
     //  • сервер БД — 50r/50w; сервери додатків — 30r/70w; веб-сервери — 70r/30w;
     //  • вузли Kubernetes (master/worker) — 30r/70w.
