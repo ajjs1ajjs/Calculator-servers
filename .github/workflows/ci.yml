@@ -42,10 +42,29 @@ jobs:
     - name: Publish (self-contained)
       run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish
 
+    - name: Publish Avalonia (win-x64, cross-platform alternative)
+      run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r win-x64 --output publish/avalonia-win-x64
+
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-publish
+        path: |
+          publish/ITE.ResourceCalculator.exe
+          publish/avalonia-win-x64/
+
   build-avalonia:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: ubuntu-latest
+            rid: linux-arm64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: macos-latest
+            rid: osx-x64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -59,5 +78,20 @@ jobs:
     - name: Build Avalonia (cross-platform)
       run: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release
 
-    - name: Test Core on ${{ matrix.os }}
+    - name: Test Core on ${{ matrix.os }} / ${{ matrix.rid }}
       run: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj --no-restore --configuration Release
+
+    - name: Publish Avalonia (${{ matrix.rid }})
+      run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --output publish/${{ matrix.rid }}
+
+    - name: Verify publish output
+      shell: bash
+      run: |
+        ls -lh publish/${{ matrix.rid }}/
+        test -f publish/${{ matrix.rid }}/ITE.ResourceCalculator || test -f publish/${{ matrix.rid }}/ITE.ResourceCalculator.exe
+
+    - name: Upload Avalonia artifact (${{ matrix.rid }})
+      uses: actions/upload-artifact@v4
+      with:
+        name: avalonia-${{ matrix.rid }}
+        path: publish/${{ matrix.rid }}/

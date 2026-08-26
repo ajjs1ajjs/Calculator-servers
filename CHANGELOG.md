@@ -1,5 +1,15 @@
 # Історія змін
 
+## 2026-08-26 — Версія 2.2.0: Ubuntu та macOS (Avalonia, x64 + arm64)
+
+- **Крос-платформа:** додано `ResourceCalculator.Avalonia` (Avalonia 11.3) як паралельну версію до WPF — повний порт UI (3 вкладки, матриця, результати, діалоги) зі спільною логікою `ResourceCalculator.Core`.
+- **Збірки:** `RuntimeIdentifiers` `win-x64;linux-x64;linux-arm64;osx-x64;osx-arm64`, `PublishSingleFile`/`SelfContained` лише при `dotnet publish -r <rid>` — `dotnet build` без RID не ламається.
+- **Артефакти релізу:** `release.ps1` тепер публікує 7 файлів — `ITE.ResourceCalculator.exe` + `ITE.ResourceCalculator.msi` (WPF, Windows) + `ITE.ResourceCalculator-linux-x64.tar.gz` / `linux-arm64.tar.gz` + `ITE.ResourceCalculator-osx-x64.zip` / `osx-arm64.zip` (`.app` бандл) + `ITE.ResourceCalculator-avalonia-win-x64.zip`.
+- **CI:** `.github/workflows/ci.yml` — матриця `ubuntu-latest` (linux-x64/arm64) та `macos-latest` (osx-x64/arm64), `dotnet publish -r <rid>` + `upload-artifact`; Windows-джоба також публікує `avalonia-win-x64`.
+- **Пакування:** `packaging/linux/ite-resource-calculator.desktop` (XDG) та `packaging/macos/Info.plist` (шаблон бандлу, `__APP_VERSION__` підставляється реліз-скриптом).
+- **Сумісність:** `DataService`/`AccessService` через `SpecialFolder.LocalApplicationData` → `%LOCALAPPDATA%` (Win), `~/.local/share` (Linux), `~/Library/Application Support` (macOS). Перевірено `linux-x64` (54 МБ) / `osx-arm64` (54 МБ) / `win-x64` (55 МБ) single-file.
+- Версію бампнуто `2.1.5 → 2.2.0`.
+
 ## 2026-08-26 — Версія 2.1.5: надійність та чистота збірки
 
 - **Надійність:** атомарний запис `matrix.json`/`settings.json` (tmp + move + .bak) — виключає втрату даних при збої живлення.
