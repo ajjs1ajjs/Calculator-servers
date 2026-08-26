@@ -33,6 +33,12 @@ credentials.txt
 master.key
 publish/
 
+# Локальний аналіз — не частина продукту
+calc-analysis/bin/
+calc-analysis/obj/
+*.tmp
+*.bak
+
 # Згенеровані звіти
 resources*.xlsx
 resources*.html

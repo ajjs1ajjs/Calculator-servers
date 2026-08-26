@@ -78,7 +78,10 @@ public class AccessService
                 ["MatrixPasswordHash"] = hash,
                 ["MatrixPasswordSalt"] = salt
             };
-            File.WriteAllText(_settingsPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+            var tmp = _settingsPath + ".tmp";
+            File.WriteAllText(tmp, json);
+            File.Move(tmp, _settingsPath, overwrite: true);
         }
         catch (Exception ex)
         {

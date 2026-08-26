@@ -41,10 +41,9 @@
 
   <!-- Автопідпис опублікованого exe. Спрацьовує ЛИШЕ при `dotnet publish` (не при звичайному
        build/run), тож майбутні зміни програми підписуються самі. Використовує наявний
-       самопідписаний 25-річний сертифікат «CN=IT-Enterprise ResourceCalculator» через sign.ps1.
-       ContinueOnError: тимчасовий збій підпису (зайнятий файл / недоступний timestamp) не валить publish. -->
+       самопідписаний 25-річний сертифікат «CN=IT-Enterprise ResourceCalculator» через sign.ps1. -->
   <Target Name="SignPublishedExe" AfterTargets="Publish">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\sign.ps1&quot; -ExePath &quot;$(PublishDir)$(AssemblyName).exe&quot;" ContinueOnError="true" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\sign.ps1&quot; -ExePath &quot;$(PublishDir)$(AssemblyName).exe&quot;" ContinueOnError="false" />
   </Target>
 
   <!-- Чистий one-file дистрибутив: прибираємо з publish зайве — папку шрифтів QuestPDF (Lato

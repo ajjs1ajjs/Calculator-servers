@@ -48,7 +48,14 @@ public class DataService : IDataService
             if (dir != null && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
             var json = JsonSerializer.Serialize(matrix, WriteOptions);
-            File.WriteAllText(MatrixPath, json);
+            var tmp = MatrixPath + ".tmp";
+            File.WriteAllText(tmp, json);
+            if (File.Exists(MatrixPath))
+            {
+                var backup = MatrixPath + ".bak";
+                File.Copy(MatrixPath, backup, overwrite: true);
+            }
+            File.Move(tmp, MatrixPath, overwrite: true);
         }
         catch (Exception ex) { Debug.WriteLine($"DataService.SaveMatrix failed: {ex.Message}"); }
     }
