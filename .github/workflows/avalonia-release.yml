@@ -76,7 +76,7 @@ jobs:
     - name: Publish WPF portable executable
       shell: pwsh
       run: |
-        dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish/wpf
+        dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish/wpf -p:SkipCodeSigning=true
         if (-not (Test-Path publish/wpf/ITE.ResourceCalculator.exe)) { throw 'WPF executable was not produced' }
         Copy-Item publish/wpf/ITE.ResourceCalculator.exe publish/ITE.ResourceCalculator.exe
 
