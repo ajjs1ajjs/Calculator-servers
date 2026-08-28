@@ -42,7 +42,7 @@
   <!-- Автопідпис опублікованого exe. Спрацьовує ЛИШЕ при `dotnet publish` (не при звичайному
        build/run), тож майбутні зміни програми підписуються самі. Використовує наявний
        самопідписаний 25-річний сертифікат «CN=IT-Enterprise ResourceCalculator» через sign.ps1. -->
-  <Target Name="SignPublishedExe" AfterTargets="Publish">
+  <Target Name="SignPublishedExe" AfterTargets="Publish" Condition="'$(SkipCodeSigning)' != 'true'">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\sign.ps1&quot; -ExePath &quot;$(PublishDir)$(AssemblyName).exe&quot;" ContinueOnError="false" />
   </Target>
 
