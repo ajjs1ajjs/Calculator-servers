@@ -25,7 +25,7 @@
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="IT-Enterprise Калькулятор ресурсів">
-        <Component Id="MainExecutable" Guid="8F2B7B36-2C0E-4B6B-9B0F-6B6F6E9C8A11">
+        <Component Id="MainExecutable" Guid="8F2B7B36-2C0E-4B6B-9B0F-6B6F6E9C8A11" Bitness="always64">
           <File Id="MainExe" Name="ITE.ResourceCalculator.exe"
                 Source="$(var.AppPublishDir)ITE.ResourceCalculator.exe" KeyPath="yes">
             <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder"
