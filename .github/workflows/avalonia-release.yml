@@ -6,6 +6,11 @@ on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag to publish (for example v2.1.5)'
+        required: true
+        default: 'v2.1.5'
 
 jobs:
   publish:
