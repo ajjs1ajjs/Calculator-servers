@@ -71,9 +71,10 @@ jobs:
         path: artifacts
         merge-multiple: true
 
-      - name: Attach to release
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: ajjs1ajjs/Calculator-servers
-          token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
-          files: artifacts/**
+    - name: Attach to release
+      uses: softprops/action-gh-release@v2
+      with:
+        repository: ajjs1ajjs/Calculator-servers
+        token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
+        target_commitish: main
+        files: artifacts/**
