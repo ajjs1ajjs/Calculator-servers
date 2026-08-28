@@ -81,6 +81,6 @@ jobs:
       with:
         repository: ajjs1ajjs/Calculator-servers
         token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
-        target_commitish: main
+        target_commitish: master
         tag_name: ${{ inputs.release_tag || github.ref_name }}
         files: artifacts/**
