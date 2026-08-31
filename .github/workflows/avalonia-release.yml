@@ -82,7 +82,7 @@ jobs:
       shell: pwsh
       run: |
         $version = '${{ inputs.release_tag || github.ref_name }}'.TrimStart('v')
-        dotnet build ResourceCalculator.Installer/ResourceCalculator.Installer.wixproj --configuration Release --output publish/installer -p:AppVersion=$version -p:AppPublishDir="$PWD/publish/wpf/" -p:AppIconPath="$PWD/ResourceCalculator/icon.ico"
+        dotnet build ResourceCalculator.Installer/ResourceCalculator.Installer.wixproj --configuration Release --output publish/installer -p:Platform=x64 -p:AppVersion=$version -p:AppPublishDir="$PWD/publish/wpf/" -p:AppIconPath="$PWD/ResourceCalculator/icon.ico"
         $msi = Get-ChildItem publish/installer -Filter '*.msi' -Recurse | Select-Object -First 1
         if (-not $msi) { throw 'MSI installer was not produced' }
         Copy-Item $msi.FullName publish/ITE.ResourceCalculator.msi
