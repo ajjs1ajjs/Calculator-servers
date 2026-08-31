@@ -1,5 +1,10 @@
 # Історія змін
 
+## 2026-08-31 — Версія 2.3.0: Windows + macOS only
+
+- **Платформи:** збірки лише для Windows (WPF + Avalonia) та macOS (Avalonia x64/arm64); видалено Ubuntu/Linux з CI та релізу
+- Оновлено README: прибрано Linux з таблиці платформ, швидкого старту, публікації та структури проєкту
+
 ## 2026-08-26 — Версія 2.2.0: Ubuntu та macOS (Avalonia, x64 + arm64)
 
 - **Крос-платформа:** додано `ResourceCalculator.Avalonia` (Avalonia 11.3) як паралельну версію до WPF — повний порт UI (3 вкладки, матриця, результати, діалоги) зі спільною логікою `ResourceCalculator.Core`.

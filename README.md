@@ -20,12 +20,12 @@
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
 [![Tests](https://img.shields.io/badge/tests-131%20passing-00C853)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-00E5FF)]()
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-00E5FF)]()
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)]()
 [![License](https://img.shields.io/badge/license-MIT-26A69A)](LICENSE)
 
 **WPF + Avalonia · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
-Працює на **Windows 10/11** (WPF), **Ubuntu 22.04+** та **macOS 13+** (Avalonia, x64 + arm64).
+Працює на **Windows 10/11** (WPF) та **macOS 13+** (Avalonia, x64 + arm64).
 
 <a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/Download-latest-00A0C6"></a>
 
@@ -71,7 +71,7 @@
 # Windows — WPF-версія (основна)
 dotnet run --project ResourceCalculator/ResourceCalculator.csproj
 
-# Linux / macOS — Avalonia-версія (крос-платформна)
+# macOS — Avalonia-версія (крос-платформна)
 dotnet run --project ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
 ```
 
@@ -90,17 +90,12 @@ dotnet test  ResourceCalculator.slnx -c Release
 # Windows (WPF, win-x64, self-contained, ~50 МБ, один exe)
 dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
 
-# Linux (Avalonia, single-file)
-dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release -r linux-x64 --output publish/linux-x64
-dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release -r linux-arm64 --output publish/linux-arm64
-
 # macOS (Avalonia, x64 Intel + arm64 Apple Silicon)
 dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release -r osx-x64 --output publish/osx-x64
 dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release -r osx-arm64 --output publish/osx-arm64
 ```
 
-> **Linux:** потрібен X11 або Wayland + `libice6 libsm6` (зазвичай уже є). **macOS:** 13 Ventura+.
-> Дані (`matrix.json`, `settings.json`) зберігаються в `~/.local/share/ResourceCalculator/data` (Linux) та `~/Library/Application Support/ResourceCalculator/data` (macOS) — як і на Windows у `%LOCALAPPDATA%`.
+> **macOS:** 13 Ventura+.
 
 ---
 
@@ -111,8 +106,6 @@ dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c
 | **Windows** | Портативний `.exe` (WPF) | `publish/ITE.ResourceCalculator.exe` | Self-contained, один файл, ~50 МБ. Перевірка оновлень через GitHub Release. |
 | **Windows** | MSI-інсталятор | `publish/ITE.ResourceCalculator.msi` | Класичний upgrade за `UpgradeCode` ([`Package.wxs`](ResourceCalculator.Installer/Package.wxs)), GPO/SCCM. |
 | **Windows** | Avalonia (альтернатива) | `publish/ITE.ResourceCalculator-avalonia-win-x64.zip` | Та сама логіка, але на Avalonia — для уніфікації UI. |
-| **Linux** | tar.gz (x64) | `publish/ITE.ResourceCalculator-linux-x64.tar.gz` | Бінарник + `.desktop` ярлик. `tar -xzf ... && ./ITE.ResourceCalculator` |
-| **Linux** | tar.gz (arm64) | `publish/ITE.ResourceCalculator-linux-arm64.tar.gz` | Для ARM-серверів/ноутбуків (aarch64). |
 | **macOS** | zip (Intel) | `publish/ITE.ResourceCalculator-osx-x64.zip` | Містить `ITE.ResourceCalculator.app` (розпакувати → перетягнути в Applications). |
 | **macOS** | zip (Apple Silicon) | `publish/ITE.ResourceCalculator-osx-arm64.zip` | Для M1/M2/M3/M4. |
 
@@ -150,13 +143,13 @@ git add <файли змін> && git commit -m "..."   # спершу заком
 ./release.ps1 -ReleaseNotes "Опис змін..."
 ```
 
-Скрипт: перевіряє версійність → зупиняється при незакомічених/невідстежуваних змінах → білдить і тестує → публікує **WPF** (`win-x64`) + **Avalonia** (`linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`) → підписує exe → збирає MSI → пакує `tar.gz` (Linux) та `.app.zip` (macOS) → пушить і тегує → створює GitHub Release з **7 артефактами** (`.exe`, `.msi`, 2× `linux.tar.gz`, 2× `macos.zip`, `avalonia-win.zip`).
+Скрипт: перевіряє версійність → зупиняється при незакомічених/невідстежуваних змінах → білдить і тестує → публікує **WPF** (`win-x64`) + **Avalonia** (`osx-x64`, `osx-arm64`) → підписує exe → збирає MSI → пакує `.app.zip` (macOS) → пушить і тегує → створює GitHub Release з **5 артефактами** (`.exe`, `.msi`, 2× `macos.zip`, `avalonia-win.zip`).
 
 ---
 
 ## 🧩 Технології
 
-**Платформа:** C# / WPF (Windows) + Avalonia 11.3 (Linux/macOS) · .NET 10 · MVVM
+**Платформа:** C# / WPF (Windows) + Avalonia 11.3 (macOS) · .NET 10 · MVVM
 **Архітектура:** Microsoft.Extensions.DependencyInjection (DI-контейнер), `ResourceCalculator.Core` (спільна логіка)
 **Excel/PDF:** EPPlus 7.6 / QuestPDF 2026.6
 **Тести:** xUnit (131 тест) + збір звітів покриття (ReportGenerator)
@@ -176,10 +169,10 @@ ResourceCalculator.slnx
 │   ├── Data/                        # матриця сайзингу за замовчуванням
 │   ├── Localization/                # рядки інтерфейсу (uk/en)
 │   └── Themes/                      # теми оформлення
-├── ResourceCalculator.Avalonia/   # Avalonia-застосунок (Linux/macOS/Win)
+├── ResourceCalculator.Avalonia/   # Avalonia-застосунок (macOS/Win)
 │   ├── Views/                       # AXAML-вкладки (порт WPF)
 │   ├── Dialogs/                     # AvaloniaDialogService
-│   └── packaging/                   # .desktop (Linux) + Info.plist (macOS)
+│   └── packaging/                   # Info.plist (macOS)
 ├── ResourceCalculator.Core/       # спільна логіка (SizingEngine, DataService…)
 ├── ResourceCalculator.Tests/      # модульні тести (xUnit, 131)
 ├── ResourceCalculator.Installer/  # WiX-проєкт MSI-інсталятора (Package.wxs)
