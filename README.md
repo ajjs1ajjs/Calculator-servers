@@ -1,11 +1,21 @@
-<div align="center">
+﻿<div align="center">
+
+# IT-Enterprise Resource Calculator — Source Code
+
+[![Deployed to](https://img.shields.io/badge/Deployed_to-Calculator--servers-blue)](https://github.com/ajjs1ajjs/Calculator-servers)
+[![Website](https://img.shields.io/badge/Website-ajjs1ajjs.github.io%2FCalculator--servers-green)](https://ajjs1ajjs.github.io/Calculator-servers/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers-source/ci.yml?label=CI)](https://github.com/ajjs1ajjs/Calculator-servers-source/actions)
+
+> **Це репозиторій з вихідним кодом IT-Enterprise Resource Calculator.**
+> Готовий продукт деплоїться в: **https://github.com/ajjs1ajjs/Calculator-servers**
+> Офіційний сайт: **https://ajjs1ajjs.github.io/Calculator-servers/**
 
 <img src="docs/banner.svg?v=4" width="100%" alt="IT-Enterprise Resource Calculator">
 
 # 🧮 IT-Enterprise Resource Calculator
 
 **Калькулятор ресурсів IT-інфраструктури на основі матриці сайзингу**
-
 [![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?label=release&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
@@ -121,22 +131,17 @@ dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c
 ./sign.ps1 -PfxPath C:\certs\company.pfx -PfxPassword (Read-Host -AsSecureString)
 ```
 
-> Самопідписаний підпис вбудовується у файл, але на чужих ПК SmartScreen усе одно
-> попереджатиме, доки сертифікат не додано в їхній Trusted Root (`-TrustLocally` додає
-> його лише на поточну машину). Для зникнення попереджень потрібен сертифікат від CA.
+> Самопідписаний підпис вбудовується у файл, але на чужих ПК SmartScreen усе одно попереджатиме, доки сертифікат не додано в їхній Trusted Root (`-TrustLocally` додає його лише на поточну машину). Для зникнення попереджень потрібен сертифікат від CA.
 
 ---
 
 ## 🏷️ Версійність (обов'язково для кожного релізу)
 
-Обидва канали оновлення покладаються на версію: `UpdateCheckService` порівнює її з тегом
-GitHub Release, а MSI — `ProductVersion` для upgrade/downgrade-логіки:
+Обидва канали оновлення покладаються на версію: `UpdateCheckService` порівнює її з тегом GitHub Release, а MSI — `ProductVersion` для upgrade/downgrade-логіки:
 
 - **Єдине джерело версії** — `AppVersion` у [`Directory.Build.props`](Directory.Build.props).
-- **Перед кожним релізом бампати `AppVersion`.** Інакше `UpdateCheckService` не побачить
-  новий реліз, а публікація тегу, який уже існує, — помилка.
-- [`release.ps1`](release.ps1) примусово перевіряє це: зупиняє реліз, якщо тег `vX.Y.Z`
-  для поточної `AppVersion` вже є локально або на origin.
+- **Перед кожним релізом бампати `AppVersion`.** Інакше `UpdateCheckService` не побачить новий реліз, а публікація тегу, який уже існує, — помилка.
+- [`release.ps1`](release.ps1) примусово перевіряє це: зупиняє реліз, якщо тег `vX.Y.Z` для поточної `AppVersion` уже є локально або на origin.
 
 ### 🚀 Публікація релізу
 
@@ -145,10 +150,7 @@ git add <файли змін> && git commit -m "..."   # спершу заком
 ./release.ps1 -ReleaseNotes "Опис змін..."
 ```
 
-Скрипт: перевіряє версійність → зупиняється при незакомічених/невідстежуваних змінах →
-білдить і тестує → публікує **WPF** (`win-x64`) + **Avalonia** (`linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`) →
-підписує exe → збирає MSI → пакує `tar.gz` (Linux) та `.app.zip` (macOS) → пушить і тегує → створює
-GitHub Release з **7 артефактами** (`.exe`, `.msi`, 2× `linux.tar.gz`, 2× `macos.zip`, `avalonia-win.zip`).
+Скрипт: перевіряє версійність → зупиняється при незакомічених/невідстежуваних змінах → білдить і тестує → публікує **WPF** (`win-x64`) + **Avalonia** (`linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`) → підписує exe → збирає MSI → пакує `tar.gz` (Linux) та `.app.zip` (macOS) → пушить і тегує → створює GitHub Release з **7 артефактами** (`.exe`, `.msi`, 2× `linux.tar.gz`, 2× `macos.zip`, `avalonia-win.zip`).
 
 ---
 
