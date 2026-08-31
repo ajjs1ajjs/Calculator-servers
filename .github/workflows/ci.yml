@@ -40,7 +40,7 @@ jobs:
         path: coverage/report
 
     - name: Publish (self-contained)
-      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish
+      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish -p:SkipCodeSigning=true
 
     - name: Publish Avalonia (win-x64, cross-platform alternative)
       run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r win-x64 --output publish/avalonia-win-x64
