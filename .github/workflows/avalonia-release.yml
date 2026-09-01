@@ -1,16 +1,15 @@
 name: Avalonia Release
 
-# Кроссплатформенні збірки Avalonia-застосунку (Linux/macOS) — артефакти прив'язуються
-# до GitHub-релізу того ж тега (Windows-версію збирає і заливає release.ps1: exe+MSI).
+# Збірка застосунку (Windows + macOS) — артефакти прив'язуються до GitHub-релізу того ж тега.
 on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tag to publish (for example v2.1.5)'
+        description: 'Tag to publish (for example v2.3.1)'
         required: true
-        default: 'v2.1.5'
+        default: 'v2.3.1'
 
 jobs:
   publish:

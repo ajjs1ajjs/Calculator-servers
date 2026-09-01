@@ -41,6 +41,9 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <!-- Override транзитивного Tmds.DBus.Protocol (тягне Avalonia.Desktop) до версії з фіксом
+         CVE-2026-39959 / GHSA-xrw6-gwf8-vvr9 (патч backport 0.21.3). Використовується на Linux (D-Bus). -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
   </ItemGroup>
 
   <ItemGroup>
