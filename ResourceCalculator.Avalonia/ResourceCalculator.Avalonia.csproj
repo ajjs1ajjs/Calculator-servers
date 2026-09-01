@@ -13,8 +13,8 @@
     <Version>$(AppVersion).0</Version>
     <FileVersion>$(AppVersion).0</FileVersion>
     <InformationalVersion>$(AppVersion)</InformationalVersion>
-    <!-- Крос-платформні RIDs: Windows + Linux + macOS (x64/arm64). -->
-    <RuntimeIdentifiers>win-x64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <!-- RID для Windows (win-x64). -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <!-- Self-contained + single-file лише при publish з RID (щоб `dotnet build` без RID не ламався). -->
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
     <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
@@ -24,7 +24,7 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
-  <!-- Windows-специфічні властивості — лише для win-x64 publish. В Linux/macOS manifest ламає збірку. -->
+  <!-- Windows-специфічні властивості — лише для win-x64 publish. Без RID manifest ламає збірку. -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == 'win-arm64'">
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
@@ -42,7 +42,7 @@
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <!-- Override транзитивного Tmds.DBus.Protocol (тягне Avalonia.Desktop) до версії з фіксом
-         CVE-2026-39959 / GHSA-xrw6-gwf8-vvr9 (патч backport 0.21.3). Використовується на Linux (D-Bus). -->
+         CVE-2026-39959 / GHSA-xrw6-gwf8-vvr9 (патч backport 0.21.3). -->
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
   </ItemGroup>
 

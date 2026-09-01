@@ -13,7 +13,7 @@
 
 ## Ключові факти стану (на 2026-08-26)
 
-- **Поточна версія: 2.3.1** (Windows + macOS only; фікс CVE-2026-39959). `AppVersion` у `Directory.Build.props`.
+- **Поточна версія: 2.3.1** (Windows only; фікс CVE-2026-39959). `AppVersion` у `Directory.Build.props`.
 - Останні коміти (від новіших): `dbd9cca` (main.png для обходу кешу), `74b5971` (скріншот «Параметри»), `c9f436b` (пароль при редагуванні комірки), `31acd43` (версія 2.0.2), `b1ae2c6` (вільне керування модулями), `b2ebc9e` (BOM скриптів), `d792528` (захист паролем + фікси), `026d54c` (єдиний профіль), `820a185` (ренейм + 3 вкладки + матриця).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
 - **Тестів: 131, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
@@ -79,11 +79,11 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 ## Скрипти та реліз
 
-- `release.ps1` — повний реліз: перевірка версії/тегів → build → test → publish+sign → MSI → push+tag → GitHub Release (exe+MSI). **Версію бампати в `Directory.Build.props` ПЕРЕД релізом.**
+- `release.ps1` — повний реліз (Windows-only): перевірка версії/тегів → build → test → publish WPF exe + Avalonia win-x64 zip + MSI → push+tag → GitHub Release (exe+MSI+avalonia-win.zip). **Версію бампати в `Directory.Build.props` ПЕРЕД релізом.**
 - ⚠️ Нотатки GitHub-релізу (`-ReleaseNotes`) — **тільки українською** (README/CHANGELOG/UI українські). Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
 - `sign.ps1` — підпис exe. Самопідписаний сертифікат `CN=IT-Enterprise ResourceCalculator` (25 років), `.cer` у корені.
 - **⚠️ Кодування `.ps1`**: файли мають бути **UTF-8 з BOM** (PowerShell 5.1 інакше ламає кирилицю). Не перезаписувати через Set-Content без BOM.
-- `.github/workflows/ci.yml` — CI: build + test + coverage (ReportGenerator) + publish. Шляхи: `ResourceCalculator/...`.
+- `.github/workflows/ci.yml` — CI: build + test + coverage (ReportGenerator) + publish (Windows-only). Шляхи: `ResourceCalculator/...`.
 - **⚠️ Кирилиця в коді**: файли `.cs/.xaml/.csproj` мають бути UTF-8 (без BOM ок). Не використовувати PowerShell `Set-Content` для перезапису .cs/.xaml — псує кодування; використовувати edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
 
 ## Контакти та поточні домовленості

@@ -48,85 +48,20 @@ Write-Host "Публікація exe (WPF, Windows)..." -ForegroundColor Cyan
 dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
 if ($LASTEXITCODE -ne 0) { throw "Publish failed" }
 
-# --- 4b. Publish Avalonia (крос-платформна версія для Ubuntu / macOS) ---
-Write-Host "Публікація Avalonia (Linux / macOS)..." -ForegroundColor Cyan
+# --- 4b. Publish Avalonia для Windows (уніфікований UI на Avalonia) ---
+Write-Host "Публікація Avalonia (win-x64)..." -ForegroundColor Cyan
 $avaloniaProject = "ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj"
-$avaloniaRids = @("linux-x64", "linux-arm64", "osx-x64", "osx-arm64")
-foreach ($rid in $avaloniaRids) {
-    Write-Host "  -> $rid ..." -ForegroundColor DarkCyan
-    $outDir = "$root/publish/avalonia-$rid"
-    if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
-    dotnet publish $avaloniaProject -c Release -r $rid --output $outDir
-    if ($LASTEXITCODE -ne 0) { throw "Publish Avalonia $rid failed" }
-}
+$rid = "win-x64"
+$outDir = "$root/publish/avalonia-$rid"
+if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
+dotnet publish $avaloniaProject -c Release -r $rid --output $outDir
+if ($LASTEXITCODE -ne 0) { throw "Publish Avalonia $rid failed" }
 
-# --- 4c. Пакування Linux/macOS артефактів ---
-Write-Host "Пакування Linux/macOS..." -ForegroundColor Cyan
-
-# Linux: tar.gz з бінарником + .desktop + іконкою
-foreach ($rid in @("linux-x64", "linux-arm64")) {
-    $srcDir = "$root/publish/avalonia-$rid"
-    $binary = Join-Path $srcDir "ITE.ResourceCalculator"
-    if (-not (Test-Path $binary)) { $binary = Join-Path $srcDir "ITE.ResourceCalculator.exe" }
-    if (-not (Test-Path $binary)) { throw "Не знайдено бінарник для $rid у $srcDir" }
-    $stage = "$root/publish/stage-$rid"
-    if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
-    New-Item -ItemType Directory -Path $stage | Out-Null
-    Copy-Item $binary (Join-Path $stage "ITE.ResourceCalculator") -Force
-    # .desktop поруч для ручного встановлення
-    Copy-Item "$root/ResourceCalculator.Avalonia/packaging/linux/ite-resource-calculator.desktop" $stage -Force -ErrorAction SilentlyContinue
-    # іконка (опційно)
-    Copy-Item "$root/ResourceCalculator/icon.ico" (Join-Path $stage "icon.ico") -Force -ErrorAction SilentlyContinue
-    $tarName = "ITE.ResourceCalculator-$rid.tar.gz"
-    $tarPath = "$root/publish/$tarName"
-    if (Test-Path $tarPath) { Remove-Item $tarPath -Force }
-    Push-Location $stage
-    try {
-        # Використовуємо tar (вбудований у Windows 10+ / Git Bash)
-        & tar -czf $tarPath *
-        if ($LASTEXITCODE -ne 0) { throw "tar $rid failed" }
-    } finally { Pop-Location }
-    Write-Host "    створено $tarName" -ForegroundColor Green
-}
-
-# macOS: .app bundle + zip
-foreach ($rid in @("osx-x64", "osx-arm64")) {
-    $srcDir = "$root/publish/avalonia-$rid"
-    $binary = Join-Path $srcDir "ITE.ResourceCalculator"
-    if (-not (Test-Path $binary)) { $binary = Join-Path $srcDir "ITE.ResourceCalculator.exe" }
-    if (-not (Test-Path $binary)) { throw "Не знайдено бінарник для $rid у $srcDir" }
-    $appName = "ITE.ResourceCalculator.app"
-    $appRoot = "$root/publish/stage-$rid/$appName"
-    if (Test-Path "$root/publish/stage-$rid") { Remove-Item "$root/publish/stage-$rid" -Recurse -Force }
-    New-Item -ItemType Directory -Path "$appRoot/Contents/MacOS" -Force | Out-Null
-    New-Item -ItemType Directory -Path "$appRoot/Contents/Resources" -Force | Out-Null
-    Copy-Item $binary "$appRoot/Contents/MacOS/ITE.ResourceCalculator" -Force
-    $plistSrc = "$root/ResourceCalculator.Avalonia/packaging/macos/Info.plist"
-    $plistDst = "$appRoot/Contents/Info.plist"
-    if (Test-Path $plistSrc) {
-        (Get-Content $plistSrc -Raw).Replace("__APP_VERSION__", $version) | Set-Content $plistDst -Encoding UTF8
-    }
-    Copy-Item "$root/ResourceCalculator/icon.ico" "$appRoot/Contents/Resources/AppIcon.ico" -Force -ErrorAction SilentlyContinue
-    $zipName = "ITE.ResourceCalculator-$rid.zip"
-    $zipPath = "$root/publish/$zipName"
-    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-    Push-Location "$root/publish/stage-$rid"
-    try {
-        Compress-Archive -Path $appName -DestinationPath $zipPath -Force
-    } finally { Pop-Location }
-    Write-Host "    створено $zipName" -ForegroundColor Green
-}
-
-# Додатково: Avalonia для Windows (для користувачів, які хочуть крос-платформний UI на Windows)
+# --- 4c. Пакування Avalonia Windows-артефакту ---
 Write-Host "Пакування Avalonia Windows..." -ForegroundColor Cyan
-$winSrc = "$root/publish/avalonia-win-x64"
-if (-not (Test-Path $winSrc)) {
-    dotnet publish $avaloniaProject -c Release -r win-x64 --output $winSrc
-    if ($LASTEXITCODE -ne 0) { throw "Publish Avalonia win-x64 failed" }
-}
 $winZip = "$root/publish/ITE.ResourceCalculator-avalonia-win-x64.zip"
 if (Test-Path $winZip) { Remove-Item $winZip -Force }
-Compress-Archive -Path "$winSrc/*" -DestinationPath $winZip -Force
+Compress-Archive -Path "$outDir/*" -DestinationPath $winZip -Force
 Write-Host "    створено ITE.ResourceCalculator-avalonia-win-x64.zip" -ForegroundColor Green
 
 # --- 5. Збірка MSI-інсталятора (класичне оновлення через MajorUpgrade/UpgradeCode) ---
@@ -155,7 +90,7 @@ git push origin master
 git tag $tag
 git push origin $tag
 
-# --- 7. GitHub Release з усіма артефактами (Windows + Linux + macOS) ---
+# --- 7. GitHub Release з усіма артефактами (Windows) ---
 if (-not $ReleaseNotes) {
     $changelog = Get-Content "$root/CHANGELOG.md" -Raw
     if ($changelog -match "(?s)^# .*?\n\n(## .*?)\n\n## ") {
@@ -168,10 +103,6 @@ if (-not $ReleaseNotes) {
 $releaseAssets = @(
     "$root/publish/ITE.ResourceCalculator.exe"
     "$root/publish/ITE.ResourceCalculator.msi"
-    "$root/publish/ITE.ResourceCalculator-linux-x64.tar.gz"
-    "$root/publish/ITE.ResourceCalculator-linux-arm64.tar.gz"
-    "$root/publish/ITE.ResourceCalculator-osx-x64.zip"
-    "$root/publish/ITE.ResourceCalculator-osx-arm64.zip"
     "$root/publish/ITE.ResourceCalculator-avalonia-win-x64.zip"
 ) | Where-Object { Test-Path $_ }
 

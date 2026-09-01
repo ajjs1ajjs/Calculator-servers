@@ -1,6 +1,6 @@
 name: Avalonia Release
 
-# Збірка застосунку (Windows + macOS) — артефакти прив'язуються до GitHub-релізу того ж тега.
+# Збірка застосунку (Windows) — артефакти прив'язуються до GitHub-релізу того ж тега.
 on:
   push:
     tags: [ 'v*' ]
@@ -12,53 +12,6 @@ on:
         default: 'v2.3.1'
 
 jobs:
-  publish:
-    name: Publish (${{ matrix.rid }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            rid: osx-x64
-          - os: macos-latest
-            rid: osx-arm64
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.x'
-
-    - name: Publish (self-contained, single-file)
-      run: |
-        dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj \
-          --configuration Release \
-          --runtime ${{ matrix.rid }} \
-          --self-contained true \
-          -p:PublishSingleFile=true \
-          -p:IncludeNativeLibrariesForSelfExtract=true \
-          --output publish
-
-    - name: Package
-      shell: bash
-      run: |
-        cd publish
-        if [ "${{ matrix.rid }}" = "linux-x64" ] || [ "${{ matrix.rid }}" = "osx-x64" ] || [ "${{ matrix.rid }}" = "osx-arm64" ]; then
-          tar -czf ../ITE.ResourceCalculator-${{ matrix.rid }}.tar.gz *
-        else
-          7z a ../ITE.ResourceCalculator-${{ matrix.rid }}.zip *
-        fi
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ITE.ResourceCalculator-${{ matrix.rid }}
-        path: ITE.ResourceCalculator-${{ matrix.rid }}.*
-        if-no-files-found: error
-
   publish-windows:
     name: Publish Windows distributions
     runs-on: windows-latest
@@ -103,7 +56,7 @@ jobs:
         if-no-files-found: error
   attach-release:
     name: Attach to GitHub Release
-    needs: [publish, publish-windows]
+    needs: [publish-windows]
     if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     runs-on: ubuntu-latest
     permissions:

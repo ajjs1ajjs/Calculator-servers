@@ -42,7 +42,7 @@ jobs:
     - name: Publish (self-contained)
       run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish -p:SkipCodeSigning=true
 
-    - name: Publish Avalonia (win-x64, cross-platform alternative)
+    - name: Publish Avalonia (win-x64)
       run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r win-x64 --output publish/avalonia-win-x64
 
     - name: Upload Windows artifacts
@@ -52,42 +52,3 @@ jobs:
         path: |
           publish/ITE.ResourceCalculator.exe
           publish/avalonia-win-x64/
-
-  build-avalonia:
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            rid: osx-x64
-          - os: macos-latest
-            rid: osx-arm64
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.x'
-
-    - name: Build Avalonia (cross-platform)
-      run: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release
-
-    - name: Test Core on ${{ matrix.os }} / ${{ matrix.rid }}
-      run: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj --no-restore --configuration Release
-
-    - name: Publish Avalonia (${{ matrix.rid }})
-      run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --output publish/${{ matrix.rid }}
-
-    - name: Verify publish output
-      shell: bash
-      run: |
-        ls -lh publish/${{ matrix.rid }}/
-        test -f publish/${{ matrix.rid }}/ITE.ResourceCalculator || test -f publish/${{ matrix.rid }}/ITE.ResourceCalculator.exe
-
-    - name: Upload Avalonia artifact (${{ matrix.rid }})
-      uses: actions/upload-artifact@v4
-      with:
-        name: avalonia-${{ matrix.rid }}
-        path: publish/${{ matrix.rid }}/
