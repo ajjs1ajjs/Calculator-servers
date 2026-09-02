@@ -18,6 +18,9 @@ public class AccessService
     public const string DevContacts = $"Email: {DevEmail1} · {DevEmail2}\nТелефон: {DevPhone}";
 
     // Пароль за замовчуванням (захист від випадкового редагування матриці).
+    // ⚠️ Увага: дефолтовий пароль має бути змінений користувачем після першого запуску.
+    // Рекомендується змінити через UI (кнопка "Змінити пароль") або використовувати
+    #warning "Default matrix password is well-known - users MUST change it via UI after first run"
     public const string DefaultPassword = "yF2jrX7inC4w";
 
     private readonly string _settingsPath;
