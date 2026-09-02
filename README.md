@@ -3,7 +3,7 @@
 # IT-Enterprise Resource Calculator — Source Code
 
 [![Deployed to](https://img.shields.io/badge/Deployed_to-Calculator--servers-blue)](https://github.com/ajjs1ajjs/Calculator-servers)
-[![Website](https://img.shields.io/badge/Website-ajjs1ajjs.github.io%2FCalculator--servers-green)](https://ajjs1ajjs.github.io/Calculator-servers/)
+[![Website](https://img.shields.io/badge/Website-ajjs1ajjs.github.io%2FCalculator--servers-green)](https://github.com/ajjs1ajjs/Calculator-servers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Це репозиторій з вихідним кодом IT-Enterprise Resource Calculator.**
