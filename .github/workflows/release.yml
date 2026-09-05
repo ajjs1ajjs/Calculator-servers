@@ -24,6 +24,7 @@ jobs:
             dotnet_build: dotnet build ResourceCalculator.slnx -c Release
             dotnet_test: dotnet test ResourceCalculator.slnx -c Release --no-build
             needs_restore: ResourceCalculator.slnx
+            output_dir: win-x64
           - os: Ubuntu x64
             runner: ubuntu-latest
             arch: x64
@@ -32,6 +33,7 @@ jobs:
             dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
             needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
+            output_dir: linux-x64
           - os: macOS arm64
             runner: macos-14
             arch: arm64
@@ -40,6 +42,7 @@ jobs:
             dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
             needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
+            output_dir: osx-arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -59,14 +62,14 @@ jobs:
         run: ${{ matrix.dotnet_test }}
 
       - name: Publish Avalonia (${{ matrix.os }})
-        run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.os }}"
+        run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.output_dir }}"
 
       - name: Package (Windows)
         if: matrix.os == 'Windows x64'
         shell: pwsh
         run: |
           $artifact = "${{ matrix.artifact_name }}"
-          $srcDir = "publish/${{ matrix.os }}"
+          $srcDir = "publish/${{ matrix.output_dir }}"
           $dstZip = "release/$artifact.zip"
           New-Item -ItemType Directory -Path release -Force | Out-Null
           Compress-Archive -Path "$srcDir/*" -DestinationPath $dstZip -Force
@@ -80,7 +83,7 @@ jobs:
         run: |
           ARTIFACT="${{ matrix.artifact_name }}"
           mkdir -p release
-          cd "publish/${{ matrix.os }}"
+          cd "publish/${{ matrix.output_dir }}"
           tar -czf ../../release/$ARTIFACT.tar.gz .
           if [[ "${{ matrix.os }}" == "macOS arm64" ]]; then
             shasum -a 256 $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
@@ -94,7 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: release/*${{ matrix.os }}*
+          path: release/*${{ matrix.artifact_name }}*
           retention-days: 90
 
   release:
