@@ -71,7 +71,7 @@ jobs:
             --configuration Release `
             -r ${{ matrix.rid }} `
             --self-contained true `
-            --output publish/${{ matrix.os }}
+            --output "publish/${{ matrix.os }}"
 
       - name: Package (${{ matrix.os }})
         shell: bash
@@ -79,11 +79,11 @@ jobs:
           ARTIFACT="${{ matrix.artifact_name }}"
           mkdir -p release
           if [[ "${{ matrix.os }}" == "Windows x64" ]]; then
-            cd publish/${{ matrix.os }}
-            powershell -Command "Compress-Archive -Path '*' -DestinationPath \"../release/$ARTIFACT.zip\" -Force"
-            powershell -Command "Get-ChildItem \"../release/$ARTIFACT.zip\" | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash + '  ' + $_.Name } | Out-File -Encoding ASCII \"../release/$ARTIFACT.zip.sha256\""
+            cd "publish/${{ matrix.os }}"
+            powershell -Command "Compress-Archive -Path '*' -DestinationPath \"../../release/$ARTIFACT.zip\" -Force"
+            powershell -Command "Get-ChildItem \"../../release/$ARTIFACT.zip\" | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash + '  ' + $_.Name } | Out-File -Encoding ASCII \"../../release/$ARTIFACT.zip.sha256\""
           else
-            cd publish/${{ matrix.os }}
+            cd "publish/${{ matrix.os }}"
             tar -czf ../../release/$ARTIFACT.tar.gz .
             if [[ "${{ matrix.os }}" == "macOS arm64" ]]; then
               shasum -a 256 $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
