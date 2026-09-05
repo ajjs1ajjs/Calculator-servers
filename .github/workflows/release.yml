@@ -102,5 +102,5 @@ jobs:
           for dir in artifacts/*/; do
             name=$(basename "$dir")
             echo "Uploading $name..."
-            gh release upload "$TAG" "$dir" --clobber
+            gh release upload "$TAG" "$dir*" --clobber
           done
