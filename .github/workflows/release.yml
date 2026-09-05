@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: Windows x64
+            runner: windows-latest
+            arch: x64
+            rid: win-x64
+            artifact: ITE.ResourceCalculator-win-x64.zip
+            artifact_name: calculator-windows-x64
+            zip_ext: .zip
+          - os: Ubuntu x64
+            runner: ubuntu-latest
+            arch: x64
+            rid: linux-x64
+            artifact: ITE.ResourceCalculator-ubuntu-x64.tar.gz
+            artifact_name: calculator-ubuntu-x64
+            zip_ext: .tar.gz
+          - os: macOS arm64
+            runner: macos-14
+            arch: arm64
+            rid: osx-arm64
+            artifact: ITE.ResourceCalculator-macos-arm64.tar.gz
+            artifact_name: calculator-macos-arm64
+            zip_ext: .tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-restore --configuration Release --verbosity normal
+
+      - name: Publish Avalonia (${{ matrix.os }})
+        run: |
+          dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj `
+            --configuration Release `
+            -r ${{ matrix.rid }} `
+            --self-contained true `
+            --output publish/${{ matrix.os }}
+
+      - name: Package (${{ matrix.os }})
+        shell: bash
+        run: |
+          ARTIFACT="${{ matrix.artifact_name }}"
+          mkdir -p release
+          if [[ "${{ matrix.os }}" == "Windows x64" ]]; then
+            cd publish/${{ matrix.os }}
+            powershell -Command "Compress-Archive -Path '*' -DestinationPath '../release/$ARTIFACT.zip' -Force"
+            powershell -Command "Get-ChildItem '../release/$ARTIFACT.zip' | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash + '  ' + $_.Name } | Out-File -Encoding ASCII '../release/$ARTIFACT.zip.sha256'"
+          else
+            cd publish/${{ matrix.os }}
+            tar -czf ../../release/$ARTIFACT.tar.gz .
+            if [[ "${{ matrix.os }}" == "macOS arm64" ]]; then
+              shasum -a 256 $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
+            else
+              sha256sum $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
+            fi
+          fi
+          echo "=== Artifact created ==="
+          ls -la ../../release/
+
+      - name: Upload artifact (${{ matrix.os }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: release/${{ matrix.artifact }}*
+          retention-days: 90
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: calculator-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

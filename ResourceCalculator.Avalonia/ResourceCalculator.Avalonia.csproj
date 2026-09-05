@@ -14,7 +14,7 @@
     <FileVersion>$(AppVersion).0</FileVersion>
     <InformationalVersion>$(AppVersion)</InformationalVersion>
     <!-- RID для Windows (win-x64). -->
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
     <!-- Self-contained + single-file лише при publish з RID (щоб `dotnet build` без RID не ламався). -->
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
     <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
