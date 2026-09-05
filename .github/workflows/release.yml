@@ -99,8 +99,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          for dir in artifacts/*/; do
-            name=$(basename "$dir")
-            echo "Uploading $name..."
-            gh release upload "$TAG" "$dir*" --clobber
-          done
+          mkdir -p upload-tmp
+          cp artifacts/calculator-windows-x64/* upload-tmp/
+          mv upload-tmp/ITE.ResourceCalculator.exe upload-tmp/ITE.ResourceCalculator-win-x64.exe
+          cp artifacts/calculator-ubuntu-x64/* upload-tmp/
+          mv upload-tmp/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-ubuntu-x64
+          cp artifacts/calculator-macos-arm64/* upload-tmp/
+          mv upload-tmp/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
+          chmod +x upload-tmp/*
+          gh release upload "$TAG" upload-tmp/* --clobber
+          rm -rf upload-tmp
