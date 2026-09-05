@@ -5,6 +5,6 @@
          та ResourceCalculator.Installer.wixproj (ProductVersion MSI).
          Бампати тут при кожному релізі — release.ps1 звіряє це значення з тегами git
          і не дасть опублікувати реліз без бампу. -->
-    <AppVersion>2.3.3</AppVersion>
+    <AppVersion>2.4.0</AppVersion>
   </PropertyGroup>
 </Project>
