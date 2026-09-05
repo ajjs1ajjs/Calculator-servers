@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: Windows x64
+          - os: Windows
             runner: windows-latest
             arch: x64
             rid: win-x64
@@ -24,9 +24,9 @@ jobs:
             dotnet_build: dotnet build ResourceCalculator.slnx -c Release
             dotnet_test: dotnet test ResourceCalculator.slnx -c Release --no-build
             needs_restore: ResourceCalculator.slnx
-            output_dir: win-x64
+            upload_dir: wpf
             publish_wpf: true
-          - os: Ubuntu x64
+          - os: Ubuntu
             runner: ubuntu-latest
             arch: x64
             rid: linux-x64
@@ -34,9 +34,9 @@ jobs:
             dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
             needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
-            output_dir: linux-x64
+            upload_dir: linux-x64
             publish_wpf: false
-          - os: macOS arm64
+          - os: macOS
             runner: macos-14
             arch: arm64
             rid: osx-arm64
@@ -44,7 +44,7 @@ jobs:
             dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
             needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
-            output_dir: osx-arm64
+            upload_dir: osx-arm64
             publish_wpf: false
 
     steps:
@@ -69,13 +69,13 @@ jobs:
         run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release -p:SkipCodeSigning=true --output publish/wpf
 
       - name: Publish Avalonia (${{ matrix.os }})
-        run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.output_dir }}"
+        run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.upload_dir }}"
 
       - name: Upload artifact (${{ matrix.os }})
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: publish/${{ matrix.os == 'Windows x64' && 'wf' || matrix.output_dir }}
+          path: publish/${{ matrix.upload_dir }}
           retention-days: 90
 
   release:
@@ -103,8 +103,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          echo "=== Contents ==="
-          find artifacts -type f | head -30
           mkdir -p upload-tmp
           # Windows WPF
           if [ -f "artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe" ]; then
@@ -119,6 +117,5 @@ jobs:
             cp artifacts/calculator-macos-arm64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
           fi
           chmod +x upload-tmp/* 2>/dev/null || true
-          ls -la upload-tmp/
           gh release upload "$TAG" upload-tmp/* --clobber
           rm -rf upload-tmp
