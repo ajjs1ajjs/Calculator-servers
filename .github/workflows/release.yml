@@ -55,4 +55,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          gh release create "$TAG" artifacts/* --title "$TAG" --generate-notes
+          gh release create "$TAG" --title "$TAG" --generate-notes
+
+      - name: Upload to Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release upload "$TAG" artifacts/release/* --clobber
