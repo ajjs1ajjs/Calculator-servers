@@ -10,43 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: Windows
-            runner: windows-latest
-            arch: x64
-            rid: win-x64
-            artifact_name: calculator-windows-x64
-            dotnet_build: dotnet build ResourceCalculator.slnx -c Release
-            dotnet_test: dotnet test ResourceCalculator.slnx -c Release --no-build
-            needs_restore: ResourceCalculator.slnx
-            upload_dir: wpf
-            publish_wpf: true
-          - os: Ubuntu
-            runner: ubuntu-latest
-            arch: x64
-            rid: linux-x64
-            artifact_name: calculator-ubuntu-x64
-            dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
-            dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
-            needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
-            upload_dir: linux-x64
-            publish_wpf: false
-          - os: macOS
-            runner: macos-14
-            arch: arm64
-            rid: osx-arm64
-            artifact_name: calculator-macos-arm64
-            dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
-            dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
-            needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
-            upload_dir: osx-arm64
-            publish_wpf: false
-
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -55,28 +19,38 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore ${{ matrix.needs_restore }}
+      - name: Restore
+        run: dotnet restore ResourceCalculator.slnx
 
       - name: Build
-        run: ${{ matrix.dotnet_build }}
+        run: dotnet build ResourceCalculator.slnx -c Release
 
       - name: Test
-        run: ${{ matrix.dotnet_test }}
+        run: dotnet test ResourceCalculator.slnx -c Release --no-build
 
-      - name: Publish WPF (Windows)
-        if: matrix.publish_wpf == true
-        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release -p:SkipCodeSigning=true --output publish/wpf
+      - name: Publish exe
+        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -p:SkipCodeSigning=true --output publish
 
-      - name: Publish Avalonia (${{ matrix.os }})
-        run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.upload_dir }}"
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $ver = $version -replace '^v', ''
+          Push-Location "${{ github.workspace }}/ResourceCalculator.Installer"
+          wix build Package.wxs `
+            -d "AppVersion=$ver" `
+            -d "AppPublishDir=${{ github.workspace }}/publish/" `
+            -d "AppIconPath=${{ github.workspace }}/ResourceCalculator/icon.ico" `
+            -ext WixToolset.UI.wixext `
+            -arch x64 `
+            -o "${{ github.workspace }}/publish/ITE.ResourceCalculator.msi"
+          Pop-Location
 
-      - name: Upload artifact (${{ matrix.os }})
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: publish/${{ matrix.upload_dir }}
-          retention-days: 90
+          name: release
+          path: publish/*
 
   release:
     name: Create GitHub Release
@@ -96,26 +70,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          gh release create "$TAG" --title "$TAG" --generate-notes
-
-      - name: Upload to Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          mkdir -p upload-tmp
-          # Windows WPF
-          if [ -f "artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe" ]; then
-            cp artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe upload-tmp/ITE.ResourceCalculator.exe
-          fi
-          # Ubuntu Avalonia
-          if [ -f "artifacts/calculator-ubuntu-x64/ITE.ResourceCalculator" ]; then
-            cp artifacts/calculator-ubuntu-x64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-ubuntu-x64
-          fi
-          # macOS Avalonia
-          if [ -f "artifacts/calculator-macos-arm64/ITE.ResourceCalculator" ]; then
-            cp artifacts/calculator-macos-arm64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
-          fi
-          chmod +x upload-tmp/* 2>/dev/null || true
-          gh release upload "$TAG" upload-tmp/* --clobber
-          rm -rf upload-tmp
+          gh release create "$TAG" artifacts/* --title "$TAG" --generate-notes
