@@ -103,10 +103,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
+          echo "=== Contents ==="
+          find artifacts -type f | head -30
           mkdir -p upload-tmp
-          cp artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe upload-tmp/ITE.ResourceCalculator.exe
-          cp artifacts/calculator-ubuntu-x64/* upload-tmp/ITE.ResourceCalculator-ubuntu-x64 2>/dev/null || cp artifacts/calculator-ubuntu-x64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-ubuntu-x64
-          cp artifacts/calculator-macos-arm64/* upload-tmp/ITE.ResourceCalculator-macos-arm64 2>/dev/null || cp artifacts/calculator-macos-arm64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
-          chmod +x upload-tmp/*
+          # Windows WPF
+          if [ -f "artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe" ]; then
+            cp artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe upload-tmp/ITE.ResourceCalculator.exe
+          fi
+          # Ubuntu Avalonia
+          if [ -f "artifacts/calculator-ubuntu-x64/ITE.ResourceCalculator" ]; then
+            cp artifacts/calculator-ubuntu-x64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-ubuntu-x64
+          fi
+          # macOS Avalonia
+          if [ -f "artifacts/calculator-macos-arm64/ITE.ResourceCalculator" ]; then
+            cp artifacts/calculator-macos-arm64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
+          fi
+          chmod +x upload-tmp/* 2>/dev/null || true
+          ls -la upload-tmp/
           gh release upload "$TAG" upload-tmp/* --clobber
           rm -rf upload-tmp
