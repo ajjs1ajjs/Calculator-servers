@@ -20,23 +20,23 @@ jobs:
             runner: windows-latest
             arch: x64
             rid: win-x64
-            artifact: ITE.ResourceCalculator-win-x64.zip
             artifact_name: calculator-windows-x64
-            zip_ext: .zip
+            dotnet_build: dotnet build ResourceCalculator.slnx -c Release
+            dotnet_test: dotnet test ResourceCalculator.slnx -c Release --no-build
           - os: Ubuntu x64
             runner: ubuntu-latest
             arch: x64
             rid: linux-x64
-            artifact: ITE.ResourceCalculator-ubuntu-x64.tar.gz
             artifact_name: calculator-ubuntu-x64
-            zip_ext: .tar.gz
+            dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
+            dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
           - os: macOS arm64
             runner: macos-14
             arch: arm64
             rid: osx-arm64
-            artifact: ITE.ResourceCalculator-macos-arm64.tar.gz
             artifact_name: calculator-macos-arm64
-            zip_ext: .tar.gz
+            dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
+            dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
 
     steps:
       - uses: actions/checkout@v4
@@ -46,14 +46,24 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore dependencies (Windows)
+        if: matrix.os == 'Windows x64'
+        run: dotnet restore ResourceCalculator.slnx
+
+      - name: Restore dependencies (Cross-platform)
+        if: matrix.os != 'Windows x64'
+        run: dotnet restore ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj ResourceCalculator.Tests/ResourceCalculator.Tests.csproj
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: ${{ matrix.dotnet_build }}
 
       - name: Test
-        run: dotnet test --no-restore --configuration Release --verbosity normal
+        if: matrix.os == 'Windows x64'
+        run: ${{ matrix.dotnet_test }}
+
+      - name: Test (Cross-platform)
+        if: matrix.os != 'Windows x64'
+        run: ${{ matrix.dotnet_test }}
 
       - name: Publish Avalonia (${{ matrix.os }})
         run: |
@@ -70,8 +80,8 @@ jobs:
           mkdir -p release
           if [[ "${{ matrix.os }}" == "Windows x64" ]]; then
             cd publish/${{ matrix.os }}
-            powershell -Command "Compress-Archive -Path '*' -DestinationPath '../release/$ARTIFACT.zip' -Force"
-            powershell -Command "Get-ChildItem '../release/$ARTIFACT.zip' | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash + '  ' + $_.Name } | Out-File -Encoding ASCII '../release/$ARTIFACT.zip.sha256'"
+            powershell -Command "Compress-Archive -Path '*' -DestinationPath \"../release/$ARTIFACT.zip\" -Force"
+            powershell -Command "Get-ChildItem \"../release/$ARTIFACT.zip\" | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash + '  ' + $_.Name } | Out-File -Encoding ASCII \"../release/$ARTIFACT.zip.sha256\""
           else
             cd publish/${{ matrix.os }}
             tar -czf ../../release/$ARTIFACT.tar.gz .
@@ -88,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: release/${{ matrix.artifact }}*
+          path: release/*${{ matrix.os }}*
           retention-days: 90
 
   release:
