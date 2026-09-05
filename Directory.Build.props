@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Єдине джерело версії застосунку — використовується ResourceCalculator.csproj
+         (Version/FileVersion/InformationalVersion, звідти ж читає UpdateCheckService)
+         та ResourceCalculator.Installer.wixproj (ProductVersion MSI).
+         Бампати тут при кожному релізі — release.ps1 звіряє це значення з тегами git
+         і не дасть опублікувати реліз без бампу. -->
+    <AppVersion>2.3.3</AppVersion>
+  </PropertyGroup>
+</Project>

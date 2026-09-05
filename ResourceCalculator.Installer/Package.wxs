@@ -1,0 +1,52 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!--
+    UpgradeCode — НІКОЛИ не змінювати після першого релізу. Саме за ним Windows Installer
+    впізнає, що новий MSI є оновленням старого (а не окремим продуктом), і виконує
+    класичний upgrade: ставить нову версію, прибирає файли старої.
+  -->
+  <Package Name="IT-Enterprise Калькулятор ресурсів"
+            Manufacturer="IT-Enterprise"
+            Version="$(var.AppVersion)"
+            UpgradeCode="E7572140-79A8-45F7-8EDB-D88D8B2B52F3"
+            Language="1058"
+            Codepage="1251"
+            Compressed="yes">
+
+    <MajorUpgrade
+      DowngradeErrorMessage="Уже встановлено новішу версію застосунку. Спершу видаліть її через «Параметри - Застосунки»." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="$(var.AppIconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="IT-Enterprise Калькулятор ресурсів">
+        <Component Id="MainExecutable" Guid="8F2B7B36-2C0E-4B6B-9B0F-6B6F6E9C8A11" Bitness="always64">
+          <File Id="MainExe" Name="ITE.ResourceCalculator.exe"
+                Source="$(var.AppPublishDir)ITE.ResourceCalculator.exe" KeyPath="yes">
+            <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder"
+                       Name="IT-Enterprise Калькулятор ресурсів"
+                       WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" Advertise="yes" />
+            <Shortcut Id="DesktopShortcut" Directory="DesktopFolder"
+                       Name="IT-Enterprise Калькулятор ресурсів"
+                       WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" Advertise="yes" />
+          </File>
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="Калькулятор ресурсів" Level="1">
+      <ComponentRef Id="MainExecutable" />
+    </Feature>
+
+    <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf" />
+    <ui:WixUI Id="WixUI_Minimal" />
+
+  </Package>
+</Wix>

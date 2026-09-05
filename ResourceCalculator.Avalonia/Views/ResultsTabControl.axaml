@@ -1,0 +1,270 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:ResourceCalculator.Avalonia.Converters"
+             xmlns:loc="using:ResourceCalculator.Avalonia.Localization"
+             x:Class="ResourceCalculator.Avalonia.Views.ResultsTabControl">
+    <UserControl.Styles>
+        <!-- Згортуваний розділ результатів. -->
+        <Style Selector="Expander.SectionExpander">
+            <Setter Property="IsExpanded" Value="True"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </UserControl.Styles>
+    <UserControl.Resources>
+        <conv:VisibilityConverter x:Key="VisibilityConverter"/>
+    </UserControl.Resources>
+    <ScrollViewer>
+        <StackPanel Margin="15">
+            <TextBlock Text="{loc:Loc results.title}" Classes="SectionHeader"/>
+
+            <!-- KPI-картки (завжди видимі): ліва кольорова смужка-акцент + м'який бейдж-іконка. -->
+            <UniformGrid Columns="5" Margin="0,0,0,14">
+                <Border Classes="KpiCard" Margin="0,0,10,0" ToolTip.Tip="{loc:Loc tip.cpu}">
+                    <Grid ColumnDefinitions="5,*">
+                        <Border Grid.Column="0" Background="{DynamicResource AccentBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="CPU" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Grid.Column="1" Classes="IconBadge" Background="{DynamicResource AccentSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Classes="IconGlyph" Text="🖥️" Foreground="{DynamicResource AccentBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalCpu}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalVcpu}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border Classes="KpiCard" Margin="0,0,10,0" ToolTip.Tip="{loc:Loc tip.ram}">
+                    <Grid ColumnDefinitions="5,*">
+                        <Border Grid.Column="0" Background="{DynamicResource SuccessBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="RAM" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Grid.Column="1" Classes="IconBadge" Background="{DynamicResource SuccessSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Classes="IconGlyph" Text="🧠" Foreground="{DynamicResource SuccessBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalRam}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalRam}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border Classes="KpiCard" Margin="0,0,10,0" ToolTip.Tip="{loc:Loc tip.storage}">
+                    <Grid ColumnDefinitions="5,*">
+                        <Border Grid.Column="0" Background="{DynamicResource WarningBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="DISKS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Grid.Column="1" Classes="IconBadge" Background="{DynamicResource WarningSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Classes="IconGlyph" Text="💾" Foreground="{DynamicResource WarningBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalStorage}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalStorage}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border Classes="KpiCard" Margin="0,0,10,0" ToolTip.Tip="{loc:Loc tip.iops}">
+                    <Grid ColumnDefinitions="5,*">
+                        <Border Grid.Column="0" Background="{DynamicResource PurpleBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="IOPS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Grid.Column="1" Classes="IconBadge" Background="{DynamicResource PurpleSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Classes="IconGlyph" Text="⚡" Foreground="{DynamicResource PurpleBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalIops}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc results.totalIops}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border Classes="KpiCard" ToolTip.Tip="{loc:Loc tip.vms}">
+                    <Grid ColumnDefinitions="5,*">
+                        <Border Grid.Column="0" Background="{DynamicResource DangerBg}" CornerRadius="16,0,0,16"/>
+                        <StackPanel Grid.Column="1" Margin="14,16,16,16">
+                            <Grid Margin="0,0,0,10" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="VMS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Left"/>
+                                <Border Grid.Column="1" Classes="IconBadge" Background="{DynamicResource DangerSoftBg}" HorizontalAlignment="Right">
+                                    <TextBlock Classes="IconGlyph" Text="🗄️" Foreground="{DynamicResource DangerBg}"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Text="{Binding TotalNodes}" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="{loc:Loc col.nodes}" FontSize="10" Foreground="{DynamicResource TextMuted}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </UniformGrid>
+
+            <!-- Розділ: Підсумок потреб + Вимоги до дисків поруч (дві колонки) -->
+            <Grid ColumnDefinitions="1.5*,*">
+                <Border Grid.Column="0" Classes="Card" Margin="0,0,8,10" VerticalAlignment="Top"
+                        IsVisible="{Binding HasResultSummary, Converter={StaticResource VisibilityConverter}}">
+                    <Expander Classes="SectionExpander" Margin="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Classes="IconBadge" Width="26" Height="26" Background="{DynamicResource AccentSoftBg}" Margin="0,0,8,0">
+                                    <TextBlock Classes="IconGlyph" FontSize="12" Text="📋" Foreground="{DynamicResource AccentBg}"/>
+                                </Border>
+                                <TextBlock Text="{loc:Loc results.summaryTitle}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="4,10,0,0">
+                            <TextBlock Text="{Binding ResultSummary}" FontSize="13" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                                       TextWrapping="Wrap" LineHeight="20"/>
+                            <TextBlock Text="{Binding PodRequests}" FontSize="11" FontStyle="Italic" FontWeight="Normal"
+                                       Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       IsVisible="{Binding HasPodRequests, Converter={StaticResource VisibilityConverter}}"/>
+                        </StackPanel>
+                    </Expander>
+                </Border>
+                <Border Grid.Column="1" Classes="Card" Margin="8,0,0,10" VerticalAlignment="Top"
+                        IsVisible="{Binding HasDiskRecommendations, Converter={StaticResource VisibilityConverter}}">
+                    <Expander Classes="SectionExpander" Margin="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Classes="IconBadge" Width="26" Height="26" Background="{DynamicResource WarningSoftBg}" Margin="0,0,8,0">
+                                    <TextBlock Classes="IconGlyph" FontSize="12" Text="💾" Foreground="{DynamicResource WarningBg}"/>
+                                </Border>
+                                <TextBlock Text="{loc:Loc results.disksTitle}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <TextBlock Text="{Binding DiskRecommendations}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap" LineHeight="18" FontFamily="Consolas" Margin="4,10,0,0"/>
+                    </Expander>
+                </Border>
+            </Grid>
+
+            <!-- Розділ: Середовища (порівняння + розбивка по середовищах) -->
+            <Border Classes="Card" Margin="0,0,0,14"
+                    IsVisible="{Binding HasEnvironments, Converter={StaticResource VisibilityConverter}}">
+                <Expander Classes="SectionExpander" Header="{loc:Loc env.compare}" Margin="0">
+                    <StackPanel Margin="0,6,0,0">
+                        <DataGrid ItemsSource="{Binding Environments}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                                  FontWeight="Normal" CanUserSortColumns="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Loc col.env}" Binding="{Binding Name}" Width="Auto" MinWidth="80"/>
+                                <DataGridTextColumn Header="{loc:Loc col.users}" Binding="{Binding UserCount}" Width="80" />
+                                <DataGridTextColumn Header="{loc:Loc env.moduleUsersCol}" Binding="{Binding ModulesInfo}" Width="*" MinWidth="200"/>
+                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="70" />
+                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="80" />
+                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, StringFormat='{}{0} GB'}" Width="100" />
+                                <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="80" />
+                                <DataGridTextColumn Header="{loc:Loc col.nodes}" Binding="{Binding Nodes}" Width="90" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="{loc:Loc env.vmsTitle}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,10,0,4"/>
+                        <TextBlock FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="Поди масштабуються блоками (на кожні 25/50/100 користувачів, мінімум 1 репліка), тож середовища з близькою к-стю користувачів можуть мати однакові компоненти — відмінності проявляються у вузлі БД."/>
+                        <ItemsControl ItemsSource="{Binding Environments}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander IsExpanded="{Binding IsProd}" Margin="0,0,0,6">
+                                        <Expander.Header>
+                                            <TextBlock FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AccentBg}">
+                                                <Run Text="Середовище "/><Run Text="{Binding Name}"/><Run Text=" — користувачів: "/><Run Text="{Binding UserCount}"/>
+                                            </TextBlock>
+                                        </Expander.Header>
+                                        <StackPanel Margin="0,4,0,8">
+                                            <TextBlock FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"
+                                                       TextWrapping="Wrap" IsVisible="{Binding HasModulesInfo, Converter={StaticResource VisibilityConverter}}">
+                                                <Run Text="Модулі: "/><Run Text="{Binding ModulesInfo}"/>
+                                            </TextBlock>
+                                            <DataGrid ItemsSource="{Binding Vms}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FontWeight="Normal">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
+                                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, StringFormat='{}{0:0.#}'}" Width="Auto" MinWidth="55" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
+                                                    <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat='{}{0} GB'}" Width="Auto" MinWidth="75" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" MinWidth="55" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                                                    <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
+                                                    <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="140"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <TextBlock Text="{loc:Loc results.envComponents}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,2"
+                                                       IsVisible="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}"/>
+                                            <DataGrid ItemsSource="{Binding Components}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                                                      FontWeight="Normal"
+                                                      IsVisible="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name}" Width="*" MinWidth="120"/>
+                                                    <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category}" Width="Auto" MinWidth="90"/>
+                                                    <DataGridTextColumn Header="{loc:Loc col.replicas}" Binding="{Binding Replicas}" Width="Auto" MinWidth="55" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, StringFormat='{}{0:0.##}'}" Width="Auto" MinWidth="55" />
+                                                    <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, StringFormat='{}{0:0.##}'}" Width="Auto" MinWidth="55" />
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,2,0,0"
+                                                       IsVisible="{Binding HasComponents, Converter={StaticResource VisibilityConverter}}">
+                                                <Run Text="Разом подів: "/><Run Text="{Binding ComponentsCpu}"/><Run Text=" CPU · "/><Run Text="{Binding ComponentsRamGb}"/><Run Text=" ГБ RAM"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <!-- Розділ: Інфраструктура (PROD) — лише коли немає розбивки по середовищах -->
+            <Border Classes="Card" Margin="0,0,0,14"
+                    IsVisible="{Binding ShowProdInfraSection, Converter={StaticResource VisibilityConverter}}">
+                <Expander Classes="SectionExpander" Header="{loc:Loc results.infraProd}" Margin="0">
+                    <StackPanel Margin="0,6,0,0">
+                        <TextBlock Text="{loc:Loc results.infraHint}" FontSize="11" FontStyle="Italic" FontWeight="Normal" Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap" Margin="0,0,0,6"/>
+                        <DataGrid AutoGenerateColumns="False" IsReadOnly="True" FontWeight="Normal"
+                                  ItemsSource="{Binding ResultInfrastructure}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Loc col.nodeType}" Binding="{Binding Name}" Width="Auto" MinWidth="100"/>
+                                <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu}" Width="Auto" MinWidth="45" />
+                                <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, StringFormat='{}{0:0.#}'}" Width="Auto" MinWidth="55" />
+                                <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb}" Width="Auto" MinWidth="45" />
+                                <DataGridTextColumn Header="{loc:Loc col.storageType}" Binding="{Binding StorageType}" Width="Auto"/>
+                                <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount}" Width="Auto" MinWidth="45" />
+                                <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding TotalStorageGb, StringFormat='{}{0} GB'}" Width="Auto" MinWidth="75" />
+                                <DataGridTextColumn Header="{loc:Loc col.pagefile}" Binding="{Binding PageFileGb}" Width="Auto" />
+                                <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops}" Width="Auto" MinWidth="55" />
+                                <DataGridTextColumn Header="{loc:Loc col.iopsProfile}" Binding="{Binding IopsProfile}" Width="Auto" MinWidth="70" />
+                                <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs}" Width="Auto" MinWidth="55" />
+                                <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency}" Width="Auto" MinWidth="55" />
+                                <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os}" Width="Auto"/>
+                                <DataGridTextColumn Header="{loc:Loc col.dbVersion}" Binding="{Binding DbVersion}" Width="Auto"/>
+                                <DataGridTextColumn Header="{loc:Loc col.notes}" Binding="{Binding Notes}" Width="*" MinWidth="160"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <Border Classes="Card" Margin="0,10,0,0">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <Border Classes="IconBadge" Background="{DynamicResource SuccessSoftBg}" Margin="0,0,10,0">
+                            <TextBlock Classes="IconGlyph" Text="📄" Foreground="{DynamicResource SuccessBg}"/>
+                        </Border>
+                        <TextBlock Text="Налаштування звіту" Classes="CardHeader" Margin="0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <CheckBox Content="Включати компоненти (поди) у звіт" IsChecked="{Binding IncludeComponentsInReport, Mode=TwoWay}"
+                              ToolTip.Tip="Якщо вимкнено — розділи/аркуші з компонентами (подами) не потрапляють у Excel/PDF. На сам розрахунок не впливає."/>
+                    <TextBlock FontSize="11" FontStyle="Italic" Foreground="{DynamicResource TextMuted}" Margin="0,8,0,0"
+                               Text="Кнопки експорту Excel/PDF — зверху, біля перемикача теми."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

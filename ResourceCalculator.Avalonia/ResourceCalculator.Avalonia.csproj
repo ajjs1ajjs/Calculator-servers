@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ResourceCalculator.Avalonia</RootNamespace>
+    <AssemblyName>ITE.ResourceCalculator</AssemblyName>
+    <Product>IT-Enterprise Калькулятор ресурсів</Product>
+    <AssemblyTitle>IT-Enterprise Калькулятор ресурсів</AssemblyTitle>
+    <Company>IT-Enterprise</Company>
+    <Version>$(AppVersion).0</Version>
+    <FileVersion>$(AppVersion).0</FileVersion>
+    <InformationalVersion>$(AppVersion)</InformationalVersion>
+    <!-- RID для Windows (win-x64). -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- Self-contained + single-file лише при publish з RID (щоб `dotnet build` без RID не ламався). -->
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
+    <PublishTrimmed Condition="'$(RuntimeIdentifier)' != ''">false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract Condition="'$(RuntimeIdentifier)' != ''">true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</EnableCompressionInSingleFile>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <!-- Windows-специфічні властивості — лише для win-x64 publish. Без RID manifest ламає збірку. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == 'win-arm64'">
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <!-- Override транзитивного Tmds.DBus.Protocol (тягне Avalonia.Desktop) до версії з фіксом
+         CVE-2026-39959 / GHSA-xrw6-gwf8-vvr9 (патч backport 0.21.3). -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ResourceCalculator.Core\ResourceCalculator.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Чистий one-file дистрибутив: прибираємо з publish зайве — папку шрифтів QuestPDF (Lato
+       вшитий у бібліотеку, з диска не читається) та .pdb. Лишається один бінарник. -->
+  <Target Name="CleanPublishExtras" AfterTargets="Publish">
+    <RemoveDir Directories="$(PublishDir)LatoFont" />
+    <Delete Files="$(PublishDir)$(AssemblyName).pdb" />
+    <Delete Files="$(PublishDir)ResourceCalculator.Core.pdb" />
+  </Target>
+
+</Project>

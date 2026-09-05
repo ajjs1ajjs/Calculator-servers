@@ -1,0 +1,103 @@
+<Window x:Class="ResourceCalculator.Avalonia.MainWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:ResourceCalculator.Avalonia.Localization"
+        xmlns:views="using:ResourceCalculator.Avalonia.Views"
+        Title="{loc:Loc app.title}" Height="900" Width="1300"
+        MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized"
+        Background="{DynamicResource WindowBg}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Border Grid.Row="0" Background="{DynamicResource HeaderBg}" Padding="16,12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#2AFFFFFF" CornerRadius="10" Width="42" Height="42" Margin="0,0,12,0">
+                        <TextBlock Text="📊" FontSize="20" Foreground="{DynamicResource TextWhite}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Loc app.title}" Foreground="{DynamicResource TextWhite}" FontSize="20" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{loc:Loc app.subtitle}" Foreground="{DynamicResource TextOnDark}" FontSize="12"/>
+                            <TextBlock Text="{Binding AppVersion}" Foreground="{DynamicResource TextOnDark}" FontSize="12" Opacity="0.7" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="12,7" FontSize="13" Margin="0,0,6,0"
+                            Command="{Binding ExportExcelCommand}" ToolTip.Tip="Зберегти звіт у форматі Excel (.xlsx)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📗" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Excel" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="{DynamicResource DangerBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="12,7" FontSize="13" Margin="0,0,16,0"
+                            Command="{Binding ExportPdfCommand}" ToolTip.Tip="Зберегти звіт у форматі PDF">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📕" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="PDF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13" Margin="0,0,8,0"
+                            Click="CheckUpdates_Click" ToolTip.Tip="{loc:Loc update.check}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Loc update.check}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13" Margin="0,0,8,0"
+                            Command="{Binding ThemeSwitchCommand}" ToolTip.Tip="{loc:Loc tooltip.themeSwitch}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding ThemeIcon}" FontSize="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding ThemeName}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Background="#24FFFFFF" Foreground="{DynamicResource TextWhite}" Padding="12,7" FontSize="13"
+                            Command="{Binding LangSwitchCommand}" ToolTip.Tip="{loc:Loc tooltip.langSwitch}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding LangFlag}" FontSize="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding LangName}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Row="1" Name="MainTabControl" Background="{DynamicResource WindowBg}"
+                    SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📋" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TabMatrixHeader}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:MatrixTabControl/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚙️" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TabSetupHeader}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:CalculatorTabControl/>
+            </TabItem>
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📊" FontSize="14" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TabResultsHeader}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:ResultsTabControl/>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Background="{DynamicResource StatusBarBg}" Padding="8,6">
+            <TextBlock x:Name="TxtStatus" Text="{Binding StatusText}" Foreground="{DynamicResource TextWhite}" FontSize="13"/>
+        </Border>
+    </Grid>
+</Window>

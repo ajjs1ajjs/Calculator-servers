@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test with coverage
+      run: dotnet test --no-restore --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+
+    - name: Install coverage tool
+      run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.4.5
+
+    - name: Generate coverage report
+      run: reportgenerator -reports:coverage/**/coverage.cobertura.xml -targetdir:coverage/report -reporttypes:Html
+
+    - name: Check for vulnerable packages
+      run: dotnet list package --vulnerable || exit 1
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/report
+
+    - name: Publish (self-contained)
+      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish -p:SkipCodeSigning=true
+
+    - name: Publish Avalonia (win-x64)
+      run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r win-x64 --output publish/avalonia-win-x64
+
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-publish
+        path: |
+          publish/ITE.ResourceCalculator.exe
+          publish/avalonia-win-x64/

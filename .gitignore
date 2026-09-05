@@ -1,0 +1,49 @@
+bin/
+obj/
+*_wpftmp.csproj
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.log
+.DS_Store
+Thumbs.db
+build/
+/build/*.svg
+/build/resources.*
+
+# Згенеровані застосунком приклади звітів (не зберігаємо в репозиторії)
+/resources.html
+/resources.xml
+/resources.xlsx
+/infrastructure.svg
+task_impl
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+*.crt
+*.pfx
+*.jwt.secret
+*.autodoc.key
+credentials.txt
+master.key
+publish/
+
+# Локальний аналіз — не частина продукту
+calc-analysis/bin/
+calc-analysis/obj/
+*.tmp
+*.bak
+
+# Згенеровані звіти
+resources*.xlsx
+resources*.html
+resources*.xml
+Калькулятор.xlsx
+/Таблиці.Калькулятор/
+LMS_LT_results.docx
+LMS_LT_results.pdf
