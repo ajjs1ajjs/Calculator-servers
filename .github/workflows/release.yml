@@ -64,40 +64,11 @@ jobs:
       - name: Publish Avalonia (${{ matrix.os }})
         run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.output_dir }}"
 
-      - name: Package (Windows)
-        if: matrix.os == 'Windows x64'
-        shell: pwsh
-        run: |
-          $artifact = "${{ matrix.artifact_name }}"
-          $srcDir = "publish/${{ matrix.output_dir }}"
-          $dstZip = "release/$artifact.zip"
-          New-Item -ItemType Directory -Path release -Force | Out-Null
-          Compress-Archive -Path "$srcDir/*" -DestinationPath $dstZip -Force
-          $hash = (Get-FileHash $dstZip -Algorithm SHA256).Hash
-          "$hash  $artifact.zip" | Out-File -Encoding ASCII "release/$artifact.zip.sha256"
-          Get-ChildItem release/
-
-      - name: Package (Linux/macOS)
-        if: matrix.os != 'Windows x64'
-        shell: bash
-        run: |
-          ARTIFACT="${{ matrix.artifact_name }}"
-          mkdir -p release
-          cd "publish/${{ matrix.output_dir }}"
-          tar -czf ../../release/$ARTIFACT.tar.gz .
-          if [[ "${{ matrix.os }}" == "macOS arm64" ]]; then
-            shasum -a 256 $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
-          else
-            sha256sum $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
-          fi
-          echo "=== Artifact created ==="
-          ls -la ../../release/
-
       - name: Upload artifact (${{ matrix.os }})
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: release/*${{ matrix.artifact_name }}*
+          path: publish/${{ matrix.output_dir }}
           retention-days: 90
 
   release:
