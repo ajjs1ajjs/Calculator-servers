@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -59,6 +60,7 @@ public partial class App : Application
             });
             sc.AddTransient<MainViewModel>();
             sc.AddSingleton<IUpdateCheckService, UpdateCheckService>();
+            sc.AddSingleton<ISelfUpdateService, SelfUpdateService>();
             sc.AddSingleton<IDialogService>(sp =>
                 new AvaloniaDialogService(sp.GetRequiredService<AccessService>(),
                     () => MainWindow));
@@ -99,7 +101,7 @@ public partial class App : Application
                             string.Format(loc["update.message"], result.Update!.Version, currentVersion),
                             loc["update.title"]))
                         {
-                            Process.Start(new ProcessStartInfo(result.Update.DownloadUrl) { UseShellExecute = true });
+                            await StartUpdateAsync(result.Update.Version, result.Update.DownloadUrl);
                         }
                         break;
 
@@ -119,6 +121,39 @@ public partial class App : Application
         {
             Debug.WriteLine($"Update check crashed: {ex.Message}");
         }
+    }
+
+    private async Task StartUpdateAsync(string version, string downloadUrl)
+    {
+        var mainWindow = MainWindow;
+        if (mainWindow is null) return;
+
+        var progressDialog = new UpdateProgressDialog(version);
+        progressDialog.Show(mainWindow);
+
+        var updateService = Services.GetRequiredService<ISelfUpdateService>();
+        updateService.DownloadUrl = downloadUrl;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
+
+        updateService.Progress += (bytes, total) =>
+        {
+            Dispatcher.UIThread.Post(() => progressDialog.SetProgress(bytes, total));
+        };
+
+        var updateResult = await updateService.UpdateAsync(cts.Token);
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (updateResult.Status == SelfUpdateStatus.Completed)
+            {
+                progressDialog.SetCompleted();
+                Environment.Exit(0);
+            }
+            else
+            {
+                progressDialog.SetError(updateResult.Error ?? "Unknown error");
+            }
+        });
     }
 
     // Поточна версія застосунку для показу: чистий вигляд (без суфікса SourceLink +<sha>).

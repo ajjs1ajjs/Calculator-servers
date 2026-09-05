@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ using ResourceCalculator.Interfaces;
 using ResourceCalculator.Localization;
 using ResourceCalculator.Services;
 using ResourceCalculator.ViewModels;
+using ResourceCalculator.Views;
 
 namespace ResourceCalculator;
 
@@ -49,6 +51,7 @@ public partial class App : Application
         });
         sc.AddTransient<MainViewModel>();
         sc.AddSingleton<IUpdateCheckService, UpdateCheckService>();
+        sc.AddSingleton<ISelfUpdateService, SelfUpdateService>();
 
         Services = sc.BuildServiceProvider();
 
@@ -91,7 +94,7 @@ public partial class App : Application
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    Process.Start(new ProcessStartInfo(update.Update.DownloadUrl) { UseShellExecute = true });
+                    await StartUpdateAsync(update.Update.Version, update.Update.DownloadUrl);
                 }
                 break;
 
@@ -105,6 +108,40 @@ public partial class App : Application
                     MessageBox.Show(loc["update.failed"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Warning);
                 break;
         }
+    }
+
+    private async Task StartUpdateAsync(string version, string downloadUrl)
+    {
+        var mainWindow = System.Windows.Application.Current.MainWindow;
+        if (mainWindow is null) return;
+
+        var progressDialog = new UpdateProgressDialog(version);
+        progressDialog.Owner = mainWindow;
+        progressDialog.Show();
+
+        var updateService = Services.GetRequiredService<ISelfUpdateService>();
+        updateService.DownloadUrl = downloadUrl;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
+
+        updateService.Progress += (bytes, total) =>
+        {
+            mainWindow.Dispatcher.BeginInvoke(() => progressDialog.SetProgress(bytes, total));
+        };
+
+        var updateResult = await updateService.UpdateAsync(cts.Token);
+
+        await mainWindow.Dispatcher.BeginInvoke(() =>
+        {
+            if (updateResult.Status == SelfUpdateStatus.Completed)
+            {
+                progressDialog.SetCompleted();
+                Environment.Exit(0);
+            }
+            else
+            {
+                progressDialog.SetError(updateResult.Error ?? "Unknown error");
+            }
+        });
     }
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

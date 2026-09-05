@@ -1,0 +1,26 @@
+<Window x:Class="ResourceCalculator.Avalonia.Views.UpdateProgressDialog"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="400" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" CanResize="False" ShowInTaskbar="False"
+        Background="{DynamicResource WindowBg}">
+    <Border Margin="20" Padding="4">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <Border Classes="IconBadge" Background="{DynamicResource AccentSoftBg}" Margin="0,0,10,0">
+                    <TextBlock Classes="IconGlyph" Text="⬇️" Foreground="{DynamicResource AccentBg}"/>
+                </Border>
+                <TextBlock x:Name="TxtTitle" Text="Оновлення" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtVersion" FontSize="13" Foreground="{DynamicResource TextSecondary}"
+                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <ProgressBar x:Name="ProgressBar" Height="6" Margin="0,0,0,8"
+                         Background="{DynamicResource InputBg}" Foreground="{DynamicResource AccentBg}"/>
+            <TextBlock x:Name="TxtStatus" FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                       TextWrapping="Wrap" Margin="0,0,0,16"/>
+            <Button x:Name="BtnCancel" Content="Скасувати" Padding="16,7" HorizontalAlignment="Right"
+                    Click="BtnCancel_Click"/>
+        </StackPanel>
+    </Border>
+</Window>
