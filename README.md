@@ -95,7 +95,7 @@ dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output 
 
 | Платформа | Артефакт | Файл | Примітка |
 |---|---|---|---|
-| **Windows** | Портативний `.exe` (WPF) | `publish/ITE.ResourceCalculator.exe` | Self-contained, один файл, ~50 МБ. Перевірка оновлень через GitHub Release. |
+| **Windows** | Портативний `.exe` (WPF) | `publish/ITE.ResourceCalculator.exe` | Self-contained, один файл, ~50 МБ. **Вбудоване автоматичне оновлення** з прогресом всередині програми. |
 | **Windows** | MSI-інсталятор | `publish/ITE.ResourceCalculator.msi` | Класичний upgrade за `UpgradeCode` ([`Package.wxs`](ResourceCalculator.Installer/Package.wxs)), GPO/SCCM. |
 | **Windows** | Avalonia (альтернатива) | `publish/ITE.ResourceCalculator-avalonia-win-x64.zip` | Та сама логіка, але на Avalonia — для уніфікації UI. |
 
