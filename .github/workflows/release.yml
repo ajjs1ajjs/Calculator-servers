@@ -31,21 +31,6 @@ jobs:
       - name: Publish exe
         run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -p:SkipCodeSigning=true --output publish
 
-      - name: Build MSI
-        shell: pwsh
-        run: |
-          $version = "${{ github.ref_name }}"
-          $ver = $version -replace '^v', ''
-          Push-Location "${{ github.workspace }}/ResourceCalculator.Installer"
-          wix build Package.wxs `
-            -d "AppVersion=$ver" `
-            -d "AppPublishDir=${{ github.workspace }}/publish/" `
-            -d "AppIconPath=${{ github.workspace }}/ResourceCalculator/icon.ico" `
-            -ext WixToolset.UI.wixext `
-            -arch x64 `
-            -o "${{ github.workspace }}/publish/ITE.ResourceCalculator.msi"
-          Pop-Location
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
