@@ -25,6 +25,7 @@ jobs:
             dotnet_test: dotnet test ResourceCalculator.slnx -c Release --no-build
             needs_restore: ResourceCalculator.slnx
             output_dir: win-x64
+            publish_wpf: true
           - os: Ubuntu x64
             runner: ubuntu-latest
             arch: x64
@@ -34,6 +35,7 @@ jobs:
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
             needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
             output_dir: linux-x64
+            publish_wpf: false
           - os: macOS arm64
             runner: macos-14
             arch: arm64
@@ -43,6 +45,7 @@ jobs:
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
             needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
             output_dir: osx-arm64
+            publish_wpf: false
 
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +64,10 @@ jobs:
       - name: Test
         run: ${{ matrix.dotnet_test }}
 
+      - name: Publish WPF (Windows)
+        if: matrix.publish_wpf == true
+        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish/wpf
+
       - name: Publish Avalonia (${{ matrix.os }})
         run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.output_dir }}"
 
@@ -68,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: publish/${{ matrix.output_dir }}
+          path: publish/${{ matrix.os == 'Windows x64' && 'wf' || matrix.output_dir }}
           retention-days: 90
 
   release:
@@ -84,9 +91,6 @@ jobs:
         with:
           path: artifacts
 
-      - name: List artifacts
-        run: find artifacts -type f | head -20
-
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -100,12 +104,9 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           mkdir -p upload-tmp
-          cp artifacts/calculator-windows-x64/* upload-tmp/
-          mv upload-tmp/ITE.ResourceCalculator.exe upload-tmp/ITE.ResourceCalculator-win-x64.exe
-          cp artifacts/calculator-ubuntu-x64/* upload-tmp/
-          mv upload-tmp/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-ubuntu-x64
-          cp artifacts/calculator-macos-arm64/* upload-tmp/
-          mv upload-tmp/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
+          cp artifacts/calculator-windows-x64/ITE.ResourceCalculator.exe upload-tmp/ITE.ResourceCalculator.exe
+          cp artifacts/calculator-ubuntu-x64/* upload-tmp/ITE.ResourceCalculator-ubuntu-x64 2>/dev/null || cp artifacts/calculator-ubuntu-x64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-ubuntu-x64
+          cp artifacts/calculator-macos-arm64/* upload-tmp/ITE.ResourceCalculator-macos-arm64 2>/dev/null || cp artifacts/calculator-macos-arm64/ITE.ResourceCalculator upload-tmp/ITE.ResourceCalculator-macos-arm64
           chmod +x upload-tmp/*
           gh release upload "$TAG" upload-tmp/* --clobber
           rm -rf upload-tmp
