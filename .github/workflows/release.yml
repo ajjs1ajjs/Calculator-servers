@@ -66,7 +66,7 @@ jobs:
 
       - name: Publish WPF (Windows)
         if: matrix.publish_wpf == true
-        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish/wpf
+        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release -p:SkipCodeSigning=true --output publish/wpf
 
       - name: Publish Avalonia (${{ matrix.os }})
         run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r ${{ matrix.rid }} --self-contained true --output "publish/${{ matrix.output_dir }}"
