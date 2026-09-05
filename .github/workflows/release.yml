@@ -23,6 +23,7 @@ jobs:
             artifact_name: calculator-windows-x64
             dotnet_build: dotnet build ResourceCalculator.slnx -c Release
             dotnet_test: dotnet test ResourceCalculator.slnx -c Release --no-build
+            needs_restore: ResourceCalculator.slnx
           - os: Ubuntu x64
             runner: ubuntu-latest
             arch: x64
@@ -30,6 +31,7 @@ jobs:
             artifact_name: calculator-ubuntu-x64
             dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
+            needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
           - os: macOS arm64
             runner: macos-14
             arch: arm64
@@ -37,6 +39,7 @@ jobs:
             artifact_name: calculator-macos-arm64
             dotnet_build: dotnet build ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj -c Release
             dotnet_test: dotnet test ResourceCalculator.Tests/ResourceCalculator.Tests.csproj -c Release
+            needs_restore: ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
 
     steps:
       - uses: actions/checkout@v4
@@ -46,23 +49,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore dependencies (Windows)
-        if: matrix.os == 'Windows x64'
-        run: dotnet restore ResourceCalculator.slnx
-
-      - name: Restore dependencies (Cross-platform)
-        if: matrix.os != 'Windows x64'
-        run: dotnet restore ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj ResourceCalculator.Tests/ResourceCalculator.Tests.csproj
+      - name: Restore dependencies
+        run: dotnet restore ${{ matrix.needs_restore }}
 
       - name: Build
         run: ${{ matrix.dotnet_build }}
 
       - name: Test
-        if: matrix.os == 'Windows x64'
-        run: ${{ matrix.dotnet_test }}
-
-      - name: Test (Cross-platform)
-        if: matrix.os != 'Windows x64'
         run: ${{ matrix.dotnet_test }}
 
       - name: Publish Avalonia (${{ matrix.os }})
@@ -73,23 +66,31 @@ jobs:
             --self-contained true `
             --output "publish/${{ matrix.os }}"
 
-      - name: Package (${{ matrix.os }})
+      - name: Package (Windows)
+        if: matrix.os == 'Windows x64'
+        shell: pwsh
+        run: |
+          $artifact = "${{ matrix.artifact_name }}"
+          $srcDir = "publish/${{ matrix.os }}"
+          $dstZip = "release/$artifact.zip"
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Compress-Archive -Path "$srcDir/*" -DestinationPath $dstZip -Force
+          $hash = (Get-FileHash $dstZip -Algorithm SHA256).Hash
+          "$hash  $artifact.zip" | Out-File -Encoding ASCII "release/$artifact.zip.sha256"
+          Get-ChildItem release/
+
+      - name: Package (Linux/macOS)
+        if: matrix.os != 'Windows x64'
         shell: bash
         run: |
           ARTIFACT="${{ matrix.artifact_name }}"
           mkdir -p release
-          if [[ "${{ matrix.os }}" == "Windows x64" ]]; then
-            cd "publish/${{ matrix.os }}"
-            powershell -Command "Compress-Archive -Path '*' -DestinationPath \"../../release/$ARTIFACT.zip\" -Force"
-            powershell -Command "Get-ChildItem \"../../release/$ARTIFACT.zip\" | ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash + '  ' + $_.Name } | Out-File -Encoding ASCII \"../../release/$ARTIFACT.zip.sha256\""
+          cd "publish/${{ matrix.os }}"
+          tar -czf ../../release/$ARTIFACT.tar.gz .
+          if [[ "${{ matrix.os }}" == "macOS arm64" ]]; then
+            shasum -a 256 $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
           else
-            cd "publish/${{ matrix.os }}"
-            tar -czf ../../release/$ARTIFACT.tar.gz .
-            if [[ "${{ matrix.os }}" == "macOS arm64" ]]; then
-              shasum -a 256 $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
-            else
-              sha256sum $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
-            fi
+            sha256sum $ARTIFACT.tar.gz > ../../release/$ARTIFACT.tar.gz.sha256
           fi
           echo "=== Artifact created ==="
           ls -la ../../release/
