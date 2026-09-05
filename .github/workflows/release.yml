@@ -87,6 +87,13 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f | head -20
 
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" --title "$TAG" --generate-notes
+
       - name: Upload to Release
         env:
           GH_TOKEN: ${{ github.token }}
