@@ -11,7 +11,7 @@ namespace ResourceCalculator.Services;
 
 public class SelfUpdateService : ISelfUpdateService
 {
-    private static readonly string BaseUrl = "https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest";
+    private static readonly string ReleasesUrl = "https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest";
 
     private static readonly HttpClient Http = CreateHttpClient();
 
@@ -21,8 +21,10 @@ public class SelfUpdateService : ISelfUpdateService
 
     public async Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(DownloadUrl))
-            return new SelfUpdateResult(SelfUpdateStatus.Failed, "No download URL");
+        // Fetch the actual exe asset download URL from GitHub API
+        var assetUrl = await GetAssetDownloadUrlAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(assetUrl))
+            return new SelfUpdateResult(SelfUpdateStatus.Failed, "Could not find exe asset in release");
 
         try
         {
@@ -30,7 +32,7 @@ public class SelfUpdateService : ISelfUpdateService
             if (File.Exists(tempPath))
                 File.Delete(tempPath);
 
-            using var response = await Http.GetAsync(DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await Http.GetAsync(assetUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return new SelfUpdateResult(SelfUpdateStatus.Failed, $"HTTP {(int)response.StatusCode}");
 
@@ -67,14 +69,38 @@ public class SelfUpdateService : ISelfUpdateService
         }
     }
 
+    private async Task<string?> GetAssetDownloadUrlAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await Http.GetAsync(ReleasesUrl, cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            var assets = json.RootElement.GetProperty("assets");
+
+            foreach (var asset in assets.EnumerateArray())
+            {
+                var name = asset.GetProperty("name").GetString();
+                if (name == "ITE.ResourceCalculator.exe")
+                {
+                    return asset.GetProperty("browser_download_url").GetString();
+                }
+            }
+        }
+        catch { }
+        return null;
+    }
+
     private async Task<bool> VerifyHashAsync(string filePath, CancellationToken cancellationToken)
     {
         try
         {
-            var assetsResponse = await Http.GetAsync(BaseUrl, cancellationToken);
-            if (!assetsResponse.IsSuccessStatusCode) return true;
+            using var response = await Http.GetAsync(ReleasesUrl, cancellationToken);
+            if (!response.IsSuccessStatusCode) return true;
 
-            using var stream = await assetsResponse.Content.ReadAsStreamAsync(cancellationToken);
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             var assets = json.RootElement.GetProperty("assets");
 
