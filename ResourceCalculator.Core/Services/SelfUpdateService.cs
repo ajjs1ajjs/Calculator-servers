@@ -21,10 +21,10 @@ public class SelfUpdateService : ISelfUpdateService
 
     public async Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default)
     {
-        // Fetch the actual exe asset download URL from GitHub API
-        var assetUrl = await GetAssetDownloadUrlAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(assetUrl))
-            return new SelfUpdateResult(SelfUpdateStatus.Failed, "Could not find exe asset in release");
+        // DownloadUrl резолвить UpdateCheckService: це прямий browser_download_url
+        // exe-ассета, а не HTML-сторінка релізу.
+        if (string.IsNullOrWhiteSpace(DownloadUrl))
+            return new SelfUpdateResult(SelfUpdateStatus.Failed, "No download URL");
 
         try
         {
@@ -32,7 +32,7 @@ public class SelfUpdateService : ISelfUpdateService
             if (File.Exists(tempPath))
                 File.Delete(tempPath);
 
-            using var response = await Http.GetAsync(assetUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await Http.GetAsync(DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return new SelfUpdateResult(SelfUpdateStatus.Failed, $"HTTP {(int)response.StatusCode}");
 
@@ -67,30 +67,6 @@ public class SelfUpdateService : ISelfUpdateService
         {
             return new SelfUpdateResult(SelfUpdateStatus.Failed, ex.Message);
         }
-    }
-
-    private async Task<string?> GetAssetDownloadUrlAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var response = await Http.GetAsync(ReleasesUrl, cancellationToken);
-            if (!response.IsSuccessStatusCode) return null;
-
-            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            var assets = json.RootElement.GetProperty("assets");
-
-            foreach (var asset in assets.EnumerateArray())
-            {
-                var name = asset.GetProperty("name").GetString();
-                if (name == "ITE.ResourceCalculator.exe")
-                {
-                    return asset.GetProperty("browser_download_url").GetString();
-                }
-            }
-        }
-        catch { }
-        return null;
     }
 
     private async Task<bool> VerifyHashAsync(string filePath, CancellationToken cancellationToken)

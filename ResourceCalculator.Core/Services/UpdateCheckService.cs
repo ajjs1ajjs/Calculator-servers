@@ -55,8 +55,7 @@ public class UpdateCheckService : IUpdateCheckService
                 var root = json.RootElement;
 
                 var tagName = root.GetProperty("tag_name").GetString();
-                var releaseUrl = root.GetProperty("html_url").GetString();
-                if (string.IsNullOrWhiteSpace(tagName) || string.IsNullOrWhiteSpace(releaseUrl))
+                if (string.IsNullOrWhiteSpace(tagName))
                     return new UpdateCheckResult(UpdateCheckStatus.Failed);
 
                 var latestVersion = ParseVersion(tagName);
@@ -64,10 +63,19 @@ public class UpdateCheckService : IUpdateCheckService
                 if (latestVersion is null || currentVersion is null)
                     return new UpdateCheckResult(UpdateCheckStatus.Failed);
 
-                if (latestVersion > currentVersion)
-                    return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, releaseUrl));
+                if (latestVersion <= currentVersion)
+                    return new UpdateCheckResult(UpdateCheckStatus.NoUpdate);
 
-                return new UpdateCheckResult(UpdateCheckStatus.NoUpdate);
+                // Резолвимо прямий URL exe-ассета з того ж відповіді API, щоб далі качати
+                // саме файл, а не HTML-сторінку релізу (html_url).
+                var assetUrl = FindExeAssetUrl(root);
+                if (string.IsNullOrWhiteSpace(assetUrl))
+                {
+                    LogCheck($"no {ExeAssetName} asset in {tagName}");
+                    return new UpdateCheckResult(UpdateCheckStatus.Failed);
+                }
+
+                return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, assetUrl));
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
             {
@@ -77,6 +85,23 @@ public class UpdateCheckService : IUpdateCheckService
             }
         }
         return new UpdateCheckResult(UpdateCheckStatus.Failed);
+    }
+
+    private const string ExeAssetName = "ITE.ResourceCalculator.exe";
+
+    // Шукає прямий browser_download_url exe-ассета у вже отриманому JSON релізу.
+    private static string? FindExeAssetUrl(JsonElement root)
+    {
+        try
+        {
+            foreach (var asset in root.GetProperty("assets").EnumerateArray())
+            {
+                if (asset.GetProperty("name").GetString() == ExeAssetName)
+                    return asset.GetProperty("browser_download_url").GetString();
+            }
+        }
+        catch (KeyNotFoundException) { }
+        return null;
     }
 
     private static Task DelayBackoff(int attempt) =>
