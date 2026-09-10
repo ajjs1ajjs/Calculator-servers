@@ -250,23 +250,41 @@ public class SizingEngineTests
         Assert.DoesNotContain(result.Infrastructure, n => n.Name.Contains("HAProxy"));
     }
 
-    // --- Опціональний вузол «Сервер звітів» додається лише за перемикачем (+2 CPU/+4 ГБ) ---
+    // --- Reporting Server: окрема VM ТІЛЬКИ для Kubernetes ---
     [Fact]
-    public void Calculate_ReportingServer_WhenEnabled_AddsNodeAndResources()
+    public void Calculate_ReportingServer_OnlyAddedForKubernetes()
     {
-        ProjectConfig Cfg(bool reporting) => new()
+        // Kubernetes + reporting enabled -> додає вузол
+        var k8sWithReporting = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
+            IncludeReportingServer = true
+        });
+        Assert.Contains(k8sWithReporting.Infrastructure, n => n.Name.Contains("звіт"));
+
+        // Kubernetes + reporting disabled -> не додає
+        var k8sNoReporting = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Kubernetes, LoadProfile = LoadProfile.Performance,
+            IncludeReportingServer = false
+        });
+        Assert.DoesNotContain(k8sNoReporting.Infrastructure, n => n.Name.Contains("звіт"));
+
+        // Windows + reporting enabled -> НЕ додає (вже в App Server)
+        var windowsWithReporting = _engine.Calculate(new ProjectConfig
         {
             UserCount = 100, DeploymentType = DeploymentType.Windows, LoadProfile = LoadProfile.Performance,
-            IncludeReportingServer = reporting
-        };
-        var baseReq = _engine.Calculate(Cfg(false));
-        var withRep = _engine.Calculate(Cfg(true));
+            IncludeReportingServer = true
+        });
+        Assert.DoesNotContain(windowsWithReporting.Infrastructure, n => n.Name.Contains("звіт"));
 
-        var node = withRep.Infrastructure.First(n => n.Name.Contains("звіт"));
-        Assert.Equal(2, node.Cpu);
-        Assert.Equal(4, node.RamGb);
-        Assert.Equal(baseReq.TotalCpu + 2, withRep.TotalCpu);
-        Assert.Equal(baseReq.TotalRamGb + 4, withRep.TotalRamGb);
+        // Hybrid + reporting enabled -> НЕ додає (на Windows App Server)
+        var hybridWithReporting = _engine.Calculate(new ProjectConfig
+        {
+            UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Performance,
+            IncludeReportingServer = true
+        });
+        Assert.DoesNotContain(hybridWithReporting.Infrastructure, n => n.Name.Contains("звіт"));
     }
 
     // --- SQL Failover додає другий вузол БД (копію первинного) ---
@@ -360,7 +378,8 @@ public class SizingEngineTests
             UserCount = 100, DeploymentType = DeploymentType.Hybrid, LoadProfile = LoadProfile.Performance,
             IncludeReportingServer = true, IncludeHaProxy = true
         });
-        Assert.Equal(1, result.Infrastructure.Count(n => n.Name.Contains("звіт")));
+        // Reporting Server для Hybrid НЕ додається (вже в App Server)
+        Assert.Equal(0, result.Infrastructure.Count(n => n.Name.Contains("звіт")));
         Assert.Equal(1, result.Infrastructure.Count(n => n.Name.Contains("HAProxy")));
     }
 

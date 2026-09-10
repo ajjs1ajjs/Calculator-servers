@@ -8,7 +8,7 @@ namespace ResourceCalculator.Services;
 
 // Захист чутливих даних матриці (діапазони, формули, вузли — впливають на кінцевий результат).
 // Пароль зберігається як SHA-256 хеш з сіллю у settings.json у %LOCALAPPDATA%\ResourceCalculator.
-// За замовчуванням — значення, узгоджене з розробником; за потреби адмін може змінити через UI.
+// Пароль статичний, встановлюється розробником при білді (DefaultPassword). Користувачі не можуть його змінити/перегенерувати.
 public class AccessService
 {
     // Контакти розробника для відновлення доступу, якщо пароль забуто.
@@ -92,28 +92,9 @@ public class AccessService
         }
     }
 
-    // Зміна пароля потребує підтвердження поточного.
-    public bool ChangePassword(string current, string newPassword)
-    {
-        if (!Verify(current)) return false;
-        if (string.IsNullOrEmpty(newPassword)) return false;
-        SetPassword(newPassword);
-        return true;
-    }
-
-    // Генерація нового пароля (випадковий, складний) із збереженням у налаштуваннях.
-    // Використовується для відновлення доступу, якщо пароль забуто.
-    public string RegeneratePassword()
-    {
-        const string chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var buffer = RandomNumberGenerator.GetBytes(14);
-        var sb = new StringBuilder(14);
-        foreach (var b in buffer)
-            sb.Append(chars[b % chars.Length]);
-        var password = sb.ToString();
-        SetPassword(password);
-        return password;
-    }
+    // Повертає підказку з контактами розробника для отримання паролю.
+    public string GetPasswordHint()
+        => "Пароль встановлено розробником. Для отримання зверніться: " + DevContacts;
 
     private static string Hash(string password, string salt)
     {

@@ -40,22 +40,6 @@ public class AccessServiceTests
     }
 
     [Fact]
-    public void ChangePassword_RequiresCurrentPassword()
-    {
-        var svc = NewService(out var dir);
-        try
-        {
-            svc.EnsureInitialized();
-            Assert.False(svc.ChangePassword("wrong", "NewPass123"));
-
-            Assert.True(svc.ChangePassword(AccessService.DefaultPassword, "NewPass123"));
-            Assert.True(svc.Verify("NewPass123"));
-            Assert.False(svc.Verify(AccessService.DefaultPassword));
-        }
-        finally { Directory.Delete(dir, recursive: true); }
-    }
-
-    [Fact]
     public void DevContacts_ContainsEmailAndPhone()
     {
         Assert.Contains("yaroslav.andreichuk@gmail.com", AccessService.DevContacts);
@@ -63,21 +47,16 @@ public class AccessServiceTests
     }
 
     [Fact]
-    public void RegeneratePassword_CreatesStrongUniquePassword_AndSetsIt()
+    public void GetPasswordHint_ReturnsContacts()
     {
         var svc = NewService(out var dir);
         try
         {
-            svc.EnsureInitialized();
-            var p1 = svc.RegeneratePassword();
-            var p2 = svc.RegeneratePassword();
-
-            Assert.False(string.IsNullOrWhiteSpace(p1));
-            Assert.True(p1.Length >= 12);
-            Assert.NotEqual(p1, p2);
-            Assert.False(svc.Verify(p1));   // попередній пароль уже неактивний
-            Assert.True(svc.Verify(p2));    // останній згенерований пароль активний
-            Assert.False(svc.Verify(AccessService.DefaultPassword));
+            var hint = svc.GetPasswordHint();
+            Assert.Contains("yaroslav.andreichuk@gmail.com", hint);
+            Assert.Contains("andreichuk.y@it-enterprise.com", hint);
+            Assert.Contains("+380979454941", hint);
+            Assert.Contains("Пароль встановлено розробником", hint);
         }
         finally { Directory.Delete(dir, recursive: true); }
     }

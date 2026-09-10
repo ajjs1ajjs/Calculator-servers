@@ -13,6 +13,4 @@ public interface IDialogService
     Task ErrorAsync(string message, string title);
     // Розблокування матриці паролем. true = розблоковано.
     Task<bool> ShowPasswordDialogAsync();
-    // Зміна пароля матриці.
-    Task ShowChangePasswordDialogAsync();
 }

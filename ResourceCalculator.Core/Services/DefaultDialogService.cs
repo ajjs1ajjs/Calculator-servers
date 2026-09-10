@@ -25,5 +25,4 @@ public class DefaultDialogService : IDialogService
     }
 
     public Task<bool> ShowPasswordDialogAsync() => Task.FromResult(false);
-    public Task ShowChangePasswordDialogAsync() => Task.CompletedTask;
 }

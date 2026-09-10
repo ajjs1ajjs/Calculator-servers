@@ -53,13 +53,6 @@ public class AvaloniaDialogService : IDialogService, IFileSaveService
         return dialog.Unlocked;
     }
 
-    public async Task ShowChangePasswordDialogAsync()
-    {
-        var owner = _owner();
-        if (owner is null) return;
-        await new ChangePasswordDialog(_access).ShowDialog<bool>(owner);
-    }
-
     public async Task<string?> PickSavePathAsync(string defaultFileName, string filterDescription, string extension)
     {
         var owner = _owner();

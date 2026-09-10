@@ -74,7 +74,7 @@ public class SizingEngine : ISizingEngine
             }
         }
 
-        if (config.IncludeReportingServer)
+        if (config.IncludeReportingServer && config.DeploymentType == DeploymentType.Kubernetes)
             req.Infrastructure.Add((_matrix.DefaultReportingServer ?? _defaultReporting).Clone());
 
         if (config.IncludeHaProxy)

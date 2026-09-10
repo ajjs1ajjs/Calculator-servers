@@ -40,12 +40,6 @@ public class WpfDialogService : IDialogService, IFileSaveService
         return Task.FromResult(result);
     }
 
-    public Task ShowChangePasswordDialogAsync()
-    {
-        new ChangePasswordDialog(_access, _owner()).ShowDialog();
-        return Task.CompletedTask;
-    }
-
     public Task<string?> PickSavePathAsync(string defaultFileName, string filterDescription, string extension)
     {
         var dialog = new SaveFileDialog

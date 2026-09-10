@@ -44,7 +44,6 @@ public class MatrixViewModel : INotifyPropertyChanged
     public ICommand SaveMatrixCommand { get; }
     public ICommand RecalculateMatrixCommand { get; }
     public ICommand ResetMatrixCommand { get; }
-    public ICommand ChangePasswordCommand { get; }
     // Додавання нового рядка в одну з таблиць матриці (Avalonia DataGrid не має CanUserAddRows).
     public ICommand AddRowCommand { get; }
 
@@ -70,7 +69,6 @@ public class MatrixViewModel : INotifyPropertyChanged
         SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
         RecalculateMatrixCommand = new RelayCommand(_ => RecalculateMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
-        ChangePasswordCommand = new RelayCommand(_ => ChangePassword());
         AddRowCommand = new RelayCommand(p => AddRow(p?.ToString()));
     }
 
@@ -79,14 +77,6 @@ public class MatrixViewModel : INotifyPropertyChanged
     {
         get => _unlocked;
         private set { _unlocked = value; OnPropertyChanged(); }
-    }
-
-    // Зміна пароля: потребує поточний пароль і новий (мін. 8 символів).
-    public bool ChangePassword(string current, string newPassword, string confirm)
-    {
-        if (newPassword.Length < 8) return false;
-        if (newPassword != confirm) return false;
-        return _access.ChangePassword(current, newPassword);
     }
 
     public void LoadMatrixGrids()
@@ -197,17 +187,6 @@ public class MatrixViewModel : INotifyPropertyChanged
     // Синхронна перевірка для код-біхинд (WPF BeginningEdit): у WPF діалог синхронний.
     public bool EnsureUnlocked()
         => EnsureUnlockedAsync().GetAwaiter().GetResult();
-
-    private void ChangePassword()
-    {
-        _ = ChangePasswordAsync();
-    }
-
-    private async Task ChangePasswordAsync()
-    {
-        if (!await EnsureUnlockedAsync()) return;
-        if (_dialogs is not null) await _dialogs.ShowChangePasswordDialogAsync();
-    }
 
     private void NotifyAllCollections()
     {
