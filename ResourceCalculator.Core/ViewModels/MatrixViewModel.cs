@@ -164,7 +164,6 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     private async Task ResetMatrixAsync()
     {
-        if (!await EnsureUnlockedAsync()) return;
         _matrixManager.Reset();
         _matrix = _matrixManager.Matrix;
         LoadMatrixGrids();

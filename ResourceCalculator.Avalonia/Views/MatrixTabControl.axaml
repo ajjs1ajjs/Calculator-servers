@@ -32,12 +32,6 @@
                 <Button Command="{Binding MatrixVM.ResetMatrixCommand}" Padding="12,8">
                     <TextBlock Text="{loc:Loc matrix.reset}"/>
                 </Button>
-                <Button Command="{Binding MatrixVM.ChangePasswordCommand}" Padding="12,8">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🔑" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="{loc:Loc access.changePassword}" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
             </StackPanel>
 
             <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True">
