@@ -47,13 +47,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify git repo
+      - name: Setup git for gh CLI
         run: |
-          echo "Current dir: $(pwd)"
-          ls -la
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git status
-          git log --oneline -5
-          git rev-parse HEAD
+          git log --oneline -1
 
       - uses: actions/download-artifact@v4
         with:
@@ -70,9 +69,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           echo "Creating release for tag: $TAG"
-          echo "Working dir: $(pwd)"
-          git status
-          gh release create "$TAG" --title "$TAG" --generate-notes
+          gh release create "$TAG" --title "$TAG" --generate-notes --repo ${{ github.repository }}
 
       - name: Upload to Release
         env:
@@ -80,4 +77,4 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           echo "Uploading to release: $TAG"
-          gh release upload "$TAG" artifacts/release/ITE.ResourceCalculator.exe --clobber
+          gh release upload "$TAG" artifacts/release/ITE.ResourceCalculator.exe --clobber --repo ${{ github.repository }}
