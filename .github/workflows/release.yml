@@ -29,14 +29,14 @@ jobs:
       - name: Test
         run: dotnet test ResourceCalculator.slnx -c Release --no-build
 
-      - name: Publish exe
+      - name: Publish portable exe (single-file, self-contained)
         run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -p:SkipCodeSigning=true --output publish
 
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: release
-          path: publish/*
+          path: publish/ITE.ResourceCalculator.exe
 
   release:
     name: Create GitHub Release
@@ -59,7 +59,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Verify artifacts
+      - name: Verify artifact
         run: |
           echo "Artifacts dir: $(pwd)/artifacts"
           ls -la artifacts/
@@ -80,4 +80,4 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           echo "Uploading to release: $TAG"
-          gh release upload "$TAG" artifacts/release/* --clobber
+          gh release upload "$TAG" artifacts/release/ITE.ResourceCalculator.exe --clobber
