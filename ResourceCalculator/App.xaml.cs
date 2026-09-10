@@ -81,60 +81,91 @@ public partial class App : Application
     // оновлень», і помилку перевірки.
     internal async Task CheckForUpdatesAsync(bool silent)
     {
-        var update = await Services.GetRequiredService<IUpdateCheckService>().CheckForUpdateAsync().ConfigureAwait(false);
-        var loc = LocalizationService.Instance;
-
-        switch (update.Status)
+        UpdateCheckResult update;
+        try
         {
-            case UpdateCheckStatus.UpdateAvailable:
-                var currentVersion = DisplayVersion();
-                var result = MessageBox.Show(
-                    string.Format(loc["update.message"], update.Update!.Version, currentVersion),
-                    loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    await StartUpdateAsync(update.Update.Version, update.Update.DownloadUrl);
-                }
-                break;
-
-            case UpdateCheckStatus.NoUpdate:
-                if (!silent)
-                    MessageBox.Show(loc["update.none"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Information);
-                break;
-
-            case UpdateCheckStatus.Failed:
-                if (!silent)
-                    MessageBox.Show(loc["update.failed"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Warning);
-                break;
+            update = await Services.GetRequiredService<IUpdateCheckService>()
+                .CheckForUpdateAsync().ConfigureAwait(false);
         }
+        catch (Exception ex)
+        {
+            // Перевірка оновлень ніколи не має валити застосунок — мережеві збої
+            // трактуємо як Failed і показуємо звичайне повідомлення.
+            Debug.WriteLine($"Update check crashed: {ex}");
+            update = new UpdateCheckResult(UpdateCheckStatus.Failed);
+        }
+
+        // Після ConfigureAwait(false) продовження виконується у потоці пулу, а вікна
+        // й Application.MainWindow у WPF прив'язані до UI-потоку. Без цього стрибка
+        // на диспетчер перевірка падала з «The calling thread cannot access this
+        // object because a different thread owns it».
+        await Dispatcher.InvokeAsync(async () =>
+        {
+            var loc = LocalizationService.Instance;
+            switch (update.Status)
+            {
+                case UpdateCheckStatus.UpdateAvailable:
+                    var result = MessageBox.Show(
+                        string.Format(loc["update.message"], update.Update!.Version, DisplayVersion()),
+                        loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                        await StartUpdateAsync(update.Update.Version, update.Update.DownloadUrl);
+                    break;
+
+                case UpdateCheckStatus.NoUpdate:
+                    if (!silent)
+                        MessageBox.Show(loc["update.none"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case UpdateCheckStatus.Failed:
+                    if (!silent)
+                        MessageBox.Show(loc["update.failed"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Warning);
+                    break;
+            }
+        }).Task.Unwrap().ConfigureAwait(false);
     }
 
+    // Викликається вже на UI-потоці (з тіла Dispatcher.InvokeAsync вище).
     private async Task StartUpdateAsync(string version, string downloadUrl)
     {
-        var mainWindow = System.Windows.Application.Current.MainWindow;
+        var mainWindow = MainWindow;
         if (mainWindow is null) return;
 
-        var progressDialog = new UpdateProgressDialog(version);
-        progressDialog.Owner = mainWindow;
+        var progressDialog = new UpdateProgressDialog(version) { Owner = mainWindow };
         progressDialog.Show();
 
         var updateService = Services.GetRequiredService<ISelfUpdateService>();
         updateService.DownloadUrl = downloadUrl;
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
 
-        updateService.Progress += (bytes, total) =>
+        // ISelfUpdateService зареєстрований як singleton, тож обробник обов'язково
+        // знімаємо у finally — інакше кожна наступна спроба оновлення писала б прогрес
+        // ще й у вже закриті діалоги попередніх спроб.
+        DownloadProgressHandler onProgress = (bytes, total) =>
+            Dispatcher.InvokeAsync(() => progressDialog.SetProgress(bytes, total), DispatcherPriority.Background);
+        updateService.Progress += onProgress;
+
+        SelfUpdateResult updateResult;
+        try
         {
-            mainWindow.Dispatcher.BeginInvoke(() => progressDialog.SetProgress(bytes, total));
-        };
+            updateResult = await updateService.UpdateAsync(cts.Token);
+        }
+        catch (Exception ex)
+        {
+            updateResult = new SelfUpdateResult(SelfUpdateStatus.Failed, ex.Message);
+        }
+        finally
+        {
+            updateService.Progress -= onProgress;
+        }
 
-        var updateResult = await updateService.UpdateAsync(cts.Token);
-
-        await mainWindow.Dispatcher.BeginInvoke(() =>
+        await Dispatcher.InvokeAsync(() =>
         {
             if (updateResult.Status == SelfUpdateStatus.Completed)
             {
                 progressDialog.SetCompleted();
+                // .bat дочекається виходу цього процесу перед підміною exe — див. ApplyUpdate.
                 Environment.Exit(0);
             }
             else

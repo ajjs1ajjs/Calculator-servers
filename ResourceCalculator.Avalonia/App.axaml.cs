@@ -133,14 +133,27 @@ public partial class App : Application
 
         var updateService = Services.GetRequiredService<ISelfUpdateService>();
         updateService.DownloadUrl = downloadUrl;
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
 
-        updateService.Progress += (bytes, total) =>
+        // ISelfUpdateService — singleton, тож обробник знімаємо у finally: інакше кожна
+        // наступна спроба оновлення писала б прогрес ще й у закриті діалоги попередніх.
+        DownloadProgressHandler onProgress = (bytes, total) =>
+            Dispatcher.UIThread.Post(() => progressDialog.SetProgress(bytes, total), DispatcherPriority.Background);
+        updateService.Progress += onProgress;
+
+        SelfUpdateResult updateResult;
+        try
         {
-            Dispatcher.UIThread.Post(() => progressDialog.SetProgress(bytes, total));
-        };
-
-        var updateResult = await updateService.UpdateAsync(cts.Token);
+            updateResult = await updateService.UpdateAsync(cts.Token);
+        }
+        catch (Exception ex)
+        {
+            updateResult = new SelfUpdateResult(SelfUpdateStatus.Failed, ex.Message);
+        }
+        finally
+        {
+            updateService.Progress -= onProgress;
+        }
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {

@@ -86,7 +86,7 @@ if ($dirty) {
     Write-Host $dirty
     throw "Є незакомічені/невідстежувані зміни (див. вище). Перегляньте їх і закомітьте вручну (git add <конкретні файли>) перед релізом — release.ps1 навмисно не робить це сам, щоб випадково не запушити щось зайве."
 }
-git push origin master
+git push origin main
 git tag $tag
 git push origin $tag
 

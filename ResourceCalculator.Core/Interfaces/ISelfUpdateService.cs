@@ -9,7 +9,6 @@ public record SelfUpdateResult(SelfUpdateStatus Status, string? Error = null);
 public interface ISelfUpdateService
 {
     event DownloadProgressHandler? Progress;
-    string? LatestVersion { get; }
     string? DownloadUrl { get; set; }
     Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default);
 }
