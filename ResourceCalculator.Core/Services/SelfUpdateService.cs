@@ -21,8 +21,6 @@ public class SelfUpdateService : ISelfUpdateService
 
     public async Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default)
     {
-        // DownloadUrl резолвить UpdateCheckService: це прямий browser_download_url
-        // exe-ассета, а не HTML-сторінка релізу.
         if (string.IsNullOrWhiteSpace(DownloadUrl))
             return new SelfUpdateResult(SelfUpdateStatus.Failed, "No download URL");
 
@@ -110,13 +108,26 @@ public class SelfUpdateService : ISelfUpdateService
         var currentExe = Environment.ProcessPath ?? Assembly.GetExecutingAssembly().Location;
         if (string.IsNullOrEmpty(currentExe)) return;
 
+        var currentDir = Path.GetDirectoryName(currentExe);
+        var currentExeName = Path.GetFileName(currentExe);
+        var oldExePath = Path.Combine(currentDir!, currentExeName + ".old");
         var batchPath = Path.Combine(Path.GetTempPath(), "ITE_Update.bat");
+
         var batch = new StringBuilder();
         batch.AppendLine("@echo off");
         batch.AppendLine("timeout /t 2 /nobreak > nul");
-        batch.AppendLine($"copy /Y \"{newExePath}\" \"{currentExe}\"");
-        batch.AppendLine($"del \"{newExePath}\"");
-        batch.AppendLine($"del \"%~f0\"");
+        
+        // Windows allows moving a running exe - rename current to .old
+        batch.AppendLine($"move /Y \"{currentExe}\" \"{oldExePath}\" > nul 2>&1");
+        // Copy new exe to original location
+        batch.AppendLine($"copy /Y \"{newExePath}\" \"{currentExe}\" > nul 2>&1");
+        // Clean up downloaded file
+        batch.AppendLine($"del \"{newExePath}\" > nul 2>&1");
+        // Start the updated application
+        batch.AppendLine($"start \"\" \"{currentExe}\"");
+        // Clean up old file and this batch file
+        batch.AppendLine($"del \"{oldExePath}\" > nul 2>&1");
+        batch.AppendLine($"del \"%~f0\" > nul 2>&1");
 
         File.WriteAllText(batchPath, batch.ToString(), Encoding.UTF8);
 
