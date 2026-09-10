@@ -49,18 +49,29 @@ jobs:
 
       - name: Verify git repo
         run: |
+          echo "Current dir: $(pwd)"
+          ls -la
           git status
           git log --oneline -5
+          git rev-parse HEAD
 
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: Verify artifacts
+        run: |
+          echo "Artifacts dir: $(pwd)/artifacts"
+          ls -la artifacts/
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
+          echo "Creating release for tag: $TAG"
+          echo "Working dir: $(pwd)"
+          git status
           gh release create "$TAG" --title "$TAG" --generate-notes
 
       - name: Upload to Release
@@ -68,4 +79,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
+          echo "Uploading to release: $TAG"
           gh release upload "$TAG" artifacts/release/* --clobber
