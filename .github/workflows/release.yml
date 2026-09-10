@@ -30,7 +30,7 @@ jobs:
         run: dotnet test ResourceCalculator.slnx -c Release --no-build
 
       - name: Publish portable exe (single-file, self-contained)
-        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -p:SkipCodeSigning=true --output publish
+        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

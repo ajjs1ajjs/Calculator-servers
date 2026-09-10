@@ -39,13 +39,6 @@
     <ProjectReference Include="..\ResourceCalculator.Core\ResourceCalculator.Core.csproj" />
   </ItemGroup>
 
-  <!-- Автопідпис опублікованого exe. Спрацьовує ЛИШЕ при `dotnet publish` (не при звичайному
-       build/run), тож майбутні зміни програми підписуються самі. Використовує наявний
-       самопідписаний 25-річний сертифікат «CN=IT-Enterprise ResourceCalculator» через sign.ps1. -->
-  <Target Name="SignPublishedExe" AfterTargets="Publish" Condition="'$(SkipCodeSigning)' != 'true'">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\sign.ps1&quot; -ExePath &quot;$(PublishDir)$(AssemblyName).exe&quot;" ContinueOnError="false" />
-  </Target>
-
   <!-- Чистий one-file дистрибутив: прибираємо з publish зайве — папку шрифтів QuestPDF (Lato
        вшитий у бібліотеку, з диска не читається — перевірено) та .pdb (символи лагодження,
        користувачам не потрібні). Лишається єдиний exe. -->

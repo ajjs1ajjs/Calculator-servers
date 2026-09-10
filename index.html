@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator Servers — IT Infrastructure Sizing</title>
-<meta name="description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. WPF + Avalonia, .NET 10.">
+<meta name="description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. WPF, .NET 10.">
 <meta property="og:title" content="Calculator Servers — IT Infrastructure Sizing">
-<meta property="og:description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. WPF + Avalonia, .NET 10.">
+<meta property="og:description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. WPF, .NET 10.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
 <style>
@@ -70,12 +70,12 @@ section{padding:56px 0 8px}
 .step p{color:var(--muted);font-size:.93rem}
 .step code{display:block;margin-top:10px;font-size:.78rem;color:var(--accent);word-break:break-all}
 .install{background:#0b1120;border:1px solid var(--border);border-radius:20px;overflow:hidden;max-width:860px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,.5)}
-.tabs{display:flex;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border)}
-.tabs button{flex:1;padding:15px;background:none;border:none;color:var(--muted);font-weight:700;font-size:.95rem;cursor:pointer;transition:.2s;font-family:inherit}
-.tabs button.active{color:#fff;background:rgba(255,255,255,.06);box-shadow:inset 0 -3px 0 var(--accent)}
+
+
+
 .term{padding:22px;display:flex;gap:12px;align-items:center;background:#070c18}
 .term code{flex:1;font-family:Consolas,Menlo,monospace;color:#7dd3fc;font-size:.86rem;word-break:break-all;text-align:left}
-.copy{background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff;border-radius:10px;padding:9px 16px;cursor:pointer;font-weight:700;transition:.2s;white-space:nowrap;font-family:inherit}
+.copy{background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff;border-radius:10px;padding:9px 16px;cursor:pointer;font-weight:700;transition:.2s;white-space:nowrap;font-family:inherit;display:inline-block;text-decoration:none}
 .copy:hover{background:var(--accent);color:#06121a;border-color:transparent}
 .hint{text-align:center;color:var(--muted);font-size:.85rem;margin-top:12px}
 .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
@@ -135,7 +135,7 @@ footer a{color:var(--accent);text-decoration:none}
 <div class="live"><span class="dot"></span> PRODUCTION READY &nbsp;•&nbsp; MIT LICENSE &nbsp;•&nbsp; v2.3.1</div>
 <h1>🧮 Resource <span class='grad'>Calculator</span></h1>
 <p class="tagline">Калькулятор ресурсів IT-інфраструктури на основі матриці сайзингу. Точний розрахунок CPU, RAM, дисків та IOPS для K8s, Windows і Hybrid.</p>
-<div class="badges"><span class='badge'>🪟 Windows 10/11</span><span class='badge'>📊 WPF</span><span class='badge'>🎨 Avalonia</span><span class='badge'>⚙️ .NET 10</span><span class='badge'>✅ 131 тест</span></div>
+<div class="badges"><span class='badge'>🪟 Windows 10/11</span><span class='badge'>📊 WPF</span><span class='badge'>⚙️ .NET 10</span><span class='badge'>✅ 131 тест</span></div>
 <div class="shields"><img src='https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?label=release' alt='release' loading='lazy'><img src='https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads' alt='downloads' loading='lazy'><img src='https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI' alt='CI' loading='lazy'><img src='https://img.shields.io/badge/license-MIT-green' alt='MIT' loading='lazy'></div>
 <div class="cta">
 <a class="btn btn-primary" href="#install">🚀 Швидкий старт</a>
@@ -149,12 +149,11 @@ footer a{color:var(--accent);text-decoration:none}
 <section id="features"><div class="sec-head reveal"><h2>Потужні <span class="u">можливості</span></h2><p>Матриця, рушій сайзингу та звіти — від параметрів до готової специфікації.</p></div>
 <div class="features"><div class='feature reveal'><div class='ic'>📊</div><h3>Точний сайзинг</h3><p>CPU/RAM/Storage/IOPS для SQL, Postgres, Oracle, App, Web за еталоном D-AD-ADM-E.</p></div><div class='feature reveal'><div class='ic'>🧩</div><h3>Редагована матриця</h3><p>Діапазони, поди, вузли K8s/Windows, EngineSettings — все в UI, зберігається в matrix.json.</p></div><div class='feature reveal'><div class='ic'>☸️</div><h3>K8s / Windows / Hybrid</h3><p>3 топології розгортання, 4 середовища: PROD, DEV, TEST, PreProd.</p></div><div class='feature reveal'><div class='ic'>💾</div><h3>Диски та HA</h3><p>OS / Logs+TempDB / Data / Content, pagefile-розрахунок, SQL Secondary, HAProxy+keepalived.</p></div><div class='feature reveal'><div class='ic'>📄</div><h3>Експорт звітів</h3><p>Excel (.xlsx), XML, HTML. Звірка з документом та деталізація по вузлах.</p></div><div class='feature reveal'><div class='ic'>🔐</div><h3>Захист паролем</h3><p>SHA-256 + сіль, блокування матриці, зміна та регенерація паролю в UI.</p></div></div></section>
 
-<section id="install"><div class="sec-head reveal"><h2>Встановлення за <span class="u">30 секунд</span></h2><p>Одна команда — і все працює. Оберіть свою ОС:</p></div>
+<section id="install"><div class="sec-head reveal"><h2>Встановлення за <span class="u">30 секунд</span></h2><p>Один файл — і все працює. Інсталятор не потрібен:</p></div>
 <div class="install reveal">
-<div class="tabs"><button class="active" onclick="tab(this,'win')">🪟 Windows</button><button onclick="tab(this,'linux')">🐧 Linux</button><button onclick="tab(this,'mac')">🍎 macOS</button></div>
-<div class="term"><code id="cmd">irm https://raw.githubusercontent.com/ajjs1ajjs/Calculator-servers/main/install.ps1 | iex</code><button class="copy" onclick="copyCmd()">📋 Копіювати</button></div>
+<div class="term"><code id="cmd">ITE.ResourceCalculator.exe</code><a class="copy" href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest/download/ITE.ResourceCalculator.exe">⬇️ Завантажити</a></div>
 </div>
-<p class="hint">💡 На Linux/macOS потрібен sudo • На Windows — PowerShell від імені адміністратора</p>
+<p class="hint">💡 Portable: інсталяція не потрібна — завантажте exe і запустіть. Оновлення вбудоване в програму.</p>
 <div class="steps" style="margin-top:26px"><div class='step reveal'><div class='n'>1</div><b>Відкрийте матрицю</b><p>Перевірте діапазони та модулі</p></div><div class='step reveal'><div class='n'>2</div><b>Задайте параметри</b><p>Користувачі, середовище, топологія</p></div><div class='step reveal'><div class='n'>3</div><b>Отримайте результат</b><p>Специфікація + Excel-звіт</p></div></div>
 </section>
 
@@ -164,9 +163,8 @@ footer a{color:var(--accent);text-decoration:none}
 <section id="platforms"><div class="sec-head reveal"><h2>Працює <span class="u">скрізь</span></h2><p>Нативні збірки під кожну платформу</p></div>
 <div class="os-grid"><div class='os-card reveal'><div class='oi'>🪟</div><b>Windows</b><span>10 / 11, Server 2022 / 2025</span></div></div></section>
 
-<section id="download"><div class="sec-head reveal"><h2>Завантажити <span class="u">Calculator</span></h2><p>WPF + Avalonia збірки для Windows</p></div><div class="dl-grid">
-<div class="dl-card reveal"><h3>🪟 WPF (.NET 10)</h3><div class="v">Основна версія + MSI</div><a class="btn btn-primary btn-sm" href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest">⬇️ .exe / .msi</a></div>
-<div class="dl-card reveal"><h3>🎨 Avalonia</h3><div class="v">win-x64 portable zip</div><a class="btn btn-primary btn-sm" href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest">⬇️ .zip</a></div>
+<section id="download"><div class="sec-head reveal"><h2>Завантажити <span class="u">Calculator</span></h2><p>Portable-збірка для Windows 10/11</p></div><div class="dl-grid">
+<div class="dl-card reveal"><h3>🪟 WPF (.NET 10)</h3><div class="v">win-x64 · self-contained · один файл</div><a class="btn btn-primary btn-sm" href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest/download/ITE.ResourceCalculator.exe">⬇️ .exe</a></div>
 </div></section>
 
 <div class="cta-big reveal">
@@ -185,9 +183,6 @@ footer a{color:var(--accent);text-decoration:none}
 <div id="lightbox" onclick="this.classList.remove('open')"><div><img id="lbImg" src="" alt=""><div class="cap" id="lbCap"></div></div></div>
 <button id="toTop" onclick="scrollTo({top:0,behavior:'smooth'})" aria-label="top">↑</button>
 <script>
-const CMDS={win:'irm https://raw.githubusercontent.com/ajjs1ajjs/Calculator-servers/main/install.ps1 | iex',linux:'curl -sSL https://raw.githubusercontent.com/ajjs1ajjs/Calculator-servers/main/install.sh | sudo bash',mac:'curl -sSL https://raw.githubusercontent.com/ajjs1ajjs/Calculator-servers/main/install_mac.sh | sudo bash'};
-function tab(el,os){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('cmd').textContent=CMDS[os];}
-function copyCmd(){const t=document.getElementById('cmd').textContent;navigator.clipboard.writeText(t).then(()=>{const b=document.querySelector('.copy');const o=b.textContent;b.textContent='✅ Скопійовано!';setTimeout(()=>b.textContent=o,1800);});}
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target);}}),{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 document.querySelectorAll('.shot').forEach(s=>s.addEventListener('click',()=>{const i=s.querySelector('img');document.getElementById('lbImg').src=i.src;document.getElementById('lbCap').textContent=s.querySelector('h3').textContent;document.getElementById('lightbox').classList.add('open');}));

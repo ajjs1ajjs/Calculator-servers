@@ -43,15 +43,10 @@ jobs:
         path: coverage/report
 
     - name: Publish (self-contained)
-      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish -p:SkipCodeSigning=true
+      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish
 
-    - name: Publish Avalonia (win-x64)
-      run: dotnet publish ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj --configuration Release -r win-x64 --output publish/avalonia-win-x64
-
-    - name: Upload Windows artifacts
+    - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-publish
-        path: |
-          publish/ITE.ResourceCalculator.exe
-          publish/avalonia-win-x64/
+        path: publish/ITE.ResourceCalculator.exe

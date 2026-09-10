@@ -1,5 +1,4 @@
 <Solution>
   <Project Path="ResourceCalculator.Tests/ResourceCalculator.Tests.csproj" />
   <Project Path="ResourceCalculator/ResourceCalculator.csproj" />
-  <Project Path="ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj" />
 </Solution>

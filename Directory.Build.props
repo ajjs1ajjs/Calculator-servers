@@ -1,10 +1,9 @@
 <Project>
   <PropertyGroup>
     <!-- Єдине джерело версії застосунку — використовується ResourceCalculator.csproj
-         (Version/FileVersion/InformationalVersion, звідти ж читає UpdateCheckService)
-         та ResourceCalculator.Installer.wixproj (ProductVersion MSI).
-         Бампати тут при кожному релізі — release.ps1 звіряє це значення з тегами git
-         і не дасть опублікувати реліз без бампу. -->
+         (Version/FileVersion/InformationalVersion, звідти ж читає UpdateCheckService).
+         Бампати тут при кожному релізі ПЕРЕД тим, як ставити тег vX.Y.Z: саме push
+         тега запускає .github/workflows/release.yml, який і публікує реліз. -->
     <AppVersion>2.4.12</AppVersion>
   </PropertyGroup>
 </Project>

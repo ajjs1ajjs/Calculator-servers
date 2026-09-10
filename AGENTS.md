@@ -16,11 +16,11 @@
 - **Поточна версія: 2.3.1** (Windows only; фікс CVE-2026-39959). `AppVersion` у `Directory.Build.props`.
 - Останні коміти (від новіших): `dbd9cca` (main.png для обходу кешу), `74b5971` (скріншот «Параметри»), `c9f436b` (пароль при редагуванні комірки), `31acd43` (версія 2.0.2), `b1ae2c6` (вільне керування модулями), `b2ebc9e` (BOM скриптів), `d792528` (захист паролем + фікси), `026d54c` (єдиний профіль), `820a185` (ренейм + 3 вкладки + матриця).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
-- **Тестів: 131, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
+- **Тестів: 130, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
 ## Архітектура (після рефакторингу)
 
-- **Namespace/проєкт:** `ResourceCalculator` (папки `ResourceCalculator/`, `ResourceCalculator.Tests/`, `ResourceCalculator.Installer/`).
+- **Namespace/проєкт:** `ResourceCalculator` (папки `ResourceCalculator/` — WPF UI, `ResourceCalculator.Core/` — уся логіка, `ResourceCalculator.Tests/`).
   exe/білд: `ITE.ResourceCalculator.exe`. Раніше було `AIResourceCalculator` — повністю перейменовано, AI-згадок немає.
 - **Рішення:** `ResourceCalculator.slnx` (проєкт + тести).
 - **3 вкладки-кроки** (`MainWindow.xaml`): 0=Матриця, 1=Параметри розрахунку, 2=Результати.
@@ -79,11 +79,13 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 ## Скрипти та реліз
 
-- `release.ps1` — повний реліз (Windows-only): перевірка версії/тегів → build → test → publish WPF exe + Avalonia win-x64 zip + MSI → push+tag → GitHub Release (exe+MSI+avalonia-win.zip). **Версію бампати в `Directory.Build.props` ПЕРЕД релізом.**
-- ⚠️ Нотатки GitHub-релізу (`-ReleaseNotes`) — **тільки українською** (README/CHANGELOG/UI українські). Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
-- `sign.ps1` — підпис exe. Самопідписаний сертифікат `CN=IT-Enterprise ResourceCalculator` (25 років), `.cer` у корені.
-- **⚠️ Кодування `.ps1`**: файли мають бути **UTF-8 з BOM** (PowerShell 5.1 інакше ламає кирилицю). Не перезаписувати через Set-Content без BOM.
-- `.github/workflows/ci.yml` — CI: build + test + coverage (ReportGenerator) + publish (Windows-only). Шляхи: `ResourceCalculator/...`.
+- **Єдиний шлях релізу — push тега `vX.Y.Z`.** Локальних реліз-скриптів немає навмисно: `release.ps1` прибрано, бо він конфліктував із workflow (обидва робили `gh release create`).
+  Порядок: бампнути `AppVersion` у `Directory.Build.props` → коміт → `git push origin main` → `git tag vX.Y.Z && git push origin vX.Y.Z`.
+- `.github/workflows/release.yml` — реліз на push тега `v*`: build → test → publish self-contained exe → GitHub Release з єдиним артефактом `ITE.ResourceCalculator.exe`.
+  Нотатки генеруються автоматично (`--generate-notes`).
+- `.github/workflows/ci.yml` — CI на push у `main`/PR: build + test + coverage (ReportGenerator) + перевірка вразливих пакетів + publish exe як артефакт.
+- ⚠️ Тексти релізів/CHANGELOG — **тільки українською**. Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
+- Реліз без підпису: MSI-інсталятор, `sign.ps1` і самопідписаний сертифікат прибрано разом із `release.ps1` — SmartScreen попереджатиме, доки не буде сертифіката від CA.
 - **⚠️ Кирилиця в коді**: файли `.cs/.xaml/.csproj` мають бути UTF-8 (без BOM ок). Не використовувати PowerShell `Set-Content` для перезапису .cs/.xaml — псує кодування; використовувати edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
 
 ## Контакти та поточні домовленості

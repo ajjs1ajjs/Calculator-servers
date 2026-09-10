@@ -44,7 +44,7 @@ public class MatrixViewModel : INotifyPropertyChanged
     public ICommand SaveMatrixCommand { get; }
     public ICommand RecalculateMatrixCommand { get; }
     public ICommand ResetMatrixCommand { get; }
-    // Додавання нового рядка в одну з таблиць матриці (Avalonia DataGrid не має CanUserAddRows).
+    // Додавання нового рядка в одну з таблиць матриці.
     public ICommand AddRowCommand { get; }
 
     public event System.Action? MatrixChanged;

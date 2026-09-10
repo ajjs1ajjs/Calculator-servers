@@ -1,8 +1,8 @@
 namespace ResourceCalculator.Interfaces;
 
 // Абстракції UI-діалогів, щоб ViewModels лишались незалежними від UI-фреймворку
-// (WPF на Windows, Avalonia на Linux/macOS). Методи асинхронні, бо модальні діалоги
-// Avalonia (ShowDialog) повертають Task.
+// і піддавались тестуванню без вікон. Методи асинхронні: виклик іде з async-команд
+// ViewModel, а реалізація може показувати модальне вікно.
 public interface IDialogService
 {
     // Так/Ні (підтвердження).

@@ -6,7 +6,7 @@ using ResourceCalculator.Views;
 
 namespace ResourceCalculator.Dialogs;
 
-// WPF-реалізація діалогів і вибору файлу (Windows). Avalonia має свою.
+// WPF-реалізація діалогів і вибору файлу (Windows).
 public class WpfDialogService : IDialogService, IFileSaveService
 {
     private readonly AccessService _access;

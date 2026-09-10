@@ -1,5 +1,15 @@
 # Історія змін
 
+## 2026-09-10 — Інфраструктура: один шлях релізу (без зміни версії)
+
+Застосунок не змінився — 2.4.12 лишається актуальним релізом. Прибрано дублювання в репозиторії.
+
+- **Один шлях релізу.** Було два конкурентні: `release.ps1` (локально) і `.github/workflows/release.yml` (push тега) — обидва викликали `gh release create`, тож запуск другого після першого гарантовано впав би. Лишився workflow: бамп `AppVersion` → коміт → push тега `vX.Y.Z`.
+- **Вилучено `release.ps1`** і все, що трималося лише на ньому: WiX-проєкт MSI-інсталятора `ResourceCalculator.Installer`, `sign.ps1`, самопідписаний сертифікат `ITE.ResourceCalculator.cer` і ціль `SignPublishedExe` у csproj (CI і так завжди передавав `SkipCodeSigning=true`, тож релізний exe ніколи не був підписаний).
+- **Вилучено `ResourceCalculator.Avalonia`** — паралельний UI додавали заради Linux/macOS, але Linux прибрали ще у 2.3.0, macOS-артефакти не збирає ніщо, а «Avalonia під Windows» лишалася дублем WPF, який ніколи не входив у реліз. Логіка вся в `ResourceCalculator.Core`, тести залежать тільки від нього — функціонально не втрачено нічого, натомість зникла потреба писати кожну зміну UI двічі.
+- **Вилучено `install.ps1` / `install.sh` / `install_mac.sh`** — качали ассети, яких не існувало в жодному релізі (`-win-x64.zip`, `-ubuntu-*.tar.gz`, `-macos-*.tar.gz`) плюс `checksums.txt`; були непрацездатні.
+- **Документацію приведено у відповідність:** README (структура проєкту виправлена — `Models`/`Services`/`ViewModels` живуть у `Core`, а не у WPF-проєкті), AGENTS.md, лендінг `index.html` (замість неробочих однорядкових інсталяторів — пряме посилання на portable exe).
+
 ## 2026-09-10 — Версія 2.4.12: виправлено вбудоване оновлення
 
 - **Виправлено «The calling thread cannot access this object because a different thread owns it»:** у WPF `App.CheckForUpdatesAsync` після `ConfigureAwait(false)` продовження виконувалося у потоці пулу, а `Application.MainWindow` і вікна WPF прив'язані до UI-потоку — кнопка «Перевірити оновлення» падала з цією помилкою. Уся робота з UI тепер іде через `Dispatcher.InvokeAsync`.

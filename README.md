@@ -22,8 +22,8 @@
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)]()
 [![License](https://img.shields.io/badge/license-MIT-26A69A)](LICENSE)
 
-**WPF + Avalonia · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
-Працює на **Windows 10/11** (WPF + Avalonia).
+**WPF · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
+Працює на **Windows 10/11**.
 
 <a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/Download-latest-00A0C6"></a>
 
@@ -66,11 +66,7 @@
 ### З вихідного коду
 
 ```bash
-# Windows — WPF-версія (основна)
 dotnet run --project ResourceCalculator/ResourceCalculator.csproj
-
-# Windows — Avalonia-версія
-dotnet run --project ResourceCalculator.Avalonia/ResourceCalculator.Avalonia.csproj
 ```
 
 ### Збірка та тести
@@ -95,51 +91,42 @@ dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output 
 
 | Платформа | Артефакт | Файл | Примітка |
 |---|---|---|---|
-| **Windows** | Портативний `.exe` (WPF) | `publish/ITE.ResourceCalculator.exe` | Self-contained, один файл, ~50 МБ. **Вбудоване автоматичне оновлення** з прогресом всередині програми. |
-| **Windows** | MSI-інсталятор | `publish/ITE.ResourceCalculator.msi` | Класичний upgrade за `UpgradeCode` ([`Package.wxs`](ResourceCalculator.Installer/Package.wxs)), GPO/SCCM. |
-| **Windows** | Avalonia (альтернатива) | `publish/ITE.ResourceCalculator-avalonia-win-x64.zip` | Та сама логіка, але на Avalonia — для уніфікації UI. |
+| **Windows** | Портативний `.exe` (WPF) | `ITE.ResourceCalculator.exe` | Self-contained, один файл, ~70 МБ. **Вбудоване автоматичне оновлення** з прогресом всередині програми. |
 
-> Всі артефакти публікуються автоматично в GitHub Release командою [`release.ps1`](release.ps1).
+> Єдиний артефакт релізу. Публікується автоматично в GitHub Release при push тегу `vX.Y.Z`
+> ([`release.yml`](.github/workflows/release.yml)) — вручну нічого збирати не треба.
 > Поточна версія показана в шапці вікна (поруч із підзаголовком).
-
-### 🔏 Цифровий підпис exe
-
-[`sign.ps1`](sign.ps1) підписує опублікований `publish\ITE.ResourceCalculator.exe`:
-
-```powershell
-# Самопідписаний сертифікат (для внутрішнього використання)
-./sign.ps1
-
-# Корпоративний / придбаний сертифікат — підпис, якому довірятимуть інші ПК
-./sign.ps1 -PfxPath C:\certs\company.pfx -PfxPassword (Read-Host -AsSecureString)
-```
-
-> Самопідписаний підпис вбудовується у файл, але на чужих ПК SmartScreen усе одно попереджатиме, доки сертифікат не додано в їхній Trusted Root (`-TrustLocally` додає його лише на поточну машину). Для зникнення попереджень потрібен сертифікат від CA.
 
 ---
 
 ## 🏷️ Версійність (обов'язково для кожного релізу)
 
-Обидва канали оновлення покладаються на версію: `UpdateCheckService` порівнює її з тегом GitHub Release, а MSI — `ProductVersion` для upgrade/downgrade-логіки:
+Вбудоване оновлення покладається на версію: `UpdateCheckService` порівнює її з тегом останнього GitHub Release.
 
 - **Єдине джерело версії** — `AppVersion` у [`Directory.Build.props`](Directory.Build.props).
-- **Перед кожним релізом бампати `AppVersion`.** Інакше `UpdateCheckService` не побачить новий реліз, а публікація тегу, який уже існує, — помилка.
-- [`release.ps1`](release.ps1) примусово перевіряє це: зупиняє реліз, якщо тег `vX.Y.Z` для поточної `AppVersion` уже є локально або на origin.
+- **Перед кожним релізом бампати `AppVersion`.** Інакше `UpdateCheckService` не побачить новий реліз, а тег, який уже існує, вдруге не запушиться.
 
 ### 🚀 Публікація релізу
 
-```powershell
-git add <файли змін> && git commit -m "..."   # спершу закомітити зміни вручну
-./release.ps1 -ReleaseNotes "Опис змін..."
+Реліз робить GitHub Actions — локально нічого збирати не потрібно:
+
+```bash
+# 1. Бампнути AppVersion у Directory.Build.props
+# 2. Закомітити й запушити
+git add <файли змін> && git commit -m "..." && git push origin main
+
+# 3. Поставити тег — це і є реліз
+git tag v2.4.12 && git push origin v2.4.12
 ```
 
-Скрипт: перевіряє версійність → зупиняється при незакомічених/невідстежуваних змінах → білдить і тестує → публікує **WPF** (`win-x64`) + **Avalonia** (`win-x64`) → підписує exe → збирає MSI → пушить і тегує → створює GitHub Release з **3 артефактами** (`.exe`, `.msi`, `avalonia-win.zip`).
+Push тегу `v*` запускає [`release.yml`](.github/workflows/release.yml): build → test → publish
+self-contained exe → створення GitHub Release з артефактом `ITE.ResourceCalculator.exe`.
 
 ---
 
 ## 🧩 Технології
 
-**Платформа:** C# / WPF (Windows) + Avalonia (Windows) · .NET 10 · MVVM
+**Платформа:** C# / WPF (Windows) · .NET 10 · MVVM
 **Архітектура:** Microsoft.Extensions.DependencyInjection (DI-контейнер), `ResourceCalculator.Core` (спільна логіка)
 **Excel/PDF:** EPPlus 7.6 / QuestPDF 2026.6
 **Тести:** xUnit (131 тест) + збір звітів покриття (ReportGenerator)
@@ -150,25 +137,24 @@ git add <файли змін> && git commit -m "..."   # спершу заком
 
 ```
 ResourceCalculator.slnx
-├── Directory.Build.props            # спільна версія (AppVersion)
-├── ResourceCalculator/            # WPF-застосунок (Windows)
-│   ├── Models/                      # моделі даних (вузли, діапазони, модулі)
-│   ├── Services/                    # рушій сайзингу, експорт, валідація, диски
-│   ├── ViewModels/                  # ViewModel'и MVVM
+├── Directory.Build.props            # єдине джерело версії (AppVersion)
+├── ResourceCalculator/              # WPF-застосунок (Windows) — лише UI
 │   ├── Views/                       # XAML-вкладки інтерфейсу
-│   ├── Data/                        # матриця сайзингу за замовчуванням
-│   ├── Localization/                # рядки інтерфейсу (uk/en)
+│   ├── Dialogs/                     # WpfDialogService (діалоги, вибір файлу)
+│   ├── Converters/                  # конвертери прив'язок XAML
+│   ├── Localization/                # WPF-обгортка локалізації
 │   └── Themes/                      # теми оформлення
-├── ResourceCalculator.Avalonia/   # Avalonia-застосунок (Windows)
-│   ├── Views/                       # AXAML-вкладки (порт WPF)
-│   ├── Dialogs/                     # AvaloniaDialogService
-│   └── packaging/                   # налаштування пакування
-├── ResourceCalculator.Core/       # спільна логіка (SizingEngine, DataService…)
-├── ResourceCalculator.Tests/      # модульні тести (xUnit, 131)
-├── ResourceCalculator.Installer/  # WiX-проєкт MSI-інсталятора (Package.wxs)
+├── ResourceCalculator.Core/         # уся логіка, незалежна від UI
+│   ├── Services/                    # рушій сайзингу, експорт, валідація, оновлення
+│   ├── ViewModels/                  # ViewModel'и MVVM
+│   ├── Models/                      # моделі даних (вузли, діапазони, модулі)
+│   ├── Interfaces/                  # абстракції UI-діалогів і сервісів
+│   ├── Data/                        # матриця сайзингу за замовчуванням
+│   └── Localization/                # рядки інтерфейсу (uk/en)
+├── ResourceCalculator.Tests/        # модульні тести (xUnit, 130)
+├── .github/workflows/               # CI + реліз на push тегу
 ├── docs/                            # банер та скріншоти
-├── release.ps1                      # публікація GitHub Release (3 артефакти)
-└── sign.ps1                         # цифровий підпис exe (Windows)
+└── index.html                       # лендінг GitHub Pages
 ```
 
 ---
