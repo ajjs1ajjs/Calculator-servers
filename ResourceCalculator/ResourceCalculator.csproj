@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net10.0-windows (а не чистий net10.0): тільки з Windows-TFM MSBuild
+         застосовує ApplicationIcon (Win32-іконка exe). Застосунок і так лише win-x64. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ITE.ResourceCalculator</AssemblyName>
@@ -10,6 +12,7 @@
     <Product>IT-Enterprise Калькулятор ресурсів</Product>
     <AssemblyTitle>IT-Enterprise Калькулятор ресурсів</AssemblyTitle>
     <Company>IT-Enterprise</Company>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
     <Version>$(AppVersion).0</Version>
     <FileVersion>$(AppVersion).0</FileVersion>
     <InformationalVersion>$(AppVersion)</InformationalVersion>
