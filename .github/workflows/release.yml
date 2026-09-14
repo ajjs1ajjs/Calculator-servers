@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
@@ -29,18 +29,18 @@ jobs:
       - name: Test
         run: dotnet test ResourceCalculator.slnx -c Release --no-build
 
-      - name: Publish portable exe (single-file, self-contained)
-        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
+      - name: Publish Windows (win-x64, single-file, self-contained)
+        run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win
 
-      - name: Upload artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release
-          path: publish/ITE.ResourceCalculator.exe
+          name: windows-release
+          path: publish/win/ITE.ResourceCalculator.exe
 
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,10 +58,11 @@ jobs:
         with:
           path: artifacts
 
-      - name: Verify artifact
+      - name: Verify artifacts
         run: |
           echo "Artifacts dir: $(pwd)/artifacts"
-          ls -la artifacts/
+          ls -la artifacts/ || true
+          ls -la artifacts/windows-release/ || true
 
       - name: Create Release
         env:
@@ -71,10 +72,10 @@ jobs:
           echo "Creating release for tag: $TAG"
           gh release create "$TAG" --title "$TAG" --generate-notes --repo ${{ github.repository }}
 
-      - name: Upload to Release
+      - name: Upload Windows to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          echo "Uploading to release: $TAG"
-          gh release upload "$TAG" artifacts/release/ITE.ResourceCalculator.exe --clobber --repo ${{ github.repository }}
+          echo "Uploading Windows binary to release: $TAG"
+          gh release upload "$TAG" artifacts/windows-release/ITE.ResourceCalculator.exe --clobber --repo ${{ github.repository }}

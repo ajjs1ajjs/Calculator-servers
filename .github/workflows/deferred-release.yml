@@ -1,0 +1,85 @@
+name: Deferred release (Oct 1)
+
+# Відкладений реліз: ліміти GitHub Actions відновлюються 1 жовтня 2026.
+# До того код чекає в гілці release/oct-1, а цей workflow живе в main
+# (cron спрацьовує тільки з дефолтної гілки) і 1 жовтня 03:00 UTC хмарно:
+# мерджить staging → бампить AppVersion → ставить тег → штатний release.yml
+# збирає exe і публікує GitHub Release. Ручний запуск — кнопка Run workflow.
+on:
+  schedule:
+    - cron: '0 3 1 10 *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версія релізу (без префікса v)'
+        required: false
+        default: '2.4.13'
+
+permissions:
+  contents: write
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git status --short
+          git branch --show-current
+
+      - name: Guardrails
+        run: |
+          git fetch origin release/oct-1 || { echo "::error::Гілка origin/release/oct-1 не знайдена"; exit 1; }
+          VERSION="${{ github.event.inputs.version || '2.4.13' }}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Тег v$VERSION уже існує — реліз не створюю, щоб не перезаписати опубліковане"
+            exit 1
+          fi
+
+      - name: Merge staging branch
+        run: |
+          git merge --no-edit -X theirs origin/release/oct-1
+          python3 - <<'EOF'
+          from pathlib import Path
+          p = Path(".github/workflows/ci.yml")
+          text = p.read_text(encoding="utf-8")
+          guard = "if: ${{ !contains(github.event.head_commit.message, '[skip actions]') }}"
+          if "[skip actions]" not in text:
+              anchor = "  build-windows:\n"
+              assert anchor in text, "job build-windows не знайдено в ci.yml"
+              text = text.replace(anchor, anchor + f"    {guard}\n", 1)
+              p.write_text(text, encoding="utf-8")
+              print("guard re-applied to ci.yml")
+          else:
+              print("guard already present in ci.yml")
+          EOF
+          git add -A
+          git status --short
+
+      - name: Bump version and tag
+        run: |
+          python3 - <<EOF
+          from pathlib import Path
+          p = Path("Directory.Build.props")
+          text = p.read_text(encoding="utf-8")
+          import re
+          new, n = re.subn(r"<AppVersion>[0-9.]+</AppVersion>", f"<AppVersion>${{ env.VERSION }}</AppVersion>", text, count=1)
+          assert n == 1, "AppVersion не знайдено в Directory.Build.props"
+          p.write_text(new, encoding="utf-8")
+          print(f"AppVersion -> ${{ env.VERSION }}")
+          EOF
+          grep -o "<AppVersion>[^<]*</AppVersion>" Directory.Build.props
+          git add Directory.Build.props .github/workflows/ci.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore: bump version to ${{ env.VERSION }}"
+          git tag "v${{ env.VERSION }}"
+          git push origin main
+          git push origin "v${{ env.VERSION }}"

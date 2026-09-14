@@ -7,7 +7,11 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build:
+  build-windows:
+    # Ручний вимикач CI: pushes з '[skip actions]' у повідомленні коміта не стартують
+    # (відкладений реліз 1 жовтня 2026 — економія лімітів Actions). На PR події
+    # head_commit відсутній, тож contains() = false і job працює як завжди.
+    if: ${{ !contains(github.event.head_commit.message, '[skip actions]') }}
     runs-on: windows-latest
 
     steps:
@@ -42,11 +46,11 @@ jobs:
         name: coverage-report
         path: coverage/report
 
-    - name: Publish (self-contained)
-      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj --configuration Release --output publish
+    - name: Publish Windows (win-x64)
+      run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win
 
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-publish
-        path: publish/ITE.ResourceCalculator.exe
+        path: publish/win/ITE.ResourceCalculator.exe
