@@ -55,6 +55,7 @@
 - Код чекає в гілці `release/oct-1`; у `main` лише guard `[skip actions]` у `ci.yml` + `.github/workflows/deferred-release.yml`.
 - 2026-10-01 03:00 UTC scheduler хмарно: мердж `release/oct-1` (`-X theirs` + повернення guard), бамп `AppVersion → 2.4.13`, тег `v2.4.13` → штатний `release.yml` публікує реліз. Ручний запуск — кнопка Run workflow.
 - ⚠️ До 1 жовтня не пушити в `main` (щоб не з'їсти ліміти і не розійтись зі staging).
+- Іконка exe: потрібні ОДНОЧАСНО `<ApplicationIcon>icon.ico</ApplicationIcon>` і `TargetFramework=net10.0-windows` — з чистим `net10.0` MSBuild мовчки ігнорує ApplicationIcon (як було після міграції).
 
 ## Ключові факти стану (на 2026-09-14)
 
