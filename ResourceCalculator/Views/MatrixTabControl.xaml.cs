@@ -1,4 +1,5 @@
-using System.Windows.Controls;
+using Avalonia.Controls;
+using Avalonia.Threading;
 using ResourceCalculator.ViewModels;
 
 namespace ResourceCalculator.Views;
@@ -8,16 +9,27 @@ public partial class MatrixTabControl : UserControl
     public MatrixTabControl()
     {
         InitializeComponent();
-        // ItemsSource усіх таблиць прив'язано в XAML (MatrixVM.*) — вони самі оновлюються при
-        // реімпорті/скиданні матриці, бо MatrixViewModel піднімає PropertyChanged для колекцій.
     }
 
-    // Захист: спроба змінити будь-яке значення в матриці потребує пароля (як і кнопки
-    // «Зберегти/Перерахувати/Скинути»). Якщо пароль не підтверджено — редагування скасовується.
-    private void Grid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+    // Захист (як у WPF-версії): спроба змінити значення в матриці потребує пароля.
+    // Якщо пароль не підтверджено — редагування скасовується.
+    // Діалог показуємо через Dispatcher.Post: всередині BeginningEdit модальне
+    // вікно зависає (DataGrid ще тримає захоплення миші), тому спочатку виходимо з події.
+    private void Grid_BeginningEdit(object? sender, DataGridBeginningEditEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
-        if (!vm.MatrixVM.EnsureUnlocked())
-            e.Cancel = true;
+        if (vm.MatrixVM.IsUnlocked) return;
+        e.Cancel = true;
+        var dg = sender as DataGrid;
+        Dispatcher.UIThread.Post(async () =>
+        {
+            try
+            {
+                var ok = await vm.MatrixVM.EnsureUnlockedAsync();
+                if (ok && dg is not null)
+                    dg.BeginEdit();
+            }
+            catch { }
+        });
     }
 }

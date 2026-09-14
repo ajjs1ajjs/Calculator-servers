@@ -30,7 +30,7 @@
 - Експорт у Excel (.xlsx) та PDF
 - Самооновлення через GitHub Releases
 - Локалізація (українська / англійська)
-- Теми: Catppuccin Latte (світла) + Catppuccin Mocha (темна)
+- Теми: тільки світла Catppuccin Latte (темну прибрано)
 
 ---
 

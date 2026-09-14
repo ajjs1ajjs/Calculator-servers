@@ -1,5 +1,6 @@
-using System.Threading.Tasks;
-using System.Windows;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 
 namespace ResourceCalculator;
 
@@ -12,6 +13,7 @@ public partial class MainWindow : Window
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
-        await ((App)Application.Current).CheckForUpdatesAsync(silent: false);
+        if (Application.Current is App app)
+            await app.CheckForUpdatesAsync(silent: false);
     }
 }

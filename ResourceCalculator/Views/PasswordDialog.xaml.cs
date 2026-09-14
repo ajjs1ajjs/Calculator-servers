@@ -1,5 +1,7 @@
-using System.Windows;
-using System.Windows.Input;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using ResourceCalculator.Localization;
 using ResourceCalculator.Services;
 
@@ -7,19 +9,23 @@ namespace ResourceCalculator.Views;
 
 public partial class PasswordDialog : Window
 {
-    private readonly AccessService _access;
+    // null лише в безпараметрному конструкторі для дизайнера; у рантаймі завжди задано.
+    private readonly AccessService? _access;
+
+    public PasswordDialog()
+    {
+        InitializeComponent();
+    }
 
     public PasswordDialog(AccessService access, Window? owner)
     {
         _access = access;
         InitializeComponent();
-        Owner = owner;
         DataContext = this;
         TxtPassword.Focus();
-        Loaded += (_, _) => TxtPassword.Focus();
     }
 
-    public string PasswordHint => _access.GetPasswordHint();
+    public string PasswordHint => _access?.GetPasswordHint() ?? "";
 
     public bool Unlocked { get; private set; }
 
@@ -32,15 +38,14 @@ public partial class PasswordDialog : Window
 
     private void TryUnlock()
     {
-        if (_access.Verify(TxtPassword.Password))
+        if (_access?.Verify(TxtPassword.Text ?? "") == true)
         {
             Unlocked = true;
-            DialogResult = true;
-            Close();
+            Close(Unlocked);
         }
         else
         {
-            TxtError.Visibility = Visibility.Visible;
+            TxtError.IsVisible = true;
             TxtPassword.Clear();
             TxtPassword.Focus();
         }

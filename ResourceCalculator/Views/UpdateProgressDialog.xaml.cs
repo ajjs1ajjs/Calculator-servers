@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using ResourceCalculator.Localization;
 
 namespace ResourceCalculator.Views;
 
@@ -8,39 +10,74 @@ public partial class UpdateProgressDialog : Window
 {
     private CancellationTokenSource? _cts;
 
+    /// <summary>True, якщо користувач натиснув «Спробувати ще» (діалог закрито для повтору).</summary>
+    public bool RetryRequested { get; private set; }
+
+    public UpdateProgressDialog()
+    {
+        InitializeComponent();
+    }
+
     public UpdateProgressDialog(string version)
     {
         InitializeComponent();
-        TxtVersion.Text = $"Версія {version}";
-        TxtStatus.Text = "Завантаження...";
+        var loc = LocalizationService.Instance;
+        TxtVersion.Text = $"ITE.ResourceCalculator · {version}";
+        TxtStage.Text = loc["update.downloading"];
+        TxtStatus.Text = "";
+        TxtPercent.Text = "";
     }
 
     public void SetProgress(long bytesReceived, long totalBytes)
     {
+        var loc = LocalizationService.Instance;
         if (totalBytes > 0)
         {
             var percent = (double)bytesReceived / totalBytes * 100;
+            ProgressBar.IsIndeterminate = false;
             ProgressBar.Value = percent;
-            TxtStatus.Text = $"{FormatBytes(bytesReceived)} / {FormatBytes(totalBytes)}";
+            TxtPercent.Text = $"{percent:F0}%";
+            TxtStatus.Text = string.Format(loc["update.downloadedOf"],
+                FormatBytes(bytesReceived), FormatBytes(totalBytes), percent.ToString("F0"));
         }
         else
         {
             ProgressBar.IsIndeterminate = true;
-            TxtStatus.Text = $"{FormatBytes(bytesReceived)} завантажено";
+            TxtPercent.Text = "";
+            TxtStatus.Text = $"{FormatBytes(bytesReceived)}";
         }
+    }
+
+    public void SetInstalling()
+    {
+        var loc = LocalizationService.Instance;
+        ProgressBar.IsIndeterminate = true;
+        TxtStage.Text = loc["update.installing"];
+        TxtStatus.Text = "";
+        TxtPercent.Text = "";
+        BtnCancel.IsVisible = false;
     }
 
     public void SetCompleted()
     {
+        var loc = LocalizationService.Instance;
+        ProgressBar.IsIndeterminate = false;
         ProgressBar.Value = 100;
-        TxtStatus.Text = "Оновлення застосовано. Перезапуск...";
-        BtnCancel.Visibility = Visibility.Collapsed;
+        TxtPercent.Text = "100%";
+        TxtStage.Text = loc["update.completed"];
+        BtnCancel.IsVisible = false;
+        BtnRetry.IsVisible = false;
+        BtnClose.IsVisible = false;
     }
 
     public void SetError(string message)
     {
-        TxtStatus.Text = $"Помилка: {message}";
-        BtnCancel.Content = "Закрити";
+        ProgressBar.IsIndeterminate = false;
+        TxtStage.Text = $"✕ {message}";
+        TxtPercent.Text = "";
+        BtnCancel.IsVisible = false;
+        BtnRetry.IsVisible = true;
+        BtnClose.IsVisible = true;
     }
 
     public CancellationToken GetCancellationToken()
@@ -51,8 +88,16 @@ public partial class UpdateProgressDialog : Window
 
     private void BtnCancel_Click(object sender, RoutedEventArgs e)
     {
-        _cts?.Cancel();
-        Close();
+        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+        Close(false);
+    }
+
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close(false);
+
+    private void BtnRetry_Click(object sender, RoutedEventArgs e)
+    {
+        RetryRequested = true;
+        Close(true);
     }
 
     private static string FormatBytes(long bytes)

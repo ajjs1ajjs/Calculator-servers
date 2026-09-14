@@ -1,36 +1,44 @@
-<Window x:Class="ResourceCalculator.Views.UpdateProgressDialog"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Оновлення" Height="Auto" Width="400" SizeToContent="Height"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        xmlns:loc="clr-namespace:ResourceCalculator.Localization"
+        x:Class="ResourceCalculator.Views.UpdateProgressDialog"
+        x:CompileBindings="False"
+        Title="{loc:Loc update.title}" Width="460" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" CanResize="False" ShowInTaskbar="False"
         Background="{DynamicResource WindowBg}">
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="../Themes/Styles.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
-    <Border Margin="18" Padding="4">
+    <Border Classes="card" Margin="18" Padding="4">
         <StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                <Border Style="{StaticResource IconBadge}" Background="{DynamicResource AccentSoftBg}" Margin="0,0,10,0">
-                    <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE74A;" Foreground="{DynamicResource AccentBg}"/>
+                <Border Classes="iconbadge" Background="{DynamicResource AccentSoftBg}" Margin="0,0,10,0">
+                    <TextBlock Classes="iconglyph" Text="↓" Foreground="{DynamicResource AccentBg}" FontWeight="Bold"/>
                 </Border>
-                <TextBlock Text="Оновлення" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"
-                           VerticalAlignment="Center"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{loc:Loc update.title}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock x:Name="TxtVersion" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+                </StackPanel>
             </StackPanel>
 
-            <TextBlock x:Name="TxtVersion" FontSize="13" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,8"/>
+            <TextBlock x:Name="TxtStage" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
 
-            <ProgressBar x:Name="ProgressBar" Height="6" Margin="0,0,0,8"
-                         Background="{DynamicResource InputBg}" Foreground="{DynamicResource AccentBg}"/>
+            <ProgressBar x:Name="ProgressBar" Height="8" Minimum="0" Maximum="100" Margin="0,0,0,6"
+                         Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource AccentBg}"/>
 
-            <TextBlock x:Name="TxtStatus" FontSize="12" Foreground="{DynamicResource TextMuted}"
-                       TextWrapping="Wrap" Margin="0,0,0,16"/>
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+                <TextBlock x:Name="TxtStatus" Grid.Column="0" FontSize="12" Foreground="{DynamicResource TextMuted}"
+                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <TextBlock x:Name="TxtPercent" Grid.Column="1" FontSize="12" FontWeight="Bold"
+                           Foreground="{DynamicResource AccentBg}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </Grid>
 
-            <Button x:Name="BtnCancel" Content="Скасувати" Padding="16,7" HorizontalAlignment="Right"
-                    Click="BtnCancel_Click"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnCancel" Content="{loc:Loc update.cancel}" Padding="16,7" Margin="0,0,6,0"
+                        Click="BtnCancel_Click"/>
+                <Button x:Name="BtnClose" Content="{loc:Loc update.close}" Padding="16,7" Margin="0,0,6,0"
+                        IsVisible="False" IsCancel="True" Click="BtnClose_Click"/>
+                <Button x:Name="BtnRetry" Content="{loc:Loc update.retry}" Padding="20,7"
+                        IsVisible="False" IsDefault="True" Click="BtnRetry_Click"
+                        Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold"/>
+            </StackPanel>
         </StackPanel>
     </Border>
 </Window>

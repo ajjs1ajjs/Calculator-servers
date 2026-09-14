@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:ResourceCalculator.Localization"
+        x:Class="ResourceCalculator.Views.UpdateAvailableDialog"
+        x:CompileBindings="False"
+        Title="{loc:Loc update.title}" Width="500" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" CanResize="False" ShowInTaskbar="False"
+        Background="{DynamicResource WindowBg}">
+    <Border Classes="card" Margin="18" Padding="4">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <Border Classes="iconbadge" Background="{DynamicResource AccentSoftBg}" Margin="0,0,10,0">
+                    <TextBlock Classes="iconglyph" Text="↓" Foreground="{DynamicResource AccentBg}" FontWeight="Bold"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{loc:Loc update.title}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock x:Name="TxtSubtitle" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12" VerticalAlignment="Center">
+                <Border Classes="chip" Padding="10,6" Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{loc:Loc update.currentVersion}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtCurrent" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="→" FontSize="14" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <Border CornerRadius="10" Padding="10,6" Margin="0,0,6,0"
+                        Background="{DynamicResource HighlightBg}"
+                        BorderBrush="{DynamicResource AccentBg}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{loc:Loc update.newVersion}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtNew" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentBg}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock x:Name="TxtSize" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <TextBlock Text="{loc:Loc update.whatsNew}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
+            <Border Classes="card" Background="{DynamicResource SurfaceBg}" CornerRadius="8" Padding="10" Margin="0,0,0,14">
+                <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtNotes" FontSize="12" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnLater" Content="{loc:Loc update.later}" Padding="16,7" Margin="0,0,6,0"
+                        IsCancel="True" Click="BtnLater_Click"/>
+                <Button x:Name="BtnUpdate" Content="{loc:Loc update.updateNow}" Padding="20,7" Click="BtnUpdate_Click"
+                        Background="{DynamicResource AccentBg}" Foreground="{DynamicResource TextWhite}"
+                        FontWeight="Bold" IsDefault="True"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

@@ -1,10 +1,11 @@
-<UserControl x:Class="ResourceCalculator.Views.MatrixTabControl"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="clr-namespace:ResourceCalculator.Localization">
+             xmlns:loc="clr-namespace:ResourceCalculator.Localization"
+             x:Class="ResourceCalculator.Views.MatrixTabControl"
+             x:CompileBindings="False">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="15">
-            <Border Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,0,0,10">
+            <Border Classes="card" Background="{DynamicResource HighlightBg}" Padding="15" CornerRadius="8" Margin="0,0,0,10">
                 <StackPanel>
                     <TextBlock Text="{loc:Loc matrix.info}" FontSize="13" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
                     <TextBlock Text="{loc:Loc access.lockedHint}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
@@ -16,7 +17,7 @@
                     <TextBlock Text="{loc:Loc matrix.save}"/>
                 </Button>
                 <Button Background="{DynamicResource SuccessBg}" Foreground="{DynamicResource TextWhite}" FontWeight="Bold" Padding="16,8"
-                        Command="{Binding MatrixVM.RecalculateMatrixCommand}" ToolTip="{loc:Loc matrix.recalcHint}">
+                        Command="{Binding MatrixVM.RecalculateMatrixCommand}">
                     <TextBlock Text="{loc:Loc matrix.recalc}"/>
                 </Button>
                 <Button Command="{Binding MatrixVM.ResetMatrixCommand}" Padding="12,8">
@@ -25,147 +26,156 @@
             </StackPanel>
 
             <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True">
-                <DataGrid x:Name="GridMatrixMsSql" Height="160" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" x:Name="GridMatrixMsSql" AutoGenerateColumns="True" Height="160" HeadersVisibility="Column"
                           ItemsSource="{Binding MatrixVM.MsSqlRanges}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs, Mode=TwoWay}" Width="60"/>
+                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.throughput}" Binding="{Binding ThroughputMiBs, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.appServer}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.AppServerRanges}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding InstanceCount, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="65"/>
+                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding InstanceCount, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.webServer}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.WebServerRanges}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding InstanceCount, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="65"/>
+                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding InstanceCount, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ghz}" Binding="{Binding Ghz, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.postgres}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.PostgresRanges}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="60"/>
+                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.oracle}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.OracleRanges}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="70"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="65"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="60"/>
+                        <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.maxUsers}" Binding="{Binding MaxUsers, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramMin}" Binding="{Binding RamMin, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ramRec}" Binding="{Binding RamRec, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.latency}" Binding="{Binding Latency, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.k8sDocumentFlow}" IsExpanded="True">
-                <DataGrid Height="160" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="160"
                           ItemsSource="{Binding MatrixVM.K8sDocumentFlowComponents}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="100"/>
-                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="160"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.perfCpu}" Binding="{Binding PerfCpu, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.perfRam}" Binding="{Binding PerfRamGb, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.fixedReplicas}" Binding="{Binding FixedReplicas, Mode=TwoWay}" Width="70"/>
-                        <DataGridComboBoxColumn Header="{loc:Loc col.formula}" SelectedItemBinding="{Binding Formula, Mode=TwoWay}" Width="130"/>
+                        <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.perfCpu}" Binding="{Binding PerfCpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.perfRam}" Binding="{Binding PerfRamGb, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.fixedReplicas}" Binding="{Binding FixedReplicas, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTemplateColumn Header="{loc:Loc col.formula}" Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Formula}" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding DataContext.AvailableFormulas, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              SelectedItem="{Binding Formula, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True">
-                <DataGrid x:Name="GridMatrixInfra" Height="150" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" x:Name="GridMatrixInfra" AutoGenerateColumns="True" Height="150" HeadersVisibility="Column"
                           ItemsSource="{Binding MatrixVM.InfraNodes}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="120"/>
-                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os, Mode=TwoWay}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="60"/>
+                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.iops}" Binding="{Binding Iops, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infraWindows}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.WindowsInfraNodes}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os, Mode=TwoWay}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="60"/>
+                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infraOptional}">
-                <DataGrid Height="130" IsReadOnly="False" CanUserAddRows="True" BeginningEdit="Grid_BeginningEdit"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.OptionalInfraNodes}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os, Mode=TwoWay}" Width="140"/>
-                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="60"/>
-                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="55"/>
-                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="60"/>
+                        <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.os}" Binding="{Binding Os, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.cpu}" Binding="{Binding Cpu, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.ram}" Binding="{Binding RamGb, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.count}" Binding="{Binding NodeCount, Mode=TwoWay}" Width="Auto"/>
+                        <DataGridTextColumn Header="{loc:Loc col.storage}" Binding="{Binding StorageGb, Mode=TwoWay}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Expander>
 
             <Expander Header="{loc:Loc matrix.engineSettings}" IsExpanded="False">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                <Grid ColumnDefinitions="*,*">
                     <StackPanel Grid.Column="0" Margin="0,4,16,4">
                         <TextBlock Text="{loc:Loc engine.smartId}" FontWeight="Bold" Margin="0,0,0,4"/>
                         <TextBlock Text="{loc:Loc engine.smartIdCpu}" FontSize="12" Margin="0,0,0,2"/>
@@ -209,3 +219,4 @@
         </StackPanel>
     </ScrollViewer>
 </UserControl>
+

@@ -1,6 +1,8 @@
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
+using System;
 using System.Globalization;
-using System.Windows.Data;
-using System.Windows.Media;
 
 namespace ResourceCalculator.Converters;
 
@@ -10,12 +12,12 @@ public class SeverityToColorConverter : IValueConverter
     {
         return (value?.ToString() ?? "").ToLower() switch
         {
-            "critical" => new SolidColorBrush(Colors.Red),
-            "warning" => new SolidColorBrush(Colors.Orange),
-            "overprovisioned" => new SolidColorBrush(Colors.Goldenrod),
-            "ok" => new SolidColorBrush(Colors.Green),
-            "info" => new SolidColorBrush(Color.FromRgb(52, 152, 219)),
-            _ => new SolidColorBrush(Colors.Gray)
+            "critical" => new SolidColorBrush(Color.FromRgb(0xD2, 0x0F, 0x39)),
+            "warning" => new SolidColorBrush(Color.FromRgb(0xFE, 0x64, 0x0B)),
+            "overprovisioned" => new SolidColorBrush(Color.FromRgb(0xDA, 0xA0, 0x20)),
+            "ok" => new SolidColorBrush(Color.FromRgb(0x40, 0xA0, 0x2B)),
+            "info" => new SolidColorBrush(Color.FromRgb(0x34, 0x98, 0xDB)),
+            _ => new SolidColorBrush(Color.FromRgb(0x6C, 0x6F, 0x85))
         };
     }
 

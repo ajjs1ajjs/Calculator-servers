@@ -1,21 +1,57 @@
-using System.Windows;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 
 namespace ResourceCalculator.Themes;
 
-// Перемикання світлої/темної палітри в реальному часі: App.xaml реєструє палітру (LightTheme.xaml)
-// першим merged-словником — тут ми лише замінюємо цей перший словник на інший (DarkTheme.xaml),
-// решта UI підхоплює зміну автоматично через DynamicResource (перезавантажувати вікна не потрібно).
+// Тільки світла тема (Catppuccin Latte): темної теми і перемикача немає.
+// Володіє обома словниками: спільні стилі (AppStyles) і світла палітра.
 public static class ThemeService
 {
-    public static bool IsDark { get; private set; }
+    private static Styles? _appStyles;
+    private static ResourceDictionary? _themePalette;
+
+    public static bool IsDark => false;
+
+    public static void Initialize()
+    {
+        var app = Application.Current;
+        if (app == null) return;
+        try
+        {
+            _appStyles = AvaloniaXamlLoader.Load(
+                new Uri("avares://ITE.ResourceCalculator/Themes/AppStyles.xaml")) as Styles;
+            if (_appStyles != null && !app.Styles.Contains(_appStyles))
+                app.Styles.Add(_appStyles);
+        }
+        catch { }
+        SetDark(false);
+    }
 
     public static void SetDark(bool dark)
     {
-        IsDark = dark;
         var app = Application.Current;
-        if (app?.Resources.MergedDictionaries is not { Count: > 0 }) return;
-
-        var uri = new Uri(dark ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative);
-        app.Resources.MergedDictionaries[0] = new ResourceDictionary { Source = uri };
+        if (app == null) return;
+        try
+        {
+            var dict = AvaloniaXamlLoader.Load(
+                new Uri("avares://ITE.ResourceCalculator/Themes/LightTheme.xaml")) as ResourceDictionary;
+            if (dict == null) return;
+            var merged = app.Resources.MergedDictionaries;
+            if (_themePalette != null)
+            {
+                var idx = merged.IndexOf(_themePalette);
+                if (idx >= 0)
+                {
+                    merged[idx] = dict;
+                    _themePalette = dict;
+                    return;
+                }
+            }
+            merged.Add(dict);
+            _themePalette = dict;
+        }
+        catch { }
     }
 }

@@ -183,7 +183,7 @@ public class MatrixViewModel : INotifyPropertyChanged
         return false;
     }
 
-    // Синхронна перевірка для код-біхинд (WPF BeginningEdit): у WPF діалог синхронний.
+    // Синхронна перевірка для код-біхинд: таблиці блокуються через IsReadOnly, діалог асинхронний.
     public bool EnsureUnlocked()
         => EnsureUnlockedAsync().GetAwaiter().GetResult();
 

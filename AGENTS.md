@@ -25,40 +25,66 @@
 
 ## Що це за проєкт
 
-**IT-Enterprise Resource Calculator** (раніше AIResourceCalculator) — Windows WPF-застосунок (.NET 10, MVVM)
+**IT-Enterprise Resource Calculator** (раніше AIResourceCalculator) — десктоп-застосунок (.NET 10, Avalonia, MVVM)
 для автоматизованого розрахунку ресурсів IT-інфраструктури (CPU/RAM/диски/IOPS) за матрицею сайзингу.
 Вихідні дані — документ D-AD-ADM-E та еталонний Excel-калькулятор клієнта (IT-Enterprise).
 
 Репозиторій: `github.com/ajjs1ajjs/Calculator-servers` (гілка `master`, pуш за замовчуванням).
 Робоча тека: `E:\Code\Calculator-servers`.
 
-## Ключові факти стану (на 2026-08-26)
+## Виправлення міграції на Avalonia (2026-09-14, ще не закомічено)
 
-- **Поточна версія: 2.3.1** (Windows only; фікс CVE-2026-39959). `AppVersion` у `Directory.Build.props`.
-- Останні коміти (від новіших): `dbd9cca` (main.png для обходу кешу), `74b5971` (скріншот «Параметри»), `c9f436b` (пароль при редагуванні комірки), `31acd43` (версія 2.0.2), `b1ae2c6` (вільне керування модулями), `b2ebc9e` (BOM скриптів), `d792528` (захист паролем + фікси), `026d54c` (єдиний профіль), `820a185` (ренейм + 3 вкладки + матриця).
+- `Themes/AppStyles.xaml` — корінь `<Styles>`; `x:Key` у `Style` заборонено (класи `card/cardheader/iconbadge/iconglyph/chip/pillgroup/kpicard/envtoggle`). `ThemeService` вантажить його як `Styles` у `app.Styles`. Глобальний `Border` без класу заборонено — ламає шаблони (DataGrid).
+- Таблицям матриці явно задано `HeadersVisibility="Column"` (дефолт Avalonia — None); автоколонки увімкнено як у WPF (широкі таблиці з дублями). `FluentTheme` + тема DataGrid підключені в `App.xaml`; `RequestedThemeVariant="Light"`.
+- Глобальний `Style Selector="Border"` ламає лейаут усередині шаблонів (DataGrid малював текст нульовою шириною) → замінено на `Border.card`, клас `card` додано всім карткам у XAML.
+- `Expander` за замовчуванням `Left` → у стилі `Expander` додано `Stretch` (+ `HorizontalContentAlignment`).
+- Кастомний шаблон `Button` — у `ContentPresenter` потрібен `Content="{TemplateBinding Content}"`, інакше кнопки порожні.
+- Побите кодування кирилиці (UTF-8 прочитане як CP1251) у `CalculatorTabControl.xaml`, `ResultsTabControl.xaml`, `UpdateProgressDialog.xaml` — відновлено. Не писати .xaml/.cs через PowerShell `Set-Content`.
+- Таблицям матриці явно задано `AutoGenerateColumns="False" HeadersVisibility="Column".
+
+## Оновлення всередині програми (2026-09-14, ще не закомічено)
+
+- Жодних переходів у браузер/GitHub: `UpdateCheckService` резолвить прямий `browser_download_url` exe-ассета + парсить `body` (нотатки) і `size`; `SelfUpdateService` качає, перевіряє SHA256 і підміняє exe bat-скриптом з авторестартом.
+- `Views/UpdateAvailableDialog.*` — вікно «Доступне оновлення»: чипи поточна→нова версія, розмір файлу, «Що нового» (scroll), кнопки «Пізніше» / «Оновити зараз». `App.CheckForUpdatesAsync` показує його замість `MessageBox YesNo`.
+- `Views/UpdateProgressDialog.*` — редизайн: етап (завантаження/встановлення), прогрес-бар + `%` + `завантажено/всього`, «Скасувати»; після помилки — текст помилки + «Закрити» / «Спробувати ще» (`RetryRequested`, цикл у `App.StartUpdateAsync`). Після успіху — `SetCompleted()` + пауза 1.5с, щоб було видно, потім `Environment.Exit(0)`.
+- Локалізація: `update.message` переформульовано на автозавантаження (без «відкрити сторінку»); нові ключі `update.updateNow/later/whatsNew/currentVersion/newVersion/downloading/installing/completed/cancel/close/retry/downloadedOf` (uk+en).
+- `UpdateInfo` розширено: `(Version, DownloadUrl, ReleaseNotes?, SizeBytes)`.
+
+## Відкладений реліз 1 жовтня 2026 (ліміти Actions)
+
+- Код чекає в гілці `release/oct-1`; у `main` лише guard `[skip actions]` у `ci.yml` + `.github/workflows/deferred-release.yml`.
+- 2026-10-01 03:00 UTC scheduler хмарно: мердж `release/oct-1` (`-X theirs` + повернення guard), бамп `AppVersion → 2.4.13`, тег `v2.4.13` → штатний `release.yml` публікує реліз. Ручний запуск — кнопка Run workflow.
+- ⚠️ До 1 жовтня не пушити в `main` (щоб не з'їсти ліміти і не розійтись зі staging).
+
+## Ключові факти стану (на 2026-09-14)
+
+- **Поточна версія: 2.4.12** (Windows portable, тільки світла тема; міграція на Avalonia — код у робочій теці, ще не закомічено). `AppVersion` у `Directory.Build.props`.
+- Останні коміти (від новіших): `bee9e9e` (документація ARCHITECTURE/DATA-MODELS/IMPLEMENTATION/FUNCTIONS/TESTS), `ce94295` (один шлях релізу), `02f99f1` (вбудоване оновлення, чистка репозиторію, 2.4.12), `ffd4c9d` (Reset без пароля, прибрано ChangePassword).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
 - **Тестів: 130, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
 ## Архітектура (після рефакторингу)
 
-- **Namespace/проєкт:** `ResourceCalculator` (папки `ResourceCalculator/` — WPF UI, `ResourceCalculator.Core/` — уся логіка, `ResourceCalculator.Tests/`).
+- **Namespace/проєкт:** `ResourceCalculator` (папки `ResourceCalculator/` — Avalonia UI, `ResourceCalculator.Core/` — уся логіка, `ResourceCalculator.Tests/`).
   exe/білд: `ITE.ResourceCalculator.exe`. Раніше було `AIResourceCalculator` — повністю перейменовано, AI-згадок немає.
 - **Рішення:** `ResourceCalculator.slnx` (проєкт + тести).
+- ⚠️ Lifetime — тільки `IClassicDesktopStyleApplicationLifetime` (`Program` стартує `StartWithClassicDesktopLifetime`); `ISingleView` не використовувати — з ним вікно не створюється.
+- Іконки `Segoe MDL2 Assets` заборонені (Windows-only): тик — `✓`, логотип — `◈`, решта декоративних прибрана. Емодзі в `MessageBox` — ок.
+- `Themes/ThemeService` — тільки світла тема (Latte), `DarkTheme.xaml` видалено, кнопки-перемикача теми немає. `Themes/Styles.xaml` видалено, є `Themes/AppStyles.xaml`.
 - **3 вкладки-кроки** (`MainWindow.xaml`): 0=Матриця, 1=Параметри розрахунку, 2=Результати.
   ⚠️ ВАЖЛИВО: після розрахунку перехід на результати — `SelectedTabIndex = 2` (не 1!). Та сама правка в `CalculatorTabControl.xaml.cs` (кнопка «Детальніше у Результати»).
 - **Збірка:** `dotnet build ResourceCalculator.slnx -c Release`. Тести: `dotnet test ResourceCalculator.slnx -c Release`.
 - **Запуск з коду:** `dotnet run --project ResourceCalculator/ResourceCalculator.csproj`.
+- **Публікація (Windows):** `dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win`
 
 ## Захист матриці (фіча від користувача)
 
-- Зміна чутливих даних матриці (Save/Recalculate/Reset) потребує пароля.
-- Спроба відредагувати будь-яке значення в матриці (клік у комірку) теж потребує пароля —
-  перехоплюється `Grid_BeginningEdit` у `Views/MatrixTabControl.xaml.cs` (усі DataGrid).
-- `AccessService.EnsureUnlocked()` — публічний, викликається і командами, і редактором комірок.
-- `ResourceCalculator/Services/AccessService.cs` — SHA-256 + сіль, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\`.
+- Зміна чутливих даних матриці (Save/Recalculate/редагування клітинки) потребує пароля; Reset — без пароля. Редагування клітинки — через `BeginningEdit` (`MatrixTabControl.xaml.cs`): скасування + асинхронний пароль через `Dispatcher.UIThread.Post` (діалог всередині події DataGrid зависає) + повторний `BeginEdit` після розблокування.
+- Усі таблиці матриці заблоковані (`IsReadOnly={Binding MatrixVM.IsUnlocked, Converter=BoolInverse}`) — розблоковуються на сесію після `EnsureUnlockedAsync()` (парольний діалог).
+- `AccessService.EnsureUnlockedAsync()` викликається командами Save/Recalculate; синхронний `EnsureUnlocked()` лишено для сумісності.
+- `ResourceCalculator.Core/Services/AccessService.cs` — SHA-256 + сіль, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\`.
 - Дефолтний пароль: `yF2jrX7inC4w`.
-- Діалоги: `Views/PasswordDialog.*` (розблокування + кнопка **«Перегенерувати пароль»**) та `Views/ChangePasswordDialog.*`.
-  ⚠️ Діалоги лежать у `Views/`, тож шлях до тем у їхньому XAML — `../Themes/Styles.xaml` (не `Themes/...`).
+- Діалог: `Views/PasswordDialog.*` (розблокування + кнопка **«Перегенерувати пароль»**). `ChangePasswordDialog` і кнопка «Змінити пароль» прибрані — лишилися тільки мертві рядки локалізації `access.change*`.
 - Перегенерація: генерує новий пароль, зберігає, відкриває `mailto:` на контакти розробника:
   `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`, телефон `+380979454941`.
 - `AccessService` зареєстровано в DI (`App.xaml.cs`), передається в `MatrixViewModel`.
@@ -102,7 +128,7 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 - **Єдиний шлях релізу — push тега `vX.Y.Z`.** Локальних реліз-скриптів немає навмисно: `release.ps1` прибрано, бо він конфліктував із workflow (обидва робили `gh release create`).
   Порядок: бампнути `AppVersion` у `Directory.Build.props` → коміт → `git push origin main` → `git tag vX.Y.Z && git push origin vX.Y.Z`.
-- `.github/workflows/release.yml` — реліз на push тега `v*`: build → test → publish self-contained exe → GitHub Release з єдиним артефактом `ITE.ResourceCalculator.exe`.
+- `.github/workflows/release.yml` — реліз на push тега `v*`: build → test → publish self-contained exe (тільки win-x64) → GitHub Release з одним артефактом.
   Нотатки генеруються автоматично (`--generate-notes`).
 - `.github/workflows/ci.yml` — CI на push у `main`/PR: build + test + coverage (ReportGenerator) + перевірка вразливих пакетів + publish exe як артефакт.
 - ⚠️ Тексти релізів/CHANGELOG — **тільки українською**. Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
@@ -113,7 +139,7 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 - Розробник: пошти `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`, тел. `+380979454941`.
 - Користувач тестує v2.0.2. Наступні зміни/релізи — за його відгуком після тестів.
-- Пароль матриці можна змінювати через UI (кнопка «Змінити пароль»), дефолт див. вище.
-- README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 135/License), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
+- Пароль матриці змінюється тільки перегенерацією через діалог розблокування (кнопки «Змінити пароль» немає), дефолт див. вище.
+- README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 130/License/Platform), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
 - ⚠️ GitHub кешує зображення через camo. Якщо прев'ю/фото на сторінці «не те»: додавати кеш-бастер `?v=N` до URL у README, а найнадійніше — **перейменувати файл** (новий шлях = новий URL без кешу). Останній скріншот — `main.png` (вкладка «Параметри розрахунку»).
 - ⚠️ Оновлення `AGENTS.md`: після кожної значущої зміни оновлювати цей файл (версія, коміти, рішення). Нова сесія має спершу прочитати його.

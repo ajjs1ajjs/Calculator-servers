@@ -1,15 +1,13 @@
-<Application x:Class="ResourceCalculator.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:conv="clr-namespace:ResourceCalculator.Converters">
+             x:Class="ResourceCalculator.App"
+             RequestedThemeVariant="Light">
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
-                <ResourceDictionary Source="Themes/Styles.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-            <conv:SeverityToColorConverter x:Key="SeverityToColor"/>
-            <conv:VisibilityConverter x:Key="VisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -1,35 +1,38 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Media;
 
 namespace ResourceCalculator.Views;
 
 public partial class ResultsTabControl : UserControl
 {
-    // Прокрутка колесом: спершу намагаємось прокрутити ВНУТРІШНІЙ ScrollViewer під курсором
-    // (розбивка по середовищах, велика таблиця) — і лише коли він уперся в межу, прокручуємо всю
-    // сторінку. Так працює і прокрутка в розділі, і плавна прокрутка сторінки, попри те, що
-    // DataGrid за замовчуванням «з'їдає» подію.
-    private void RootScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    private void RootScroll_PreviewMouseWheel(object? sender, PointerWheelEventArgs e)
     {
-        var inner = FindScrollableAncestor(e.OriginalSource as DependencyObject, e.Delta);
+        var inner = FindScrollableAncestor(e.Source as Visual, e.Delta);
         if (inner != null && inner != RootScroll)
-            return; // дозволяємо внутрішньому ScrollViewer прокрутитись
+            return;
 
-        RootScroll.ScrollToVerticalOffset(RootScroll.VerticalOffset - e.Delta);
+        if (RootScroll.Extent.Height > RootScroll.Viewport.Height)
+        {
+            RootScroll.Offset = RootScroll.Offset.WithY(
+                Math.Max(0, Math.Min(RootScroll.Extent.Height - RootScroll.Viewport.Height,
+                    RootScroll.Offset.Y - e.Delta.Y)));
+        }
         e.Handled = true;
     }
 
-    // Шукає найближчий ScrollViewer-предок, який ще МОЖЕ прокрутитись у напрямку колеса.
-    private static ScrollViewer? FindScrollableAncestor(DependencyObject? from, int delta)
+    private static ScrollViewer? FindScrollableAncestor(Visual? from, Vector delta)
     {
-        for (var node = from; node != null; node = VisualTreeHelper.GetParent(node))
+        for (var node = from; node != null; node = node.Parent as Visual)
         {
-            if (node is ScrollViewer sv && sv.ScrollableHeight > 0)
+            if (node is ScrollViewer sv)
             {
-                bool canUp = delta > 0 && sv.VerticalOffset > 0;
-                bool canDown = delta < 0 && sv.VerticalOffset < sv.ScrollableHeight;
+                var maxOffset = sv.Extent.Height - sv.Viewport.Height;
+                if (maxOffset <= 0) continue;
+                bool canUp = delta.Y > 0 && sv.Offset.Y > 0;
+                bool canDown = delta.Y < 0 && sv.Offset.Y < maxOffset;
                 if (canUp || canDown) return sv;
             }
         }
@@ -39,8 +42,5 @@ public partial class ResultsTabControl : UserControl
     public ResultsTabControl()
     {
         InitializeComponent();
-        // GridInfrastructure.ItemsSource прив'язано в XAML (ResultInfrastructure). Раніше тут на
-        // кожен Loaded реєструвався анонімний PropertyChanged без відписки — витік пам'яті, бо
-        // обробники накопичувались при кожному показі вкладки.
     }
 }

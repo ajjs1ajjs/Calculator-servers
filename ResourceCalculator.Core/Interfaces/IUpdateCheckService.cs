@@ -1,6 +1,6 @@
 namespace ResourceCalculator.Interfaces;
 
-public record UpdateInfo(string Version, string DownloadUrl);
+public record UpdateInfo(string Version, string DownloadUrl, string? ReleaseNotes = null, long SizeBytes = 0);
 
 // Результат перевірки оновлень: окремо позначаємо збій мережі/API, щоб ручна перевірка
 // могла показати користувачу «не вдалося перевірити» замість мовчазного ігнору.

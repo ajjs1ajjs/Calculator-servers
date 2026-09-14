@@ -1,9 +1,12 @@
 using System.Diagnostics;
-using System.IO;
 using System.Reflection;
 using System.Threading;
-using System.Windows;
-using System.Windows.Threading;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
+using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using ResourceCalculator.Dialogs;
 using ResourceCalculator.Interfaces;
@@ -18,12 +21,17 @@ public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
-    protected override void OnStartup(StartupEventArgs e)
+    public override void Initialize()
     {
-        base.OnStartup(e);
+        AvaloniaXamlLoader.Load(this);
+        ResourceCalculator.Themes.ThemeService.Initialize();
+    }
 
-        // Глобальний перехоплювач помилок: не даємо застосунку аварійно завершитися без повідомлення.
-        DispatcherUnhandledException += OnUnhandledException;
+    public override void OnFrameworkInitializationCompleted()
+    {
+        base.OnFrameworkInitializationCompleted();
+
+        Dispatcher.UIThread.UnhandledException += OnUIThreadUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             Debug.WriteLine($"Domain unhandled exception: {(args.ExceptionObject as Exception)?.Message}");
 
@@ -37,10 +45,10 @@ public partial class App : Application
         sc.AddSingleton<MatrixManager>();
         sc.AddSingleton<AccessService>();
         sc.AddSingleton<IDialogService>(sp =>
-            new WpfDialogService(sp.GetRequiredService<AccessService>(),
-                () => System.Windows.Application.Current.MainWindow));
+            new DialogService(sp.GetRequiredService<AccessService>(),
+                () => (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow));
         sc.AddSingleton<IFileSaveService>(sp => (IFileSaveService)sp.GetRequiredService<IDialogService>());
-        sc.AddSingleton<IThemeService, WpfThemeService>();
+        sc.AddSingleton<IThemeService, ThemeService>();
         sc.AddTransient<ConfigExportService>();
         sc.AddTransient<ResultsPresenter>();
         sc.AddTransient<EnvironmentBuilder>();
@@ -55,18 +63,21 @@ public partial class App : Application
 
         Services = sc.BuildServiceProvider();
 
-        var mainWindow = new MainWindow();
-        mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
-        mainWindow.Show();
-
-        _ = CheckForUpdatesAsync(silent: true).ContinueWith(t =>
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (t.IsFaulted)
-                Debug.WriteLine($"Update check crashed: {t.Exception?.InnerException?.Message}");
-        }, TaskContinuationOptions.OnlyOnFaulted);
+            var mainWindow = new MainWindow();
+            mainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
+            desktop.MainWindow = mainWindow;
+            mainWindow.Show();
+
+            _ = CheckForUpdatesAsync(silent: true).ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    Debug.WriteLine($"Update check crashed: {t.Exception?.InnerException?.Message}");
+            }, TaskContinuationOptions.OnlyOnFaulted);
+        }
     }
 
-    // Поточна версія застосунку для показу: чистий вигляд (без суфікса SourceLink +<sha>).
     private static string DisplayVersion()
     {
         var informational = Assembly.GetExecutingAssembly()
@@ -76,9 +87,6 @@ public partial class App : Application
         return plus > 0 ? informational[..plus] : informational;
     }
 
-    // Перевірка оновлень із показом результату. silent=true — фонова перевірка при старті:
-    // показує діалог лише коли є нова версія; ручна перевірка (кнопка) показує і «немає
-    // оновлень», і помилку перевірки.
     internal async Task CheckForUpdatesAsync(bool silent)
     {
         UpdateCheckResult update;
@@ -89,93 +97,97 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            // Перевірка оновлень ніколи не має валити застосунок — мережеві збої
-            // трактуємо як Failed і показуємо звичайне повідомлення.
             Debug.WriteLine($"Update check crashed: {ex}");
             update = new UpdateCheckResult(UpdateCheckStatus.Failed);
         }
 
-        // Після ConfigureAwait(false) продовження виконується у потоці пулу, а вікна
-        // й Application.MainWindow у WPF прив'язані до UI-потоку. Без цього стрибка
-        // на диспетчер перевірка падала з «The calling thread cannot access this
-        // object because a different thread owns it».
-        await Dispatcher.InvokeAsync(async () =>
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop) return;
+
+        await Dispatcher.UIThread.InvokeAsync(async () =>
         {
+            var mainWindow = desktop.MainWindow;
+            if (mainWindow == null) return;
+            
             var loc = LocalizationService.Instance;
             switch (update.Status)
             {
                 case UpdateCheckStatus.UpdateAvailable:
-                    var result = MessageBox.Show(
-                        string.Format(loc["update.message"], update.Update!.Version, DisplayVersion()),
-                        loc["update.title"], MessageBoxButton.YesNo, MessageBoxImage.Information);
-
-                    if (result == MessageBoxResult.Yes)
-                        await StartUpdateAsync(update.Update.Version, update.Update.DownloadUrl);
+                    // Повністю автоматичне оновлення всередині програми:
+                    // жодних переходів у браузер / на сторінку GitHub.
+                    var availableDialog = new UpdateAvailableDialog(
+                        update.Update!.Version, DisplayVersion(),
+                        update.Update.ReleaseNotes, update.Update.SizeBytes);
+                    var accepted = await availableDialog.ShowDialog<bool>(mainWindow);
+                    if (accepted)
+                        await StartUpdateAsync(update.Update);
                     break;
 
                 case UpdateCheckStatus.NoUpdate:
                     if (!silent)
-                        MessageBox.Show(loc["update.none"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Information);
+                        await MessageBox.Show(mainWindow, loc["update.none"], loc["update.title"], MessageBoxButtons.OK, MessageBoxImage.Information);
                     break;
 
                 case UpdateCheckStatus.Failed:
                     if (!silent)
-                        MessageBox.Show(loc["update.failed"], loc["update.title"], MessageBoxButton.OK, MessageBoxImage.Warning);
+                        await MessageBox.Show(mainWindow, loc["update.failed"], loc["update.title"], MessageBoxButtons.OK, MessageBoxImage.Warning);
                     break;
-            }
-        }).Task.Unwrap().ConfigureAwait(false);
-    }
-
-    // Викликається вже на UI-потоці (з тіла Dispatcher.InvokeAsync вище).
-    private async Task StartUpdateAsync(string version, string downloadUrl)
-    {
-        var mainWindow = MainWindow;
-        if (mainWindow is null) return;
-
-        var progressDialog = new UpdateProgressDialog(version) { Owner = mainWindow };
-        progressDialog.Show();
-
-        var updateService = Services.GetRequiredService<ISelfUpdateService>();
-        updateService.DownloadUrl = downloadUrl;
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
-
-        // ISelfUpdateService зареєстрований як singleton, тож обробник обов'язково
-        // знімаємо у finally — інакше кожна наступна спроба оновлення писала б прогрес
-        // ще й у вже закриті діалоги попередніх спроб.
-        DownloadProgressHandler onProgress = (bytes, total) =>
-            Dispatcher.InvokeAsync(() => progressDialog.SetProgress(bytes, total), DispatcherPriority.Background);
-        updateService.Progress += onProgress;
-
-        SelfUpdateResult updateResult;
-        try
-        {
-            updateResult = await updateService.UpdateAsync(cts.Token);
-        }
-        catch (Exception ex)
-        {
-            updateResult = new SelfUpdateResult(SelfUpdateStatus.Failed, ex.Message);
-        }
-        finally
-        {
-            updateService.Progress -= onProgress;
-        }
-
-        await Dispatcher.InvokeAsync(() =>
-        {
-            if (updateResult.Status == SelfUpdateStatus.Completed)
-            {
-                progressDialog.SetCompleted();
-                // .bat дочекається виходу цього процесу перед підміною exe — див. ApplyUpdate.
-                Environment.Exit(0);
-            }
-            else
-            {
-                progressDialog.SetError(updateResult.Error ?? "Unknown error");
             }
         });
     }
 
-    private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    // Цикл спроб: після помилки діалог пропонує «Спробувати ще» або «Закрити».
+    private async Task StartUpdateAsync(UpdateInfo info)
+    {
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop) return;
+        var mainWindow = desktop.MainWindow;
+        if (mainWindow is null) return;
+
+        var updateService = Services.GetRequiredService<ISelfUpdateService>();
+        updateService.DownloadUrl = info.DownloadUrl;
+
+        while (true)
+        {
+            var progressDialog = new UpdateProgressDialog(info.Version);
+            var showTask = progressDialog.ShowDialog<bool>(mainWindow);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
+
+            DownloadProgressHandler onProgress = (bytes, total) =>
+                Dispatcher.UIThread.Post(() => progressDialog.SetProgress(bytes, total));
+            updateService.Progress += onProgress;
+
+            SelfUpdateResult updateResult;
+            try
+            {
+                updateResult = await updateService.UpdateAsync(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                updateResult = new SelfUpdateResult(SelfUpdateStatus.Failed, ex.Message);
+            }
+            finally
+            {
+                updateService.Progress -= onProgress;
+            }
+
+            if (updateResult.Status == SelfUpdateStatus.Completed)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() => progressDialog.SetCompleted());
+                // Даємо користувачу побачити «Оновлення встановлено», потім вихід:
+                // bat-скрипт підміняє exe і запускає нову версію.
+                await Task.Delay(1500);
+                Environment.Exit(0);
+                return;
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                progressDialog.SetError(updateResult.Error ?? "Unknown error"));
+            await showTask;
+            if (!progressDialog.RetryRequested)
+                return;
+        }
+    }
+
+    private void OnUIThreadUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Debug.WriteLine($"Unhandled exception: {e.Exception}");
         try
@@ -183,11 +195,11 @@ public partial class App : Application
             var logPath = Path.Combine(AppContext.BaseDirectory, "error.log");
             File.AppendAllText(logPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {e.Exception}\n\n");
         }
-        catch { /* logging must never crash the handler itself */ }
+        catch { }
         var loc = LocalizationService.Instance;
-        MessageBox.Show(
+        _ = MessageBox.Show((ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow,
             string.Format(loc["error.unknown"], e.Exception.Message),
-            loc["error.title"], MessageBoxButton.OK, MessageBoxImage.Error);
+            loc["error.title"], MessageBoxButtons.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 }

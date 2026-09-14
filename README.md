@@ -17,12 +17,12 @@
 [![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?label=release&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Tests](https://img.shields.io/badge/tests-131%20passing-00C853)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![Tests](https://img.shields.io/badge/tests-130%20passing-00C853)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
 [![Platform](https://img.shields.io/badge/platform-Windows-00E5FF)]()
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)]()
 [![License](https://img.shields.io/badge/license-MIT-26A69A)](LICENSE)
 
-**WPF · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
+**Avalonia · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
 Працює на **Windows 10/11**.
 
 <a href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest"><img src="https://img.shields.io/badge/Download-latest-00A0C6"></a>
@@ -81,9 +81,11 @@ dotnet test  ResourceCalculator.slnx -c Release
 ### Публікація
 
 ```bash
-# Windows (WPF, win-x64, self-contained, ~50 МБ, один exe)
-dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output publish
+# Windows (win-x64, self-contained, ~70 МБ, один exe)
+dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win
 ```
+
+> Потрібен [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) (версія зафіксована у [`global.json`](global.json)).
 
 ---
 
@@ -91,7 +93,7 @@ dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release --output 
 
 | Платформа | Артефакт | Файл | Примітка |
 |---|---|---|---|
-| **Windows** | Портативний `.exe` (WPF) | `ITE.ResourceCalculator.exe` | Self-contained, один файл, ~70 МБ. **Вбудоване автоматичне оновлення** з прогресом всередині програми. |
+| **Windows** | Портативний `.exe` | `ITE.ResourceCalculator.exe` | Self-contained, один файл, ~70 МБ. |
 
 > Єдиний артефакт релізу. Публікується автоматично в GitHub Release при push тегу `vX.Y.Z`
 > ([`release.yml`](.github/workflows/release.yml)) — вручну нічого збирати не треба.
@@ -124,9 +126,44 @@ self-contained exe → створення GitHub Release з артефактом
 
 ---
 
+## 🖥️ Встановлення та запуск
+
+### Windows 10/11
+
+**Системні вимоги:**
+- Windows 10 22H2+ або Windows 11
+- .NET 10 Desktop Runtime (встановлюється автоматично при першому запуску самодостатнього збірки)
+- 200 МБ вільного місця на диску
+
+**Встановлення:**
+1. Завантажте `ITE.ResourceCalculator.exe` з [останнього релізу](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
+2. Скопіюйте файл у будь-яку теку (наприклад, `C:\Program Files\ITE\ResourceCalculator\`)
+3. Запустіть `ITE.ResourceCalculator.exe`
+
+> Windows SmartScreen може попередити про «невідомий джерело». Це нормально для непідписаного бінарника — натисніть «Додаткові відомості» → «Виконати».
+
+**Запуск з вихідного коду:**
+```bash
+dotnet run --project ResourceCalculator/ResourceCalculator.csproj
+```
+
+**Збірка:**
+```bash
+dotnet build ResourceCalculator.slnx -c Release
+```
+
+---
+
+**Збірка:**
+```bash
+dotnet build ResourceCalculator.slnx -c Release
+```
+
+---
+
 ## 🧩 Технології
 
-**Платформа:** C# / WPF (Windows) · .NET 10 · MVVM
+**Платформа:** C# / Avalonia (Windows) · .NET 10 · MVVM
 **Архітектура:** Microsoft.Extensions.DependencyInjection (DI-контейнер), `ResourceCalculator.Core` (спільна логіка)
 **Excel/PDF:** EPPlus 7.6 / QuestPDF 2026.6
 **Тести:** xUnit (131 тест) + збір звітів покриття (ReportGenerator)
@@ -138,11 +175,11 @@ self-contained exe → створення GitHub Release з артефактом
 ```
 ResourceCalculator.slnx
 ├── Directory.Build.props            # єдине джерело версії (AppVersion)
-├── ResourceCalculator/              # WPF-застосунок (Windows) — лише UI
+├── ResourceCalculator/              # десктоп-застосунок (Avalonia, Windows) — лише UI
 │   ├── Views/                       # XAML-вкладки інтерфейсу
-│   ├── Dialogs/                     # WpfDialogService (діалоги, вибір файлу)
+│   ├── Dialogs/                     # діалоги, вибір файлу, теми
 │   ├── Converters/                  # конвертери прив'язок XAML
-│   ├── Localization/                # WPF-обгортка локалізації
+│   ├── Localization/                # Avalonia-обгортка локалізації
 │   └── Themes/                      # теми оформлення
 ├── ResourceCalculator.Core/         # уся логіка, незалежна від UI
 │   ├── Services/                    # рушій сайзингу, експорт, валідація, оновлення

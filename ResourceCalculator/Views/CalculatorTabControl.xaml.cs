@@ -1,7 +1,9 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
+using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using ResourceCalculator.ViewModels;
 
 namespace ResourceCalculator.Views;
@@ -16,23 +18,16 @@ public partial class CalculatorTabControl : UserControl
         Loaded += OnLoaded;
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
         ModulesPanel.ItemsSource = vm.SelectableModules;
 
-        // Підписки чіпляємо лише один раз — Loaded може спрацьовувати багаторазово.
         if (_wired) return;
         _wired = true;
 
-        CommandManager.AddPreviewExecutedHandler(TxtUserCount, OnPaste);
-        // Дозволяємо лише цифри саме у полі кількості користувачів, а не в усьому контролі.
-        TxtUserCount.PreviewTextInput += (_, args) =>
-        {
-            if (args.Text != null && args.Text.Any(c => !char.IsDigit(c)))
-                args.Handled = true;
-        };
-
+        TxtUserCount.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
+        
         vm.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.Modules))
@@ -40,18 +35,14 @@ public partial class CalculatorTabControl : UserControl
         };
     }
 
-    private void OnPaste(object? sender, ExecutedRoutedEventArgs e)
+    private void OnTextInput(object? sender, TextInputEventArgs e)
     {
-        if (e.Command == ApplicationCommands.Paste && Clipboard.ContainsText())
-        {
-            if (!int.TryParse(Clipboard.GetText().Trim(), out _))
-                e.Handled = true;
-        }
+        if (e.Text != null && e.Text.Any(c => !char.IsDigit(c)))
+            e.Handled = true;
     }
 
-    // Посилання "Детальніше у вкладці «Результати»" у картці швидкого підсумку — просто перемикає вкладку.
     private void OpenResultsTab_Click(object sender, RoutedEventArgs e)
     {
-        if (DataContext is MainViewModel vm) vm.SelectedTabIndex = 2; // 0=Матриця, 1=Параметри, 2=Результати
+        if (DataContext is MainViewModel vm) vm.SelectedTabIndex = 2;
     }
 }

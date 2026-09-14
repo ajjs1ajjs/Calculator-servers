@@ -1,0 +1,227 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style Selector="TabItem">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Padding" Value="18,12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="bd" Background="Transparent"
+                            Padding="{TemplateBinding Padding}" Margin="0,0,4,0">
+                        <StackPanel>
+                            <ContentPresenter Content="{TemplateBinding Header}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border x:Name="underline" Height="3" CornerRadius="2" Margin="0,7,0,-1" Background="Transparent"/>
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+        </Style>
+        <Style Selector="^:selected /template/ Border#underline">
+            <Setter Property="Background" Value="{DynamicResource AccentBg}"/>
+        </Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+    </Style>
+
+
+    <Style Selector="Button">
+        <Setter Property="Padding" Value="14,8"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Margin" Value="4"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#bd">
+            <Setter Property="Opacity" Value="0.92"/>
+        </Style>
+        <Style Selector="^:pressed /template/ Border#bd">
+            <Setter Property="Opacity" Value="0.8"/>
+        </Style>
+        <Style Selector="^:disabled /template/ Border#bd">
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+    </Style>
+
+    <Style Selector="DataGrid">
+        <Setter Property="Background" Value="{DynamicResource GridBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GridFg}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="RowBackground" Value="{DynamicResource GridBg}"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="RowHeaderWidth" Value="0"/>
+    </Style>
+
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="8,8"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+    </Style>
+
+    <Style Selector="DataGridRow">
+        <Setter Property="Background" Value="{DynamicResource GridBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GridFg}"/>
+    </Style>
+
+    <Style Selector="DataGridRow:nth-child(2n)">
+        <Setter Property="Background" Value="{DynamicResource GridAltBg}"/>
+    </Style>
+
+    <Style Selector="DataGridCell">
+        <Setter Property="Foreground" Value="{DynamicResource GridFg}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Style Selector="^:selected">
+            <Setter Property="Background" Value="{DynamicResource AccentBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextWhite}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{DynamicResource InputBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource InputFg}"/>
+        <Setter Property="Padding" Value="5"/>
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource InputBg}"/>
+        <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="8,5"/>
+    </Style>
+
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource InputFg}"/>
+        <Setter Property="Padding" Value="8,6"/>
+    </Style>
+
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+    </Style>
+
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Padding" Value="18"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style Selector="TextBlock.cardheader">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+        <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+
+    <Style Selector="Border.iconbadge">
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="CornerRadius" Value="10"/>
+    </Style>
+
+    <Style Selector="TextBlock.iconglyph">
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style Selector="Border.chip">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,10"/>
+    </Style>
+
+    <Style Selector="Border.chip:pointerover">
+        <Setter Property="Background" Value="{DynamicResource GridAltBg}"/>
+    </Style>
+
+    <Style Selector="Border.pillgroup">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="4"/>
+    </Style>
+
+    <Style Selector="Border.kpicard">
+        <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style Selector="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+    </Style>
+
+    <Style Selector="Expander">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style Selector="CheckBox.envtoggle">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+        <Setter Property="Opacity" Value="0.6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="bd" CornerRadius="8" Padding="14,8" Background="Transparent">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="tick" Text="✓" FontSize="12" Margin="0,0,6,0"
+                                       Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style Selector="^:checked">
+            <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="^:checked /template/ Border#bd">
+            <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+        </Style>
+        <Style Selector="^:checked /template/ TextBlock#tick">
+            <Setter Property="Foreground" Value="{DynamicResource AccentBg}"/>
+            <Setter Property="Text" Value="✓"/>
+        </Style>
+    </Style>
+</Styles>

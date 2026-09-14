@@ -67,15 +67,17 @@ public class UpdateCheckService : IUpdateCheckService
                     return new UpdateCheckResult(UpdateCheckStatus.NoUpdate);
 
                 // Резолвимо прямий URL exe-ассета з того ж відповіді API, щоб далі качати
-                // саме файл, а не HTML-сторінку релізу (html_url).
-                var assetUrl = FindExeAssetUrl(root);
+                // саме файл, а не HTML-сторінку релізу (html_url). Жодних переходів
+                // у браузер: усе оновлення відбувається всередині програми.
+                var (assetUrl, assetSize) = FindExeAsset(root);
                 if (string.IsNullOrWhiteSpace(assetUrl))
                 {
                     LogCheck($"no {ExeAssetName} asset in {tagName}");
                     return new UpdateCheckResult(UpdateCheckStatus.Failed);
                 }
 
-                return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, assetUrl));
+                var notes = root.TryGetProperty("body", out var body) ? body.GetString() : null;
+                return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, assetUrl, notes, assetSize));
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
             {
@@ -90,18 +92,22 @@ public class UpdateCheckService : IUpdateCheckService
     private const string ExeAssetName = "ITE.ResourceCalculator.exe";
 
     // Шукає прямий browser_download_url exe-ассета у вже отриманому JSON релізу.
-    private static string? FindExeAssetUrl(JsonElement root)
+    private static (string? Url, long Size) FindExeAsset(JsonElement root)
     {
         try
         {
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
                 if (asset.GetProperty("name").GetString() == ExeAssetName)
-                    return asset.GetProperty("browser_download_url").GetString();
+                {
+                    var url = asset.GetProperty("browser_download_url").GetString();
+                    var size = asset.TryGetProperty("size", out var sizeProp) && sizeProp.TryGetInt64(out var s) ? s : 0;
+                    return (url, size);
+                }
             }
         }
         catch (KeyNotFoundException) { }
-        return null;
+        return (null, 0);
     }
 
     private static Task DelayBackoff(int attempt) =>

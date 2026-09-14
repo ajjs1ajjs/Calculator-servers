@@ -1,23 +1,15 @@
-using Avalonia.Data.Converters;
 using Avalonia.Data;
+using Avalonia.Data.Converters;
 using System;
 using System.Globalization;
 
 namespace ResourceCalculator.Converters;
 
-public class VisibilityConverter : IValueConverter
+public class BoolInverseConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        if (value is bool b)
-            return b;
-        return false;
-    }
+        => value is bool b && !b;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        if (value is bool b)
-            return b;
-        return false;
-    }
+        => throw new NotSupportedException();
 }

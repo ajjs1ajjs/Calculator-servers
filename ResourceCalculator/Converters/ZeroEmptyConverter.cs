@@ -1,10 +1,10 @@
+using Avalonia.Data.Converters;
+using Avalonia.Data;
+using System;
 using System.Globalization;
-using System.Windows.Data;
 
 namespace ResourceCalculator.Converters;
 
-// Поле кількості користувачів модуля: 0 (= «загальна кількість») показуємо порожнім,
-// порожній/некоректний ввід трактуємо як 0.
 public class ZeroEmptyConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

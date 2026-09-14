@@ -1,5 +1,6 @@
-using System.Windows.Data;
-using System.Windows.Markup;
+using Avalonia.Markup.Xaml.MarkupExtensions;
+using Avalonia.Data;
+using Avalonia.Markup.Xaml;
 
 namespace ResourceCalculator.Localization;
 
@@ -16,12 +17,11 @@ public class LocExtension : MarkupExtension
 
     public override object ProvideValue(IServiceProvider serviceProvider)
     {
-        var binding = new Binding($"[{Key}]")
+        return new Binding($"[{Key}]")
         {
             Source = LocalizationService.Instance,
             Mode = BindingMode.OneWay,
             FallbackValue = $"[{Key}]"
         };
-        return binding.ProvideValue(serviceProvider);
     }
 }

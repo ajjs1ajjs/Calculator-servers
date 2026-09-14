@@ -406,7 +406,7 @@ public class ConfigExportService
         }
         // Вимоги до дисків (OS/Logs/MainData/Content) — колонками прямо в таблиці "Інфраструктура",
         // не окремим аркушем.
-        BuildInfrastructureSheet(pkg, req, multiEnv ? environments : null);
+        BuildInfrastructureSheet(pkg, req, multiEnv ? environments : null, config.UserCount);
         // Компоненти PROD окремо лише коли не було розбивки по середовищах.
         if (!multiEnv && config.IncludeComponentsInReport) BuildComponentsSheet(pkg, req);
 
@@ -736,7 +736,7 @@ public class ConfigExportService
     }
 
     private static void BuildInfrastructureSheet(ExcelPackage pkg, ResourceRequirement req,
-        IReadOnlyList<EnvironmentReport>? environments = null)
+        IReadOnlyList<EnvironmentReport>? environments, int userCount)
     {
         var ws = pkg.Workbook.Worksheets.Add("Інфраструктура");
 
@@ -746,13 +746,13 @@ public class ConfigExportService
             int row = 1;
             foreach (var e in environments)
             {
-                row = WriteInfraBlock(ws, e.Requirement, row, $"Інфраструктура (сервери/ВМ) — середовище {e.Name}");
+                row = WriteInfraBlock(ws, e.Requirement, row, $"Інфраструктура (сервери/ВМ) — середовище {e.Name} для {e.UserCount} користувачів");
                 row += 2; // порожні рядки-відступ між середовищами, щоб таблиці не зливались
             }
         }
         else
         {
-            WriteInfraBlock(ws, req, 1, "Інфраструктура (сервери/ВМ) — середовище PROD");
+            WriteInfraBlock(ws, req, 1, $"Інфраструктура (сервери/ВМ) — середовище PROD для {userCount} користувачів");
         }
 
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
