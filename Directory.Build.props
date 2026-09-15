@@ -5,5 +5,14 @@
          Бампати тут при кожному релізі ПЕРЕД тим, як ставити тег vX.Y.Z: саме push
          тега запускає .github/workflows/release.yml, який і публікує реліз. -->
     <AppVersion>2.4.12</AppVersion>
+
+    <!-- Безпека ланцюга постачання для ВСІХ проєктів рішення. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- Детерміновані lock-файли пакетів: restore в locked-mode у CI падає,
+         якщо lock розсинхронізовано, замість тихої підміни версій. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 </Project>

@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Calculator Servers — IT Infrastructure Sizing</title>
-<meta name="description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. WPF, .NET 10.">
+<meta name="description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. Avalonia, .NET 10.">
 <meta property="og:title" content="Calculator Servers — IT Infrastructure Sizing">
-<meta property="og:description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. WPF, .NET 10.">
+<meta property="og:description" content="IT-Enterprise Resource Calculator: CPU/RAM/диски/IOPS за матрицею сайзингу. Avalonia, .NET 10.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
 <style>
@@ -121,7 +122,7 @@ footer a{color:var(--accent);text-decoration:none}
 
 <nav><div class="nav-inner">
 <a class="logo" href="#"><span class="logo-mark">🧮</span> Resource Calculator</a>
-<button class="burger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="menu">☰</button>
+<button class="burger" id="burger" aria-label="menu">☰</button>
 <div class="nav-links">
 <a href="#features">Можливості</a>
 <a href="#install">Встановлення</a>
@@ -132,22 +133,22 @@ footer a{color:var(--accent);text-decoration:none}
 </div></nav>
 
 <header class="hero container">
-<div class="live"><span class="dot"></span> PRODUCTION READY &nbsp;•&nbsp; MIT LICENSE &nbsp;•&nbsp; v2.3.1</div>
+<div class="live"><span class="dot"></span> PRODUCTION READY &nbsp;•&nbsp; MIT LICENSE &nbsp;•&nbsp; v2.4.12</div>
 <h1>🧮 Resource <span class='grad'>Calculator</span></h1>
 <p class="tagline">Калькулятор ресурсів IT-інфраструктури на основі матриці сайзингу. Точний розрахунок CPU, RAM, дисків та IOPS для K8s, Windows і Hybrid.</p>
-<div class="badges"><span class='badge'>🪟 Windows 10/11</span><span class='badge'>📊 WPF</span><span class='badge'>⚙️ .NET 10</span><span class='badge'>✅ 131 тест</span></div>
+<div class="badges"><span class='badge'>🪟 Windows 10/11</span><span class='badge'>📊 Avalonia</span><span class='badge'>⚙️ .NET 10</span><span class='badge'>✅ 157 тестів</span></div>
 <div class="shields"><img src='https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?label=release' alt='release' loading='lazy'><img src='https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads' alt='downloads' loading='lazy'><img src='https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI' alt='CI' loading='lazy'><img src='https://img.shields.io/badge/license-MIT-green' alt='MIT' loading='lazy'></div>
 <div class="cta">
 <a class="btn btn-primary" href="#install">🚀 Швидкий старт</a>
 <a class="btn btn-ghost" href="https://github.com/ajjs1ajjs/Calculator-servers" target="_blank" rel="noopener">📂 GitHub</a>
 <a class="btn btn-ghost" href="https://github.com/ajjs1ajjs/Calculator-servers/releases" target="_blank" rel="noopener">⬇️ Releases</a>
 </div>
-<div class="stats"><div class='stat reveal'><b data-count='131' data-suffix=''>0</b><span>тестів passing</span></div><div class='stat reveal'><b data-count='3' data-suffix=''>0</b><span>кроки: матриця→параметри→результат</span></div><div class='stat reveal'><b data-count='3' data-suffix=''>0</b><span>типи БД</span></div><div class='stat reveal'><b data-count='20' data-suffix='+'>0</b><span>модулів</span></div></div>
+<div class="stats"><div class='stat reveal'><b data-count='157' data-suffix=''>0</b><span>тестів passing</span></div><div class='stat reveal'><b data-count='3' data-suffix=''>0</b><span>кроки: матриця→параметри→результат</span></div><div class='stat reveal'><b data-count='3' data-suffix=''>0</b><span>типи БД</span></div><div class='stat reveal'><b data-count='20' data-suffix='+'>0</b><span>модулів</span></div></div>
 </header>
 
 <main class="container">
 <section id="features"><div class="sec-head reveal"><h2>Потужні <span class="u">можливості</span></h2><p>Матриця, рушій сайзингу та звіти — від параметрів до готової специфікації.</p></div>
-<div class="features"><div class='feature reveal'><div class='ic'>📊</div><h3>Точний сайзинг</h3><p>CPU/RAM/Storage/IOPS для SQL, Postgres, Oracle, App, Web за еталоном D-AD-ADM-E.</p></div><div class='feature reveal'><div class='ic'>🧩</div><h3>Редагована матриця</h3><p>Діапазони, поди, вузли K8s/Windows, EngineSettings — все в UI, зберігається в matrix.json.</p></div><div class='feature reveal'><div class='ic'>☸️</div><h3>K8s / Windows / Hybrid</h3><p>3 топології розгортання, 4 середовища: PROD, DEV, TEST, PreProd.</p></div><div class='feature reveal'><div class='ic'>💾</div><h3>Диски та HA</h3><p>OS / Logs+TempDB / Data / Content, pagefile-розрахунок, SQL Secondary, HAProxy+keepalived.</p></div><div class='feature reveal'><div class='ic'>📄</div><h3>Експорт звітів</h3><p>Excel (.xlsx), XML, HTML. Звірка з документом та деталізація по вузлах.</p></div><div class='feature reveal'><div class='ic'>🔐</div><h3>Захист паролем</h3><p>SHA-256 + сіль, блокування матриці, зміна та регенерація паролю в UI.</p></div></div></section>
+<div class="features"><div class='feature reveal'><div class='ic'>📊</div><h3>Точний сайзинг</h3><p>CPU/RAM/Storage/IOPS для SQL, Postgres, Oracle, App, Web за еталоном D-AD-ADM-E.</p></div><div class='feature reveal'><div class='ic'>🧩</div><h3>Редагована матриця</h3><p>Діапазони, поди, вузли K8s/Windows, EngineSettings — все в UI, зберігається в matrix.json.</p></div><div class='feature reveal'><div class='ic'>☸️</div><h3>K8s / Windows / Hybrid</h3><p>3 топології розгортання, 4 середовища: PROD, DEV, TEST, PreProd.</p></div><div class='feature reveal'><div class='ic'>💾</div><h3>Диски та HA</h3><p>OS / Logs+TempDB / Data / Content, pagefile-розрахунок, SQL Secondary, HAProxy+keepalived.</p></div><div class='feature reveal'><div class='ic'>📄</div><h3>Експорт звітів</h3><p>Excel (.xlsx) та PDF. Звірка з документом та деталізація по вузлах.</p></div><div class='feature reveal'><div class='ic'>🔐</div><h3>Захист паролем</h3><p>PBKDF2 + сіль, блокування матриці, створення пароля при першому запуску.</p></div></div></section>
 
 <section id="install"><div class="sec-head reveal"><h2>Встановлення за <span class="u">30 секунд</span></h2><p>Один файл — і все працює. Інсталятор не потрібен:</p></div>
 <div class="install reveal">
@@ -164,7 +165,7 @@ footer a{color:var(--accent);text-decoration:none}
 <div class="os-grid"><div class='os-card reveal'><div class='oi'>🪟</div><b>Windows</b><span>10 / 11, Server 2022 / 2025</span></div></div></section>
 
 <section id="download"><div class="sec-head reveal"><h2>Завантажити <span class="u">Calculator</span></h2><p>Portable-збірка для Windows 10/11</p></div><div class="dl-grid">
-<div class="dl-card reveal"><h3>🪟 WPF (.NET 10)</h3><div class="v">win-x64 · self-contained · один файл</div><a class="btn btn-primary btn-sm" href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest/download/ITE.ResourceCalculator.exe">⬇️ .exe</a></div>
+<div class="dl-card reveal"><h3>🪟 Avalonia (.NET 10)</h3><div class="v">win-x64 · self-contained · один файл</div><a class="btn btn-primary btn-sm" href="https://github.com/ajjs1ajjs/Calculator-servers/releases/latest/download/ITE.ResourceCalculator.exe">⬇️ .exe</a></div>
 </div></section>
 
 <div class="cta-big reveal">
@@ -180,20 +181,8 @@ footer a{color:var(--accent);text-decoration:none}
 <p style="margin-top:8px"><a href="https://github.com/ajjs1ajjs/Calculator-servers">GitHub</a> • <a href="https://github.com/ajjs1ajjs/Calculator-servers/releases">Releases</a> • <a href="https://github.com/ajjs1ajjs/Calculator-servers/actions">CI</a> • <span id="year"></span></p>
 </footer>
 
-<div id="lightbox" onclick="this.classList.remove('open')"><div><img id="lbImg" src="" alt=""><div class="cap" id="lbCap"></div></div></div>
-<button id="toTop" onclick="scrollTo({top:0,behavior:'smooth'})" aria-label="top">↑</button>
-<script>
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target);}}),{threshold:.12});
-document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
-document.querySelectorAll('.shot').forEach(s=>s.addEventListener('click',()=>{const i=s.querySelector('img');document.getElementById('lbImg').src=i.src;document.getElementById('lbCap').textContent=s.querySelector('h3').textContent;document.getElementById('lightbox').classList.add('open');}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('lightbox').classList.remove('open');});
-addEventListener('scroll',()=>document.getElementById('toTop').classList.toggle('show',scrollY>700));
-document.getElementById('year').textContent=new Date().getFullYear();
-// counters
-const cio=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const b=e.target;const end=parseFloat(b.dataset.count);const suf=b.dataset.suffix||'';const t0=performance.now();const step=t=>{const p=Math.min(1,(t-t0)/1200);b.textContent=(end%1? (end*p).toFixed(1):Math.round(end*p))+suf;if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step);cio.unobserve(b);}),{threshold:.5});
-document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
-// img fallback
-document.querySelectorAll('.shot img').forEach(img=>{img.loading='lazy';img.onerror=()=>{img.style.display='none';img.parentElement.innerHTML='<div style=\"padding:60px 20px;text-align:center;color:#5b6577;font-size:3rem\">🖼️</div>';};});
-</script>
+<div id="lightbox"><div><img id="lbImg" src="" alt=""><div class="cap" id="lbCap"></div></div></div>
+<button id="toTop" aria-label="top">↑</button>
+<script src="./app.js"></script>
 </body>
 </html>

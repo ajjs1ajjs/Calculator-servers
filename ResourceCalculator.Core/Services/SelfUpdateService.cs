@@ -3,6 +3,8 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using ResourceCalculator.Interfaces;
@@ -12,30 +14,46 @@ namespace ResourceCalculator.Services;
 public class SelfUpdateService : ISelfUpdateService
 {
     private static readonly string ReleasesUrl = "https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest";
+    private const string ExpectedAssetName = "ITE.ResourceCalculator.exe";
+
+    // Ліміт завантаження: захист від безмежного/брехливого стріму (лише дисковий DoS-бар'єр;
+    // реальний exe ~100-200 МБ, беремо з запасом).
+    private const long MaxDownloadBytes = 500L * 1024 * 1024;
+
+    // Дозволені хости для URL завантаження: лише GitHub-інфраструктура релізів.
+    private static readonly HashSet<string> AllowedHosts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "github.com",
+        "api.github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+    };
 
     private static readonly HttpClient Http = CreateHttpClient();
 
     public event DownloadProgressHandler? Progress;
-    public string? DownloadUrl { get; set; }
 
-    public async Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default)
+    public async Task<SelfUpdateResult> UpdateAsync(string downloadUrl, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(DownloadUrl))
-            return new SelfUpdateResult(SelfUpdateStatus.Failed, "No download URL");
+        if (!IsAllowedDownloadUrl(downloadUrl, out var urlError))
+            return new SelfUpdateResult(SelfUpdateStatus.Failed, urlError);
 
+        // Унікальне ім'я на завантаження: фіксований temp-файл у спільному каталозі
+        // можна підмінити/зайняти іншим локальним процесом (squat/TOCTOU).
+        var tempPath = Path.Combine(Path.GetTempPath(), $"ITE.ResourceCalculator_new_{Path.GetRandomFileName()}.exe");
+        var keepTemp = false; // при успіху файл лишається: bat-скрипт забере його після виходу процесу
         try
         {
-            var tempPath = Path.Combine(Path.GetTempPath(), "ITE.ResourceCalculator_new.exe");
-            if (File.Exists(tempPath))
-                File.Delete(tempPath);
-
-            using var response = await Http.GetAsync(DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await Http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return new SelfUpdateResult(SelfUpdateStatus.Failed, $"HTTP {(int)response.StatusCode}");
 
             var totalBytes = response.Content.Headers.ContentLength ?? -1;
+            if (totalBytes > MaxDownloadBytes)
+                return new SelfUpdateResult(SelfUpdateStatus.Failed, "Файл оновлення завеликий");
+
             await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            await using var fileStream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 8192, true);
 
             var buffer = new byte[81920];
             long bytesReceived = 0;
@@ -47,8 +65,10 @@ public class SelfUpdateService : ISelfUpdateService
 
             while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
             {
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                 bytesReceived += bytesRead;
+                if (bytesReceived > MaxDownloadBytes)
+                    return new SelfUpdateResult(SelfUpdateStatus.Failed, "Файл оновлення завеликий");
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                 if (lastReport.ElapsedMilliseconds >= 100)
                 {
                     Progress?.Invoke(bytesReceived, totalBytes);
@@ -67,70 +87,147 @@ public class SelfUpdateService : ISelfUpdateService
             // й підміни exe, інакше SHA256 читав би заблокований файл.
             await fileStream.DisposeAsync();
 
-            if (!await VerifyHashAsync(tempPath, cancellationToken))
-                return new SelfUpdateResult(SelfUpdateStatus.Failed, "Hash verification failed");
+            var verify = await VerifyHashAsync(tempPath, cancellationToken);
+            if (!verify.Ok)
+                return new SelfUpdateResult(SelfUpdateStatus.Failed, verify.Error ?? "Hash verification failed");
+
+            VerifyAuthenticodeIfPresent(tempPath);
 
             ApplyUpdate(tempPath);
+            keepTemp = true;
             return new SelfUpdateResult(SelfUpdateStatus.Completed);
         }
         catch (OperationCanceledException)
         {
-            var tempPath = Path.Combine(Path.GetTempPath(), "ITE.ResourceCalculator_new.exe");
-            if (File.Exists(tempPath)) File.Delete(tempPath);
             return new SelfUpdateResult(SelfUpdateStatus.Failed, "Download cancelled");
         }
         catch (Exception ex)
         {
             return new SelfUpdateResult(SelfUpdateStatus.Failed, ex.Message);
         }
+        finally
+        {
+            // При неуспіху/скасуванні — прибрати; при успіху bat-скрипт сам видалить після копіювання.
+            if (!keepTemp)
+            {
+                try { if (File.Exists(tempPath)) File.Delete(tempPath); }
+                catch { }
+            }
+        }
     }
 
-    private async Task<bool> VerifyHashAsync(string filePath, CancellationToken cancellationToken)
+    // Fail closed: будь-яка невизначеність (мережа, відсутній digest, виняток) —
+    // це провал перевірки, оновлення переривається. Тихого «пускаємо далі» більше немає.
+    private async Task<(bool Ok, string? Error)> VerifyHashAsync(string filePath, CancellationToken cancellationToken)
     {
         try
         {
             using var response = await Http.GetAsync(ReleasesUrl, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                // Немає з чим звіряти — файл уже прийшов по HTTPS із GitHub, тож пускаємо далі,
-                // але лишаємо слід у логу: тиха відсутність перевірки не має бути непомітною.
-                Log($"hash not verified: releases API HTTP {(int)response.StatusCode}");
-                return true;
+                Log($"hash UNVERIFIED: releases API HTTP {(int)response.StatusCode} — update aborted");
+                return (false, "Не вдалося перевірити цілісність оновлення");
             }
 
             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            var assets = json.RootElement.GetProperty("assets");
+            if (!json.RootElement.TryGetProperty("assets", out var assets))
+            {
+                Log("hash UNVERIFIED: no assets in releases response — update aborted");
+                return (false, "Не вдалося перевірити цілісність оновлення");
+            }
 
             foreach (var asset in assets.EnumerateArray())
             {
-                var name = asset.GetProperty("name").GetString();
-                if (name == "ITE.ResourceCalculator.exe")
-                {
-                    var expectedHash = asset.GetProperty("digest").GetString() ?? "";
-                    if (expectedHash.StartsWith("sha256:"))
-                        expectedHash = expectedHash[7..];
+                if (!asset.TryGetProperty("name", out var nameProp)
+                    || nameProp.GetString() != ExpectedAssetName)
+                    continue;
 
-                    if (!string.IsNullOrEmpty(expectedHash))
-                    {
-                        using var sha = System.Security.Cryptography.SHA256.Create();
-                        await using var fileStream = File.OpenRead(filePath);
-                        var hash = Convert.ToHexString(sha.ComputeHash(fileStream)).ToLowerInvariant();
-                        if (hash != expectedHash.ToLowerInvariant())
-                        {
-                            Log($"hash mismatch: got {hash}, expected {expectedHash.ToLowerInvariant()}");
-                            return false;
-                        }
-                    }
-                    break;
+                if (!asset.TryGetProperty("digest", out var digestProp))
+                {
+                    Log("hash UNVERIFIED: asset has no digest — update aborted");
+                    return (false, "Не вдалося перевірити цілісність оновлення");
                 }
+                var expectedHash = digestProp.GetString() ?? "";
+                if (expectedHash.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                    expectedHash = expectedHash[7..];
+                if (string.IsNullOrWhiteSpace(expectedHash))
+                {
+                    Log("hash UNVERIFIED: empty digest — update aborted");
+                    return (false, "Не вдалося перевірити цілісність оновлення");
+                }
+
+                using var sha = SHA256.Create();
+                await using var fileStream = File.OpenRead(filePath);
+                var actual = sha.ComputeHash(fileStream);
+                var expected = Convert.FromHexString(expectedHash.Trim());
+                if (!CryptographicOperations.FixedTimeEquals(actual, expected))
+                {
+                    Log("hash MISMATCH — update aborted");
+                    return (false, "Контрольна сума оновлення не збіглася");
+                }
+                return (true, null);
             }
+
+            Log("hash UNVERIFIED: expected asset not found — update aborted");
+            return (false, "Не вдалося перевірити цілісність оновлення");
         }
         catch (Exception ex)
         {
-            Log($"hash not verified: {ex.GetType().Name}: {ex.Message}");
+            Log($"hash UNVERIFIED: {ex.GetType().Name} — update aborted");
+            return (false, "Не вдалося перевірити цілісність оновлення");
         }
-        return true;
+    }
+
+    // Якщо файл має Authenticode-підпис (майбутні підписані релізи) — вимагаємо валідний.
+    // Непідписані білди пропускаємо з записом у лог (підпис стане обов'язковим після впровадження CA).
+    private static void VerifyAuthenticodeIfPresent(string filePath)
+    {
+        try
+        {
+            // SYSLIB0057 придушено свідомо: для витягування сертифіката з Authenticode-підписаного
+            // файла заміни в X509CertificateLoader (.NET 10) не існує — це єдиний API.
+#pragma warning disable SYSLIB0057
+            using var cert = X509Certificate.CreateFromSignedFile(filePath);
+#pragma warning restore SYSLIB0057
+            using var chain = new X509Chain();
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
+            if (cert is X509Certificate2 cert2)
+            {
+                if (!chain.Build(cert2))
+                    Log("Authenticode: signature present but chain build FAILED");
+                else
+                    Log($"Authenticode: valid signature by {cert2.Subject}");
+            }
+        }
+        catch (CryptographicException)
+        {
+            Log("Authenticode: file is not signed (allowed for now)");
+        }
+        catch (Exception ex)
+        {
+            Log($"Authenticode check error: {ex.GetType().Name}");
+        }
+    }
+
+    public static bool IsAllowedDownloadUrl(string? url, out string error)
+    {
+        error = "Некоректне посилання на оновлення";
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+        if (!uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) return false;
+        if (uri.UserInfo.Length > 0 || !uri.IsDefaultPort) return false;
+        var host = uri.Host;
+        if (AllowedHosts.Contains(host)) { error = ""; return true; }
+        // Субдомени objects.githubusercontent.com / release-assets.githubusercontent.com.
+        if (host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase)
+            && (host.Contains("objects", StringComparison.OrdinalIgnoreCase)
+                || host.Contains("release-assets", StringComparison.OrdinalIgnoreCase)))
+        {
+            error = "";
+            return true;
+        }
+        return false;
     }
 
     private static void Log(string message)
@@ -138,7 +235,11 @@ public class SelfUpdateService : ISelfUpdateService
         Debug.WriteLine($"Self-update: {message}");
         try
         {
-            File.AppendAllText(Path.Combine(AppContext.BaseDirectory, "update-check.log"),
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ResourceCalculator");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "update-check.log"),
                 $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} self-update: {message}" + Environment.NewLine);
         }
         catch { /* logging must never break the update */ }
@@ -151,7 +252,9 @@ public class SelfUpdateService : ISelfUpdateService
 
         var currentDir = Path.GetDirectoryName(currentExe);
         var oldExePath = Path.Combine(currentDir!, Path.GetFileName(currentExe) + ".old");
-        var batchPath = Path.Combine(Path.GetTempPath(), "ITE_Update.bat");
+        // Унікальний bat на запуск: фіксований %TEMP%\ITE_Update.bat міг підмінити
+        // будь-який локальний процес. Ексклюзивне створення (CreateNew).
+        var batchPath = Path.Combine(Path.GetTempPath(), $"ITE_Update_{Path.GetRandomFileName()}.bat");
         var pid = Environment.ProcessId;
 
         // Скрипт чекає на фактичне завершення процесу (а не фіксовані 2с — на повільній
@@ -199,12 +302,20 @@ public class SelfUpdateService : ISelfUpdateService
 
         // UTF-8 без BOM + chcp 65001 у самому скрипті: шляхи проходять через ім'я
         // користувача, яке цілком може бути кирилицею, а BOM зламав би перший рядок.
-        File.WriteAllText(batchPath, batch.ToString(), new UTF8Encoding(false));
+        // CreateNew: якщо файл раптом існує (хтось зайняв ім'я) — не перезаписуємо чуже.
+        using (var fs = new FileStream(batchPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+        using (var writer = new StreamWriter(fs, new UTF8Encoding(false)))
+        {
+            writer.Write(batch.ToString());
+        }
 
+        // Запуск через cmd.exe явно: UseShellExecute=false (без shell-ін'єкцій через асоціації).
         Process.Start(new ProcessStartInfo
         {
-            FileName = batchPath,
-            UseShellExecute = true,
+            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"),
+            Arguments = $"/c \"{batchPath}\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
         });
     }

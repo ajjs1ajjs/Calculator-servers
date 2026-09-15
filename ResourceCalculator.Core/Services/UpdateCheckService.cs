@@ -54,7 +54,9 @@ public class UpdateCheckService : IUpdateCheckService
                 using var json = await JsonDocument.ParseAsync(stream).ConfigureAwait(false);
                 var root = json.RootElement;
 
-                var tagName = root.GetProperty("tag_name").GetString();
+                if (!root.TryGetProperty("tag_name", out var tagProp))
+                    return new UpdateCheckResult(UpdateCheckStatus.Failed);
+                var tagName = tagProp.GetString();
                 if (string.IsNullOrWhiteSpace(tagName))
                     return new UpdateCheckResult(UpdateCheckStatus.Failed);
 
@@ -77,6 +79,10 @@ public class UpdateCheckService : IUpdateCheckService
                 }
 
                 var notes = root.TryGetProperty("body", out var body) ? body.GetString() : null;
+                // Релізні нотатки йдуть у UI: обрізаємо, щоб зловмисний/гігантський body
+                // не роздував діалог і пам'ять.
+                if (notes is not null && notes.Length > MaxNotesLength)
+                    notes = notes[..MaxNotesLength] + "…";
                 return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, assetUrl, notes, assetSize));
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
@@ -90,23 +96,30 @@ public class UpdateCheckService : IUpdateCheckService
     }
 
     private const string ExeAssetName = "ITE.ResourceCalculator.exe";
+    private const int MaxNotesLength = 8000;
+    // Розмір sanity-cap: брехливий size з API не має ламати форматування/UI.
+    private const long MaxAssetSize = 2L * 1024 * 1024 * 1024;
 
     // Шукає прямий browser_download_url exe-ассета у вже отриманому JSON релізу.
     private static (string? Url, long Size) FindExeAsset(JsonElement root)
     {
         try
         {
-            foreach (var asset in root.GetProperty("assets").EnumerateArray())
+            if (!root.TryGetProperty("assets", out var assets)) return (null, 0);
+            foreach (var asset in assets.EnumerateArray())
             {
-                if (asset.GetProperty("name").GetString() == ExeAssetName)
-                {
-                    var url = asset.GetProperty("browser_download_url").GetString();
-                    var size = asset.TryGetProperty("size", out var sizeProp) && sizeProp.TryGetInt64(out var s) ? s : 0;
-                    return (url, size);
-                }
+                if (!asset.TryGetProperty("name", out var nameProp)
+                    || nameProp.GetString() != ExeAssetName)
+                    continue;
+                if (!asset.TryGetProperty("browser_download_url", out var urlProp))
+                    return (null, 0);
+                var url = urlProp.GetString();
+                var size = asset.TryGetProperty("size", out var sizeProp) && sizeProp.TryGetInt64(out var s) ? s : 0;
+                if (size < 0 || size > MaxAssetSize) size = 0;
+                return (url, size);
             }
         }
-        catch (KeyNotFoundException) { }
+        catch (InvalidOperationException) { }
         return (null, 0);
     }
 
@@ -118,8 +131,11 @@ public class UpdateCheckService : IUpdateCheckService
         Debug.WriteLine($"Update check: {message}");
         try
         {
-            var logPath = Path.Combine(AppContext.BaseDirectory, "update-check.log");
-            File.AppendAllText(logPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}\n");
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ResourceCalculator");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "update-check.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}\n");
         }
         catch { /* logging must never break the app */ }
     }

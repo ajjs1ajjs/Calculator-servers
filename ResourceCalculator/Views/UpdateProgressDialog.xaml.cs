@@ -13,14 +13,20 @@ public partial class UpdateProgressDialog : Window
     /// <summary>True, якщо користувач натиснув «Спробувати ще» (діалог закрито для повтору).</summary>
     public bool RetryRequested { get; private set; }
 
+    /// <summary>Закриття через X/Скасувати під час завантаження блокується ззовні
+    /// (App ставить false, доки триває UpdateAsync — захист від use-after-close).</summary>
+    public bool AllowClose { get; set; } = true;
+
     public UpdateProgressDialog()
     {
         InitializeComponent();
+        Closing += (_, e) => e.Cancel = !AllowClose;
     }
 
     public UpdateProgressDialog(string version)
     {
         InitializeComponent();
+        Closing += (_, e) => e.Cancel = !AllowClose;
         var loc = LocalizationService.Instance;
         TxtVersion.Text = $"ITE.ResourceCalculator · {version}";
         TxtStage.Text = loc["update.downloading"];
@@ -73,7 +79,11 @@ public partial class UpdateProgressDialog : Window
     public void SetError(string message)
     {
         ProgressBar.IsIndeterminate = false;
-        TxtStage.Text = $"✕ {message}";
+        // ex.Message може нести локальні шляхи/URL і бути довільним за розміром:
+        // показуємо стислу безпечну версію, деталі — лише в лозі.
+        var safe = new string((message ?? "").Where(c => c == '\n' || c == '\t' || !char.IsControl(c)).ToArray()).Trim();
+        if (safe.Length > 300) safe = safe[..300] + "…";
+        TxtStage.Text = $"✕ {(string.IsNullOrEmpty(safe) ? "Unknown error" : safe)}";
         TxtPercent.Text = "";
         BtnCancel.IsVisible = false;
         BtnRetry.IsVisible = true;
@@ -89,14 +99,20 @@ public partial class UpdateProgressDialog : Window
     private void BtnCancel_Click(object sender, RoutedEventArgs e)
     {
         try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+        AllowClose = true;
         Close(false);
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close(false);
+    private void BtnClose_Click(object sender, RoutedEventArgs e)
+    {
+        AllowClose = true;
+        Close(false);
+    }
 
     private void BtnRetry_Click(object sender, RoutedEventArgs e)
     {
         RetryRequested = true;
+        AllowClose = true;
         Close(true);
     }
 

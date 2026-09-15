@@ -3,7 +3,7 @@
 > **Призначення**: Структура, покриття та опис кожного тестового файлу.
 > Використовуй цей файл для швидкого розуміння які тести існують і що вони перевіряють.
 
-<!-- AUTO:stamp -->Verified: 2026-09-14, commit `398ecf2` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `10355a9` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -19,6 +19,7 @@
 8. [MatrixManagerTests](#8-matrixmanagertests)
 9. [DiskAdvisorTests](#9-diskadvisortests)
 10. [AccessServiceTests](#10-accessservicetests)
+11. [SecurityRegressionTests](#11-securityregressiontests)
 
 ---
 
@@ -30,8 +31,8 @@
 | **Coverage** | coverlet.collector 6.0.4 |
 | **Проєкт** | ResourceCalculator.Tests (net10.0) |
 | **Залежність** | ResourceCalculator.Core |
-| **Файлів тестів** | 9 |
-| **Загальна кількість тестів** | <!-- AUTO:tests-total -->130<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 120, з них 5 theory дають 15 кейсів через `[InlineData]`) |
+| **Файлів тестів** | 10 |
+| **Загальна кількість тестів** | <!-- AUTO:tests-total -->157<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 132, з них theory дають 25 кейсів через `[InlineData]`) |
 
 ---
 
@@ -214,19 +215,41 @@
 
 ## 10. AccessServiceTests
 
-**Файл**: `ResourceCalculator.Tests/AccessServiceTests.cs` (63 рядки)
-**Тестів**: 4
+**Файл**: `ResourceCalculator.Tests/AccessServiceTests.cs`
+**Тестів**: 7
 **Тестує**: `AccessService`
 
 | Тест | Що перевіряє |
 |---|---|
-| EnsureInitialized → default password | Створення з дефолтним паролем |
-| Verify unknown file → only default | Невідомий файл → тільки дефолтний пароль |
+| EnsureInitialized does not create password | Немає авто-дефолту: fail closed без settings.json |
+| SetPassword round-trips with PBKDF2 | Запис/читання, поле Iterations |
+| SetPassword rejects weak passwords | Короткі/порожні відхиляються |
+| Verify legacy SHA-256 migrates | Старий хеш приймається раз і перехешовується |
+| Verify throttles repeated failures | Прогресивна затримка блокує повтори |
 | DevContacts contains email+phone | Контакти містять email і телефон |
-| GetPasswordHint → contacts | Підказка повертає контакти |
+| GetPasswordHint does not leak secret | Підказка без вбудованого пароля |
 
 ---
 
+## 11. SecurityRegressionTests
+
+**Файл**: `ResourceCalculator.Tests/SecurityRegressionTests.cs`
+**Тестів**: 9 (із них 2 theory)
+**Тестує**: `MatrixValidator`, `MatrixManager.SyncGridsToMatrix`, `ConfigExportService.Xl`, `SelfUpdateService.IsAllowedDownloadUrl`, `ValidationEngine`, `DataService`
+
+| Тест | Що перевіряє |
+|---|---|
+| Validator rejects negative/inverted | Невалідні CPU та діапазони |
+| Validator rejects NaN/overlaps | NaN і перетин діапазонів |
+| Validator rejects zero rounding | PageFileRounding нуль (ділення) |
+| Validator accepts defaults | Вбудована матриця проходить |
+| Sync rejects invalid without mutating | Помилки синку без мутації стану |
+| Xl neutralizes formula injection | Символи формул отримують префікс-апостроф |
+| URL allowlist | Лише GitHub HTTPS без портів та кредів |
+| Degenerate severity UNKNOWN | NaN-вхід не виглядає як OK |
+| Corrupt matrix preserved | Битий файл у карантин з міткою |
+
+---
 ## Як запустити тести
 
 ```bash

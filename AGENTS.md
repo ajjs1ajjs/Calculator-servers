@@ -51,7 +51,7 @@
 - **Поточна версія: <!-- AUTO:app-version -->2.4.12<!-- /AUTO -->** (`AppVersion` у `Directory.Build.props`; 2.4.13 буде виставлено автоматично 1 жовтня). UI — Avalonia 12.1.2, тільки світла тема, Windows portable.
 - Останні коміти (від новіших): `398ecf2` (нотатка про іконку), `80d14d9` (іконка ApplicationIcon + net10.0-windows), `c98f90b` (Avalonia-міграція + вікна оновлення — стейджинг для 1 жовтня), `bee9e9e` (документація ARCHITECTURE/DATA-MODELS/IMPLEMENTATION/FUNCTIONS/TESTS), далі `ce94295`/`02f99f1`/`ffd4c9d` (див. `git log`).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
-- **Тестів: <!-- AUTO:tests-total -->130<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
+- **Тестів: <!-- AUTO:tests-total -->157<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
 ## Архітектура (після рефакторингу)
 
@@ -69,14 +69,11 @@
 
 ## Захист матриці (фіча від користувача)
 
-- Зміна чутливих даних матриці (Save/Recalculate/редагування клітинки) потребує пароля; Reset — без пароля. Редагування клітинки — через `BeginningEdit` (`MatrixTabControl.xaml.cs`): скасування + асинхронний пароль через `Dispatcher.UIThread.Post` (діалог всередині події DataGrid зависає) + повторний `BeginEdit` після розблокування.
-- Усі таблиці матриці заблоковані (`IsReadOnly={Binding MatrixVM.IsUnlocked, Converter=BoolInverse}`) — розблоковуються на сесію після `EnsureUnlockedAsync()` (парольний діалог).
-- `AccessService.EnsureUnlockedAsync()` викликається командами Save/Recalculate; синхронний `EnsureUnlocked()` лишено для сумісності.
-- `ResourceCalculator.Core/Services/AccessService.cs` — SHA-256 + сіль, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\`.
-- Дефолтний пароль: `yF2jrX7inC4w`.
-- Діалог: `Views/PasswordDialog.*` (розблокування + кнопка **«Перегенерувати пароль»**). `ChangePasswordDialog` і кнопка «Змінити пароль» прибрані — лишилися тільки мертві рядки локалізації `access.change*`.
-- Перегенерація: генерує новий пароль, зберігає, відкриває `mailto:` на контакти розробника:
-  `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`, телефон `+380979454941`.
+- Зміна чутливих даних матриці (Save/Recalculate/Reset/додавання рядків/редагування клітинки) потребує пароля. Редагування клітинки — через `BeginningEdit` (`MatrixTabControl.xaml.cs`): скасування + асинхронний пароль через `Dispatcher.UIThread.Post` (діалог всередині події DataGrid зависає) + повторний `BeginEdit` після розблокування.
+- Усі таблиці матриці заблоковані (`IsReadOnly={Binding MatrixVM.IsUnlocked, Converter=BoolInverse}` — конвертер зареєстровано в `App.xaml`), панель Engine — `IsEnabled` від `IsUnlocked`; розблоковуються на сесію після `EnsureUnlockedAsync()` (парольний діалог). Синхронний шим `EnsureUnlocked()` прибрано (дедлок на UI-потоці).
+- `AccessService` — PBKDF2-SHA256 (210k ітерацій) + сіль 16Б + поле `Iterations`, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\` з ACL тільки поточному користувачеві. Легасі SHA-256 приймається лише для міграції (одразу перехешовується).
+- Вбудованого дефолтного пароля НЕМАЄ (fail closed): за відсутності `settings.json` перший запуск показує режим СТВОРЕННЯ пароля (мінімум 12 символів). Невдалі спроби — прогресивна затримка 1с→30с, після 10 — блок на 5 хв.
+- Діалог: `Views/PasswordDialog.*` (розблокування / створення; TextBox+PasswordChar — штатного PasswordBox в Avalonia 12 немає).
 - `AccessService` зареєстровано в DI (`App.xaml.cs`), передається в `MatrixViewModel`.
 
 ## Матриця та редагування без коду
@@ -144,8 +141,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 | Документ | Звірено з комітом | Дата |
 |---|---|---|
-| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-14<!-- /AUTO --> |
-| DATA-MODELS.md | <!-- AUTO:data-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-14<!-- /AUTO --> |
-| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-14<!-- /AUTO --> |
-| FUNCTIONS.md | <!-- AUTO:func-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-14<!-- /AUTO --> |
-| TESTS.md | <!-- AUTO:tests-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-14<!-- /AUTO --> |
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-15<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-15<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-15<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-15<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-15<!-- /AUTO --> |

@@ -3,25 +3,28 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v[0-9]+.[0-9]+.[0-9]+*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # provenance-атестація артефакта
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        # Версія SDK — з global.json (єдине джерело), без дублювання у workflow.
 
       - name: Restore
-        run: dotnet restore ResourceCalculator.slnx
+        run: dotnet restore ResourceCalculator.slnx --locked-mode
 
       - name: Build
         run: dotnet build ResourceCalculator.slnx -c Release
@@ -32,18 +35,38 @@ jobs:
       - name: Publish Windows (win-x64, single-file, self-contained)
         run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win
 
+      - name: Checksums (SHA-256)
+        shell: pwsh
+        run: |
+          $exe = "publish/win/ITE.ResourceCalculator.exe"
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  ITE.ResourceCalculator.exe" | Out-File "publish/win/SHA256SUMS.txt" -Encoding ascii -NoNewline
+          Get-Content "publish/win/SHA256SUMS.txt"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: "publish/win/ITE.ResourceCalculator.exe"
+
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: windows-release
-          path: publish/win/ITE.ResourceCalculator.exe
+          path: |
+            publish/win/ITE.ResourceCalculator.exe
+            publish/win/SHA256SUMS.txt
 
   release:
     name: Create GitHub Release
     needs: [build-windows]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write # provenance-атестація
+    environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
@@ -54,7 +77,7 @@ jobs:
           git status
           git log --oneline -1
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: artifacts
 
@@ -78,4 +101,4 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           echo "Uploading Windows binary to release: $TAG"
-          gh release upload "$TAG" artifacts/windows-release/ITE.ResourceCalculator.exe --clobber --repo ${{ github.repository }}
+          gh release upload "$TAG" artifacts/windows-release/ITE.ResourceCalculator.exe artifacts/windows-release/SHA256SUMS.txt --clobber --repo ${{ github.repository }}

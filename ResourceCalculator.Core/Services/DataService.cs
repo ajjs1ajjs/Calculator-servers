@@ -9,6 +9,8 @@ namespace ResourceCalculator.Services;
 
 public class DataService : IDataService
 {
+    // Ліміт розміру файла: захист від OOM на навмисно роздутому matrix.json.
+    private const long MaxMatrixBytes = 5L * 1024 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -66,6 +68,12 @@ public class DataService : IDataService
             return new SizingMatrix();
         try
         {
+            var fileInfo = new FileInfo(MatrixPath);
+            if (fileInfo.Length > MaxMatrixBytes)
+            {
+                PreserveCorrupt("перевищено ліміт розміру");
+                return new SizingMatrix();
+            }
             var json = File.ReadAllText(MatrixPath);
 
             // Явна перевірка ПРИСУТНОСТІ поля SchemaVersion: старі збереження без цього поля
@@ -88,13 +96,36 @@ public class DataService : IDataService
                 ClearMatrix();
                 return new SizingMatrix();
             }
+            // Значення з файла не довіряємо: від'ємні CPU, NaN, нескінченності й абсурдні
+            // порядки ламали б розрахунок і звірку. Невалідне — в карантин, не видалення.
+            var errors = MatrixValidator.Validate(loaded);
+            if (errors.Count > 0)
+            {
+                PreserveCorrupt($"невалідні значення: {string.Join("; ", errors.Take(3))}");
+                return new SizingMatrix();
+            }
             return loaded;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"DataService.LoadMatrix failed: {ex.Message}");
+            PreserveCorrupt("помилка читання");
             return new SizingMatrix();
         }
+    }
+
+    // Битий/невалідний файл зберігаємо з міткою часу замість тихого видалення —
+    // інакше підміна або збій диска маскувалися б під «чисті дефолти».
+    private void PreserveCorrupt(string reason)
+    {
+        try
+        {
+            if (!File.Exists(MatrixPath)) return;
+            var stamped = MatrixPath + $".corrupt.{DateTime.Now:yyyyMMdd-HHmmss}";
+            File.Move(MatrixPath, stamped);
+            Debug.WriteLine($"DataService: corrupt matrix preserved as {stamped} ({reason})");
+        }
+        catch (Exception ex) { Debug.WriteLine($"DataService.PreserveCorrupt failed: {ex.Message}"); }
     }
 
     public void ClearMatrix()

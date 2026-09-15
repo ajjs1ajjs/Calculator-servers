@@ -116,9 +116,9 @@ public class MatrixViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Engine));
     }
 
-    public void SyncGridsToMatrix()
+    public List<string> SyncGridsToMatrix()
     {
-        _matrixManager.SyncGridsToMatrix(
+        var errors = _matrixManager.SyncGridsToMatrix(
             MsSqlRanges.ToList(),
             AppServerRanges.ToList(),
             WebServerRanges.ToList(),
@@ -127,17 +127,26 @@ public class MatrixViewModel : INotifyPropertyChanged
             InfraNodes.ToList(), WindowsInfraNodes.ToList(), OptionalInfraNodes.ToList(),
             Engine);
         _matrix = _matrixManager.Matrix;
+        return errors;
     }
 
     private void SaveMatrix()
     {
-        _ = SaveMatrixAsync();
+        _ = SaveMatrixAsync().ContinueWith(t =>
+            System.Diagnostics.Debug.WriteLine($"SaveMatrixAsync crashed: {t.Exception?.InnerException?.Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task SaveMatrixAsync()
     {
         if (!await EnsureUnlockedAsync()) return;
-        SyncGridsToMatrix();
+        var errors = SyncGridsToMatrix();
+        if (errors.Count > 0)
+        {
+            if (_dialogs is not null)
+                await _dialogs.ErrorAsync(string.Join("\n", errors.Take(10)), _loc["dialog.validationError"]);
+            return;
+        }
         _matrixManager.Save();
         MatrixChanged?.Invoke();
         if (_dialogs is not null) await _dialogs.InfoAsync(_loc["dialog.matrixSaved"], "Info");
@@ -147,23 +156,38 @@ public class MatrixViewModel : INotifyPropertyChanged
     // щоб вплив на розрахунок було видно без збереження матриці.
     private void RecalculateMatrix()
     {
-        _ = RecalculateMatrixAsync();
+        _ = RecalculateMatrixAsync().ContinueWith(t =>
+            System.Diagnostics.Debug.WriteLine($"RecalculateMatrixAsync crashed: {t.Exception?.InnerException?.Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task RecalculateMatrixAsync()
     {
         if (!await EnsureUnlockedAsync()) return;
-        SyncGridsToMatrix();
+        var errors = SyncGridsToMatrix();
+        if (errors.Count > 0)
+        {
+            if (_dialogs is not null)
+                await _dialogs.ErrorAsync(string.Join("\n", errors.Take(10)), _loc["dialog.validationError"]);
+            return;
+        }
         MatrixChanged?.Invoke();
     }
 
     private void ResetMatrix()
     {
-        _ = ResetMatrixAsync();
+        _ = ResetMatrixAsync().ContinueWith(t =>
+            System.Diagnostics.Debug.WriteLine($"ResetMatrixAsync crashed: {t.Exception?.InnerException?.Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task ResetMatrixAsync()
     {
+        // Деструктивна дія: вимагаємо розблокування і явне підтвердження.
+        if (!await EnsureUnlockedAsync()) return;
+        if (_dialogs is not null
+            && !await _dialogs.ConfirmAsync(_loc["matrix.resetConfirm"], _loc["matrix.reset"]))
+            return;
         _matrixManager.Reset();
         _matrix = _matrixManager.Matrix;
         LoadMatrixGrids();
@@ -183,9 +207,8 @@ public class MatrixViewModel : INotifyPropertyChanged
         return false;
     }
 
-    // Синхронна перевірка для код-біхинд: таблиці блокуються через IsReadOnly, діалог асинхронний.
-    public bool EnsureUnlocked()
-        => EnsureUnlockedAsync().GetAwaiter().GetResult();
+    // Синхронний шим прибрано: GetAwaiter().GetResult() на UI-потоці — гарантований
+    // дедлок, а код-біхайнд таблиць працює через асинхронний EnsureUnlockedAsync.
 
     private void NotifyAllCollections()
     {
@@ -202,6 +225,15 @@ public class MatrixViewModel : INotifyPropertyChanged
 
     private void AddRow(string? key)
     {
+        _ = AddRowAsync(key).ContinueWith(t =>
+            System.Diagnostics.Debug.WriteLine($"AddRowAsync crashed: {t.Exception?.InnerException?.Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
+    }
+
+    // Додавання рядка мутує живі колекції — теж вимагає розблокування.
+    private async Task AddRowAsync(string? key)
+    {
+        if (!await EnsureUnlockedAsync()) return;
         switch (key)
         {
             case "MsSql": MsSqlRanges.Add(new UserLoadRange()); break;

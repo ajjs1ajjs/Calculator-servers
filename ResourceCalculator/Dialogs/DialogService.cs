@@ -113,8 +113,8 @@ public static class MessageBox
 
         dialog.Closed += (_, __) => tcs.TrySetResult(MessageBoxResult.No);
         if (owner != null) await dialog.ShowDialog<MessageBoxResult>(owner);
-        else { dialog.Show(); await tcs.Task; }
-        
+        else dialog.Show();
+
         return await tcs.Task;
     }
 }
@@ -152,8 +152,9 @@ public class DialogService : IDialogService, IFileSaveService
     public async Task<bool> ShowPasswordDialogAsync()
     {
         var owner = _owner();
+        if (owner is null) return false;
         var dialog = new PasswordDialog(_access, owner);
-        var result = await dialog.ShowDialog<bool>(owner!);
+        var result = await dialog.ShowDialog<bool>(owner);
         return result;
     }
 

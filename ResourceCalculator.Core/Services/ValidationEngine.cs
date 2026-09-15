@@ -28,13 +28,19 @@ public class ValidationEngine : IValidationEngine
         });
     }
 
-    private string LF(string key, params object[] args) => string.Format(_loc[key], args);
+    private string LF(string key, params object[] args)
+    {
+        try { return string.Format(_loc[key], args); }
+        catch (FormatException) { return $"{_loc[key]}"; }
+    }
 
     public List<ValidationResult> CompareProfiles(ResourceRequirement profile1, ResourceRequirement profile2)
         => Validate(profile1, profile2);
 
     public List<ValidationResult> Validate(ResourceRequirement required, ResourceRequirement allocated)
     {
+        ArgumentNullException.ThrowIfNull(required);
+        ArgumentNullException.ThrowIfNull(allocated);
         var results = new List<ValidationResult>();
 
         AddResult(results, "val.res.vcpu", required.TotalCpu, allocated.TotalCpu, "cores", GetCpuRecommendation);
@@ -49,10 +55,14 @@ public class ValidationEngine : IValidationEngine
 
     public List<ValidationResult> ValidateProject(ProjectConfig config, ResourceRequirement calculated, List<InfrastructureNode> actualResources)
     {
+        ArgumentNullException.ThrowIfNull(calculated);
+        ArgumentNullException.ThrowIfNull(actualResources);
         var results = new List<ValidationResult>();
 
+        if (calculated.Infrastructure is null) return results;
         foreach (var infra in calculated.Infrastructure)
         {
+            if (infra is null) continue;
             var actual = actualResources.FirstOrDefault(a =>
                 a.Name.Equals(infra.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -98,6 +108,11 @@ public class ValidationEngine : IValidationEngine
 
     private string GetSeverity(double required, double allocated)
     {
+        // Вироджені входи (бита матриця/дані) не мають виглядати як «OK»:
+        // NaN провалює всі порівняння і раніше скочувався до OK.
+        if (!double.IsFinite(required) || !double.IsFinite(allocated) || required < 0 || allocated < 0)
+            return "UNKNOWN";
+        if (required == 0) return allocated == 0 ? "OK" : "OVERPROVISIONED";
         if (allocated < required * CriticalThreshold) return "CRITICAL";
         if (allocated < required) return "WARNING";
         if (allocated > required * OverprovisionThreshold) return "OVERPROVISIONED";

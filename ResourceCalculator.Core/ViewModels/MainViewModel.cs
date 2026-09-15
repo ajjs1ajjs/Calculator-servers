@@ -611,34 +611,72 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ExportExcel()
     {
-        _ = ExportExcelAsync();
+        _ = ExportExcelAsync().ContinueWith(t =>
+            System.Diagnostics.Debug.WriteLine($"ExportExcelAsync crashed: {t.Exception?.InnerException?.Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task ExportExcelAsync()
     {
         if (_lastResult == null) return;
-        var path = await _files.PickSavePathAsync("resources.xlsx", "Excel files (*.xlsx)", ".xlsx");
-        if (path is null) return;
-        var cfg = GetConfig();
-        var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
-        System.IO.File.WriteAllBytes(path, bytes);
-        StatusText = string.Format(_loc["status.saved"], path);
+        try
+        {
+            var path = await _files.PickSavePathAsync("resources.xlsx", "Excel files (*.xlsx)", ".xlsx");
+            if (path is null) return;
+            if (!path.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                await _dialogs.ErrorAsync(_loc["error.invalid_input"], _loc["error.title"]);
+                return;
+            }
+            // Пікер зазвичай питає про перезапис сам, але примусово підтверджуємо:
+            // мовчазний overwrite чужого файла неприпустимий.
+            if (System.IO.File.Exists(path)
+                && !await _dialogs.ConfirmAsync(
+                    string.Format(_loc["dialog.overwrite"], path), _loc["dialog.confirmTitle"]))
+                return;
+            var cfg = GetConfig();
+            var bytes = _results.ExportExcel(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+            System.IO.File.WriteAllBytes(path, bytes);
+            StatusText = string.Format(_loc["status.saved"], path);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex, "error.export_failed");
+        }
     }
 
     private void ExportPdf()
     {
-        _ = ExportPdfAsync();
+        _ = ExportPdfAsync().ContinueWith(t =>
+            System.Diagnostics.Debug.WriteLine($"ExportPdfAsync crashed: {t.Exception?.InnerException?.Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task ExportPdfAsync()
     {
         if (_lastResult == null) return;
-        var path = await _files.PickSavePathAsync("resources.pdf", "PDF files (*.pdf)", ".pdf");
-        if (path is null) return;
-        var cfg = GetConfig();
-        var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
-        System.IO.File.WriteAllBytes(path, bytes);
-        StatusText = string.Format(_loc["status.saved"], path);
+        try
+        {
+            var path = await _files.PickSavePathAsync("resources.pdf", "PDF files (*.pdf)", ".pdf");
+            if (path is null) return;
+            if (!path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                await _dialogs.ErrorAsync(_loc["error.invalid_input"], _loc["error.title"]);
+                return;
+            }
+            if (System.IO.File.Exists(path)
+                && !await _dialogs.ConfirmAsync(
+                    string.Format(_loc["dialog.overwrite"], path), _loc["dialog.confirmTitle"]))
+                return;
+            var cfg = GetConfig();
+            var bytes = _results.ExportPdf(_lastResult, cfg, _environments, MatrixRangesForProfile(cfg.LoadProfile));
+            System.IO.File.WriteAllBytes(path, bytes);
+            StatusText = string.Format(_loc["status.saved"], path);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex, "error.export_failed");
+        }
     }
 
     private void SwitchLanguage()

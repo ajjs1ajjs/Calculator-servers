@@ -13,7 +13,14 @@ public partial class MainWindow : Window
 
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
-        if (Application.Current is App app)
-            await app.CheckForUpdatesAsync(silent: false);
+        try
+        {
+            if (Application.Current is App app)
+                await app.CheckForUpdatesAsync(silent: false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CheckUpdates_Click crashed: {ex.Message}");
+        }
     }
 }

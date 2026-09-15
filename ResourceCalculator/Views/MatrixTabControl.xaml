@@ -26,7 +26,7 @@
             </StackPanel>
 
             <Expander Header="{loc:Loc matrix.msSql}" IsExpanded="True">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" x:Name="GridMatrixMsSql" AutoGenerateColumns="True" Height="160" HeadersVisibility="Column"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" x:Name="GridMatrixMsSql" AutoGenerateColumns="True" Height="160" HeadersVisibility="Column"
                           ItemsSource="{Binding MatrixVM.MsSqlRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
@@ -42,7 +42,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.appServer}">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.AppServerRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
@@ -58,7 +58,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.webServer}">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.WebServerRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
@@ -74,7 +74,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.postgres}">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.PostgresRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
@@ -89,7 +89,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.oracle}">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.OracleRanges}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.minUsers}" Binding="{Binding MinUsers, Mode=TwoWay}" Width="Auto"/>
@@ -104,7 +104,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.k8sDocumentFlow}" IsExpanded="True">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="160"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="160"
                           ItemsSource="{Binding MatrixVM.K8sDocumentFlowComponents}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.category}" Binding="{Binding Category, Mode=TwoWay}" Width="Auto"/>
@@ -122,7 +122,7 @@
                             </DataGridTemplateColumn.CellTemplate>
                             <DataGridTemplateColumn.CellEditingTemplate>
                                 <DataTemplate>
-                                    <ComboBox ItemsSource="{Binding DataContext.AvailableFormulas, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    <ComboBox ItemsSource="{Binding DataContext.MatrixVM.FormulaOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                               SelectedItem="{Binding Formula, Mode=TwoWay}" VerticalAlignment="Center"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellEditingTemplate>
@@ -132,7 +132,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infra}" IsExpanded="True">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" x:Name="GridMatrixInfra" AutoGenerateColumns="True" Height="150" HeadersVisibility="Column"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" x:Name="GridMatrixInfra" AutoGenerateColumns="True" Height="150" HeadersVisibility="Column"
                           ItemsSource="{Binding MatrixVM.InfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
@@ -147,7 +147,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infraWindows}">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.WindowsInfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
@@ -161,7 +161,7 @@
             </Expander>
 
             <Expander Header="{loc:Loc matrix.infraOptional}">
-                <DataGrid BeginningEdit="Grid_BeginningEdit" HeadersVisibility="Column" Height="130"
+                <DataGrid BeginningEdit="Grid_BeginningEdit" IsReadOnly="{Binding MatrixVM.IsUnlocked, Converter={StaticResource BoolInverse}}" HeadersVisibility="Column" Height="130"
                           ItemsSource="{Binding MatrixVM.OptionalInfraNodes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{loc:Loc col.name}" Binding="{Binding Name, Mode=TwoWay}" Width="Auto"/>
@@ -174,7 +174,7 @@
                 </DataGrid>
             </Expander>
 
-            <Expander Header="{loc:Loc matrix.engineSettings}" IsExpanded="False">
+            <Expander Header="{loc:Loc matrix.engineSettings}" IsExpanded="False" IsEnabled="{Binding MatrixVM.IsUnlocked}">
                 <Grid ColumnDefinitions="*,*">
                     <StackPanel Grid.Column="0" Margin="0,4,16,4">
                         <TextBlock Text="{loc:Loc engine.smartId}" FontWeight="Bold" Margin="0,0,0,4"/>

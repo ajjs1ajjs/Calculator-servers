@@ -9,6 +9,7 @@ public record SelfUpdateResult(SelfUpdateStatus Status, string? Error = null);
 public interface ISelfUpdateService
 {
     event DownloadProgressHandler? Progress;
-    string? DownloadUrl { get; set; }
-    Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default);
+    // URL передається параметром, а не mutable-властивістю синглтона:
+    // паралельні перевірки оновлень не можуть перехрестити завантаження.
+    Task<SelfUpdateResult> UpdateAsync(string downloadUrl, CancellationToken cancellationToken = default);
 }

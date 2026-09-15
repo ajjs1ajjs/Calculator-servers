@@ -74,7 +74,9 @@ public class MatrixManager
         }
     }
 
-    public void SyncGridsToMatrix(
+    // Повертає помилки валідації (порожньо = застосовано). Невалідні дані грідів
+    // НЕ потрапляють у движок/експорт: викликач показує помилки і перериває Save/Recalculate.
+    public List<string> SyncGridsToMatrix(
         List<UserLoadRange> msSqlRanges,
         List<UserLoadRange> appServerRanges,
         List<UserLoadRange> webServerRanges,
@@ -86,6 +88,11 @@ public class MatrixManager
         List<InfrastructureNode> optionalNodes,
         EngineSettings engine)
     {
+        var candidate = CloneForValidation(msSqlRanges, appServerRanges, webServerRanges,
+            postgresRanges, oracleRanges, k8sDocFlow, k8sNodes, windowsNodes, optionalNodes, engine);
+        var errors = MatrixValidator.Validate(candidate);
+        if (errors.Count > 0) return errors;
+
         _matrix.MsSqlRanges = msSqlRanges;
         _matrix.AppServerRanges = appServerRanges;
         _matrix.WebServerRanges = webServerRanges;
@@ -94,15 +101,67 @@ public class MatrixManager
 
         SyncComponentsToModules(k8sDocFlow, _matrix.DocumentFlowModules);
 
-        var (k8sSql, k8sMaster, k8sWorker) = SyncNodes(k8sNodes);
-        if (k8sSql != null) _matrix.DefaultK8sSql = k8sSql;
-        if (k8sMaster != null) _matrix.DefaultK8sMaster = k8sMaster;
-        if (k8sWorker != null) _matrix.DefaultK8sWorker = k8sWorker;
-
-        SyncWindowsNodes(windowsNodes);
-        SyncOptionalNodes(optionalNodes);
+        ApplyNodes(_matrix, k8sNodes, windowsNodes, optionalNodes);
 
         _matrix.Engine = engine?.Clone() ?? new EngineSettings();
+        return new List<string>();
+    }
+
+    // Будуємо кандидат для валідації без мутації живого стану: ті самі правила
+    // злиття, що й бойовий шлях, але на клонах.
+    private static SizingMatrix CloneForValidation(
+        List<UserLoadRange> msSqlRanges,
+        List<UserLoadRange> appServerRanges,
+        List<UserLoadRange> webServerRanges,
+        List<UserLoadRange> postgresRanges,
+        List<UserLoadRange> oracleRanges,
+        List<ServiceComponent> k8sDocFlow,
+        List<InfrastructureNode> k8sNodes,
+        List<InfrastructureNode> windowsNodes,
+        List<InfrastructureNode> optionalNodes,
+        EngineSettings engine)
+    {
+        var candidate = new SizingMatrix
+        {
+            MsSqlRanges = msSqlRanges.Select(r => r.Clone()).ToList(),
+            AppServerRanges = appServerRanges.Select(r => r.Clone()).ToList(),
+            WebServerRanges = webServerRanges.Select(r => r.Clone()).ToList(),
+            PostgresRanges = postgresRanges.Select(r => r.Clone()).ToList(),
+            OracleRanges = oracleRanges.Select(r => r.Clone()).ToList(),
+            Engine = engine?.Clone() ?? new EngineSettings()
+        };
+        var modules = new List<ProjectModule>();
+        SyncComponentsToModules(k8sDocFlow, modules);
+        candidate.DocumentFlowModules = modules;
+        ApplyNodes(candidate, k8sNodes, windowsNodes, optionalNodes);
+        return candidate;
+    }
+
+    // Правила злиття вузлів за іменами — в одному місці, перевикористовуються
+    // і бойовим шляхом, і валідаційним кандидатом.
+    private static void ApplyNodes(SizingMatrix target,
+        List<InfrastructureNode> k8s, List<InfrastructureNode> win, List<InfrastructureNode> opt)
+    {
+        var (sql, master, worker) = SyncNodes(k8s);
+        if (sql != null) target.DefaultK8sSql = sql;
+        if (master != null) target.DefaultK8sMaster = master;
+        if (worker != null) target.DefaultK8sWorker = worker;
+        foreach (var n in win)
+        {
+            if (n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)) target.DefaultWindowsSql = n;
+            else if (n.Name.Contains("Сервер", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("App", StringComparison.OrdinalIgnoreCase)) target.DefaultWindowsApp = n;
+            else if (n.Name.Contains("Веб", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("IIS", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("Web", StringComparison.OrdinalIgnoreCase)) target.DefaultWindowsWeb = n;
+        }
+        foreach (var n in opt)
+        {
+            if (n.Name.Contains("звіт", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("report", StringComparison.OrdinalIgnoreCase)) target.DefaultReportingServer = n;
+            else if (n.Name.Contains("HAProxy", StringComparison.OrdinalIgnoreCase)
+                || n.Name.Contains("haproxy", StringComparison.OrdinalIgnoreCase)) target.DefaultHaProxy = n;
+        }
     }
 
     private static (InfrastructureNode? sql, InfrastructureNode? master, InfrastructureNode? worker)
@@ -118,48 +177,28 @@ public class MatrixManager
         return (sql, master, worker);
     }
 
-    private void SyncWindowsNodes(List<InfrastructureNode> nodes)
-    {
-        if (nodes.Count == 0) return;
-        foreach (var n in nodes)
-        {
-            if (n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)) _matrix.DefaultWindowsSql = n;
-            else if (n.Name.Contains("Сервер", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("App", StringComparison.OrdinalIgnoreCase)) _matrix.DefaultWindowsApp = n;
-            else if (n.Name.Contains("Веб", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("IIS", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("Web", StringComparison.OrdinalIgnoreCase)) _matrix.DefaultWindowsWeb = n;
-        }
-    }
-
-    private void SyncOptionalNodes(List<InfrastructureNode> nodes)
-    {
-        if (nodes.Count == 0) return;
-        foreach (var n in nodes)
-        {
-            if (n.Name.Contains("звіт", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("report", StringComparison.OrdinalIgnoreCase)) _matrix.DefaultReportingServer = n;
-            else if (n.Name.Contains("HAProxy", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("haproxy", StringComparison.OrdinalIgnoreCase)) _matrix.DefaultHaProxy = n;
-        }
-    }
-
     private static void SyncComponentsToModules(List<ServiceComponent> components, List<ProjectModule> modules)
     {
         if (components.Count == 0) return;
 
-        var grouped = components.GroupBy(c => c.Category);
+        // Категорія — вільний текст з гріда: тримимо, відкидаємо порожні, дедуплимо
+        // без урахування регістру, щоб не плодити сміттєві модулі у звітах.
+        var grouped = components
+            .Where(c => c is not null && !string.IsNullOrWhiteSpace(c.Category))
+            .GroupBy(c => c.Category.Trim(), StringComparer.OrdinalIgnoreCase);
         foreach (var group in grouped)
         {
-            var module = modules.FirstOrDefault(m => m.Name == group.Key);
+            var key = group.Key;
+            var module = modules.FirstOrDefault(m => string.Equals(m.Name, key, StringComparison.OrdinalIgnoreCase));
             if (module == null)
             {
-                module = new ProjectModule { Name = group.Key, Description = group.Key, IsEnabled = true };
+                if (modules.Count >= 500) continue;
+                module = new ProjectModule { Name = key, Description = key, IsEnabled = true };
                 modules.Add(module);
             }
 
             module.Components.Clear();
-            foreach (var comp in group)
+            foreach (var comp in group.Take(1000))
             {
                 module.Components.Add(new ModuleComponent
                 {

@@ -3,7 +3,7 @@
 > **Призначення**: Швидкий довідник по всіх публічних методах кожного класу.
 > Використовуй цей файл коли потрібно знайти конкретний метод, зрозуміти його сигнатуру або викликати з нового місця.
 
-<!-- AUTO:stamp -->Verified: 2026-09-14, commit `398ecf2` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `10355a9` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -99,7 +99,7 @@ void ClearMatrix();
 SizingMatrix Matrix { get; }
 void Save();
 void Reset();
-void SyncGridsToMatrix();
+List<string> SyncGridsToMatrix(...); // порожньо = застосовано, інакше помилки для UI
 SizingMatrix CopyMatrix();
 void NormalizeModulePolicy();
 ```
@@ -108,12 +108,23 @@ void NormalizeModulePolicy();
 |---|---|---|---|
 | `Save` | — | `void` | Зберігає поточну матрицю |
 | `Reset` | — | `void` | Скидає до дефолтів |
-| `SyncGridsToMatrix` | — | `void` | Синхронізує UI-гріди → матриця |
+| `SyncGridsToMatrix` | — | `List<string>` | Синхронізує UI-гріди → матриця |
 | `CopyMatrix` | — | `SizingMatrix` | Глибока копія |
 | `NormalizeModulePolicy` | — | `void` | Встановлює IsMandatory/IsKubernetesOnly |
 
 ---
 
+## 4b. MatrixValidator
+
+**Файл**: `ResourceCalculator.Core/Services/MatrixValidator.cs`
+
+```csharp
+static List<string> Validate(SizingMatrix m); // порожньо = придатна
+```
+
+Пост-завантажувальна перевірка matrix.json: форма дат, скінченність і межі чисел, Min<=Max, відсутність перетинів діапазонів, PageFileRounding != 0, капи списків. Використовують `DataService.LoadMatrix` (невалідне — у карантин) і `MatrixManager.SyncGridsToMatrix` (невалідне не потрапляє у движок).
+
+---
 ## 5. ConfigExportService
 
 **Файл**: `ResourceCalculator.Core/Services/ConfigExportService.cs`
@@ -130,6 +141,8 @@ byte[] ExportPdf(ResourceRequirement req, ProjectConfig config, List<Environment
 
 ---
 
+
+> Excel-санітизація: `public static string Xl(string? s)` — значення з початковими `= + - @` отримують префікс-апостроф проти formula injection. Застосовано до всіх матричних/конфігових рядків у звіті.
 ## 6. EnvironmentBuilder
 
 **Файл**: `ResourceCalculator.Core/Services/EnvironmentBuilder.cs`
@@ -150,8 +163,10 @@ List<EnvironmentReport> Build(ProjectConfig config, EnvironmentSettings envSetti
 
 ```csharp
 bool IsPasswordSet { get; }
-bool Verify(string password);
-void SetPassword(string newPassword);
+bool Verify(string password); // PBKDF2, fail closed, тротлінг
+bool Verify(SecureString password); // байтовий шлях без string-копій
+void SetPassword(string newPassword); // мінімум 12 символів, кидає виняток при помилці
+TimeSpan LockoutRemaining { get; } // залишок блокування для UI
 string GetPasswordHint();
 void EnsureInitialized();
 ```
@@ -208,8 +223,8 @@ Task<UpdateCheckResult> CheckForUpdateAsync();
 
 ```csharp
 event DownloadProgressHandler? Progress;
-string? DownloadUrl { get; set; }
-Task<SelfUpdateResult> UpdateAsync(CancellationToken cancellationToken = default);
+Task<SelfUpdateResult> UpdateAsync(string downloadUrl, CancellationToken cancellationToken = default); // URL параметром, не mutable-властивість
+static bool IsAllowedDownloadUrl(string? url, out string error); // allowlist: лише GitHub HTTPS
 ```
 
 | Метод | Параметри | Повертає | Опис |

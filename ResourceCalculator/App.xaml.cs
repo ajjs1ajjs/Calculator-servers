@@ -143,11 +143,14 @@ public partial class App : Application
         if (mainWindow is null) return;
 
         var updateService = Services.GetRequiredService<ISelfUpdateService>();
-        updateService.DownloadUrl = info.DownloadUrl;
 
         while (true)
         {
             var progressDialog = new UpdateProgressDialog(info.Version);
+            // Поки триває завантаження — закриття через X заборонено: інакше
+            // SetCompleted/SetError прилетіли б у вже закрите вікно (use-after-close).
+            // Прапорець живе в діалозі (кнопки Скасувати/Закрити/Retry відкривають його самі).
+            progressDialog.AllowClose = false;
             var showTask = progressDialog.ShowDialog<bool>(mainWindow);
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(progressDialog.GetCancellationToken());
 
@@ -158,7 +161,7 @@ public partial class App : Application
             SelfUpdateResult updateResult;
             try
             {
-                updateResult = await updateService.UpdateAsync(cts.Token);
+                updateResult = await updateService.UpdateAsync(info.DownloadUrl, cts.Token);
             }
             catch (Exception ex)
             {
@@ -180,7 +183,10 @@ public partial class App : Application
             }
 
             await Dispatcher.UIThread.InvokeAsync(() =>
-                progressDialog.SetError(updateResult.Error ?? "Unknown error"));
+            {
+                progressDialog.AllowClose = true;
+                progressDialog.SetError(updateResult.Error ?? "Unknown error");
+            });
             await showTask;
             if (!progressDialog.RetryRequested)
                 return;
@@ -192,8 +198,11 @@ public partial class App : Application
         Debug.WriteLine($"Unhandled exception: {e.Exception}");
         try
         {
-            var logPath = Path.Combine(AppContext.BaseDirectory, "error.log");
-            File.AppendAllText(logPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {e.Exception}\n\n");
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ResourceCalculator");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "error.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {e.Exception}\n\n");
         }
         catch { }
         var loc = LocalizationService.Instance;

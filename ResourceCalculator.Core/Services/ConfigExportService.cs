@@ -53,6 +53,21 @@ public class ConfigExportService
     private static string ReportTitle(ProjectConfig config)
         => $"Розрахунок інфраструктури — {config.UserCount} користувачів, {DeployName(config.DeploymentType)}";
 
+    // Захист від Excel formula injection: рядки з матриці/конфігу (назви, ОС, примітки)
+    // пишуться у .xlsx як текст. Значення з початковими = + - @ Excel виконав би як формулу
+    // на машині отримувача. Префікс-апостроф лишає текст текстом.
+    public static string Xl(string? s)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        var t = s.TrimStart();
+        if (t.StartsWith('=') || t.StartsWith('+') || t.StartsWith('-') || t.StartsWith('@'))
+            return "'" + s;
+        return s;
+    }
+
+    private static string Truncate(string? s, int max) =>
+        string.IsNullOrEmpty(s) || s.Length <= max ? s ?? "" : s[..max] + "…";
+
     // Зрозуміле призначення сервера за його назвою (для не-ІТ читачів звіту).
     public static string NodeRole(string name)
     {
@@ -121,7 +136,7 @@ public class ConfigExportService
                             col.Item().PaddingTop(4).Element(c => PdfSectionTitle(c,
                                 $"Середовище {e.Name} — сервери (користувачів: {e.UserCount})"));
                             if (!string.IsNullOrEmpty(e.ModulesInfo))
-                                col.Item().Text($"Модулі: {e.ModulesInfo}").FontSize(8).Italic().FontColor(PdfMuted);
+                                col.Item().Text($"Модулі: {Truncate(e.ModulesInfo, 2000)}").FontSize(8).Italic().FontColor(PdfMuted);
                             col.Item().Element(c => ComposePdfInfraTable(c, e.Requirement));
                             if (config.IncludeComponentsInReport)
                                 col.Item().Element(c => ComposePdfComponents(c, e.Requirement,
@@ -445,7 +460,7 @@ public class ConfigExportService
     {
         const int cols = 15;
         // Підпис середовища над таблицею (із к-стю користувачів).
-        ws.Cells[startRow, 1].Value = $"Середовище {e.Name} — користувачів: {e.UserCount}";
+        ws.Cells[startRow, 1].Value = Xl($"Середовище {e.Name} — користувачів: {e.UserCount}");
         ws.Cells[startRow, 1, startRow, cols].Merge = true;
         ws.Cells[startRow, 1].Style.Font.Bold = true;
         ws.Cells[startRow, 1].Style.Font.Size = 12;
@@ -464,7 +479,7 @@ public class ConfigExportService
         int row = headerRow + 1;
         foreach (var n in e.Requirement.Infrastructure.Where(x => x.NodeCount > 0))
         {
-            ws.Cells[row, 1].Value = n.Name;
+            ws.Cells[row, 1].Value = Xl(n.Name);
             ws.Cells[row, 2].Value = n.Cpu;
             ws.Cells[row, 3].Value = n.RamGb;
             ws.Cells[row, 4].Value = n.NodeCount;
@@ -484,14 +499,14 @@ public class ConfigExportService
             else
             {
                 ws.Cells[row, 8].Value = n.Iops > 0 ? n.Iops : (object)"";
-                ws.Cells[row, 9].Value = n.IopsProfile;
+                ws.Cells[row, 9].Value = Xl(n.IopsProfile);
                 ws.Cells[row, 10].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
                 ws.Cells[row, 11].Value = n.Latency > 0 ? n.Latency : (object)"";
             }
             ws.Cells[row, 12].Value = NodeRole(n.Name);
-            ws.Cells[row, 13].Value = n.Os;
-            ws.Cells[row, 14].Value = n.DbVersion;
-            ws.Cells[row, 15].Value = n.Notes;
+            ws.Cells[row, 13].Value = Xl(n.Os);
+            ws.Cells[row, 14].Value = Xl(n.DbVersion);
+            ws.Cells[row, 15].Value = Xl(n.Notes);
             // Числові/кодові стовпці — по центру; власне числа — ще й жирним. Назви/опис — зліва (типово).
             ws.Cells[row, 2, row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             ws.Cells[row, 2, row, 7].Style.Font.Bold = true;
@@ -538,7 +553,7 @@ public class ConfigExportService
         var blue = System.Drawing.Color.FromArgb(30, 102, 245);
         void Head(ExcelRange cell, string text, bool merge = false)
         {
-            cell.Value = text;
+            cell.Value = Xl(text);
             cell.Style.Font.Bold = true;
             cell.Style.Font.Color.SetColor(System.Drawing.Color.White);
             cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -564,8 +579,8 @@ public class ConfigExportService
         int row = 3;
         foreach (var (cat, name) in order)
         {
-            ws.Cells[row, 1].Value = name;   // назва — зліва (типово)
-            ws.Cells[row, 2].Value = cat;    // категорія — зліва (типово)
+            ws.Cells[row, 1].Value = Xl(name);   // назва — зліва (типово)
+            ws.Cells[row, 2].Value = Xl(cat);    // категорія — зліва (типово)
             for (int i = 0; i < envs.Count; i++)
             {
                 int c0 = Col0(i);
@@ -641,9 +656,9 @@ public class ConfigExportService
         int row = 2;
         foreach (var e in environments)
         {
-            ws.Cells[row, 1].Value = e.Name;
+            ws.Cells[row, 1].Value = Xl(e.Name);
             ws.Cells[row, 2].Value = e.UserCount;
-            ws.Cells[row, 3].Value = e.ModulesInfo;
+            ws.Cells[row, 3].Value = Xl(e.ModulesInfo);
             ws.Cells[row, 4].Value = e.Cpu;
             ws.Cells[row, 5].Value = e.RamGb;
             ws.Cells[row, 6].Value = e.StorageGb;
@@ -746,13 +761,13 @@ public class ConfigExportService
             int row = 1;
             foreach (var e in environments)
             {
-                row = WriteInfraBlock(ws, e.Requirement, row, $"Інфраструктура (сервери/ВМ) — середовище {e.Name} для {e.UserCount} користувачів");
+                row = WriteInfraBlock(ws, e.Requirement, row, Xl($"Інфраструктура (сервери/ВМ) — середовище {e.Name} для {e.UserCount} користувачів"));
                 row += 2; // порожні рядки-відступ між середовищами, щоб таблиці не зливались
             }
         }
         else
         {
-            WriteInfraBlock(ws, req, 1, $"Інфраструктура (сервери/ВМ) — середовище PROD для {userCount} користувачів");
+            WriteInfraBlock(ws, req, 1, Xl($"Інфраструктура (сервери/ВМ) — середовище PROD для {userCount} користувачів"));
         }
 
         ws.Cells[ws.Dimension.Address].AutoFitColumns();
@@ -803,12 +818,12 @@ public class ConfigExportService
         int row = headerRow + 1;
         foreach (var n in req.Infrastructure.Where(x => x.NodeCount > 0))
         {
-            ws.Cells[row, 1].Value = n.Name;
+            ws.Cells[row, 1].Value = Xl(n.Name);
             ws.Cells[row, 2].Value = n.Cpu;
             ws.Cells[row, 3].Value = n.Ghz > 0 ? n.Ghz : (object)"";
             ws.Cells[row, 4].Value = n.RamGb;
             ws.Cells[row, 5].Value = n.NodeCount;
-            ws.Cells[row, 6].Value = n.StorageType;
+            ws.Cells[row, 6].Value = Xl(n.StorageType);
             ws.Cells[row, 7].Value = n.StorageGb > 0 ? n.StorageGb : (object)"";
             if (n.DiskSplitNotApplicable)
             {
@@ -837,14 +852,14 @@ public class ConfigExportService
             else
             {
                 ws.Cells[row, 13].Value = n.Iops > 0 ? n.Iops : (object)"";
-                ws.Cells[row, 14].Value = n.IopsProfile;
+                ws.Cells[row, 14].Value = Xl(n.IopsProfile);
                 ws.Cells[row, 15].Value = n.ThroughputMiBs > 0 ? n.ThroughputMiBs : (object)"";
                 ws.Cells[row, 16].Value = n.Latency > 0 ? n.Latency : (object)"";
             }
             ws.Cells[row, 17].Value = NodeRole(n.Name);
-            ws.Cells[row, 18].Value = n.Os;
-            ws.Cells[row, 19].Value = n.DbVersion;
-            ws.Cells[row, 20].Value = n.Notes;
+            ws.Cells[row, 18].Value = Xl(n.Os);
+            ws.Cells[row, 19].Value = Xl(n.DbVersion);
+            ws.Cells[row, 20].Value = Xl(n.Notes);
             // Числові/кодові стовпці — по центру; власне числа — ще й жирним. Назви/опис — зліва (типово).
             ws.Cells[row, 2, row, 16].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             ws.Cells[row, 2, row, 5].Style.Font.Bold = true;
@@ -886,8 +901,8 @@ public class ConfigExportService
         int row = 2;
         foreach (var c in comps)
         {
-            ws.Cells[row, 1].Value = c.Name;
-            ws.Cells[row, 2].Value = c.Category;
+            ws.Cells[row, 1].Value = Xl(c.Name);
+            ws.Cells[row, 2].Value = Xl(c.Category);
             ws.Cells[row, 3].Value = Math.Round(c.CpuPerReplica, 2);
             ws.Cells[row, 4].Value = Math.Round(c.RamPerReplicaGb, 2);
             ws.Cells[row, 5].Value = c.Replicas;
