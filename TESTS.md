@@ -3,6 +3,8 @@
 > **Призначення**: Структура, покриття та опис кожного тестового файлу.
 > Використовуй цей файл для швидкого розуміння які тести існують і що вони перевіряють.
 
+<!-- AUTO:stamp -->Verified: 2026-09-14, commit `398ecf2` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+
 ---
 
 ## Зміст
@@ -29,14 +31,14 @@
 | **Проєкт** | ResourceCalculator.Tests (net10.0) |
 | **Залежність** | ResourceCalculator.Core |
 | **Файлів тестів** | 9 |
-| **Загальна кількість тестів** | ~110 |
+| **Загальна кількість тестів** | <!-- AUTO:tests-total -->130<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 120, з них 5 theory дають 15 кейсів через `[InlineData]`) |
 
 ---
 
 ## 2. SizingEngineTests
 
 **Файл**: `ResourceCalculator.Tests/SizingEngineTests.cs` (1110 рядків)
-**Тестів**: 57 (найбільший файл)
+**Тестів**: 65 атрибутів (найбільший файл; з theory-кейсами більше)
 **Тестує**: `SizingEngine`
 
 ### Групи тестів
@@ -106,7 +108,7 @@
 ## 4. ValidationEngineTests
 
 **Файл**: `ResourceCalculator.Tests/ValidationEngineTests.cs` (138 рядків)
-**Тестів**: 7
+**Тестів**: 8
 **Тестує**: `ValidationEngine`
 
 | Тест | Що перевіряє |
@@ -118,6 +120,7 @@
 | Missing infra → Critical | Відсутність вузлів → Critical |
 | Matching infra → valid | Відповідні вузли → OK |
 | Zero required | Ділення на нуль не викликає помилку |
+| Severity edge cases | Граничні значення порогів severity |
 
 ---
 
@@ -159,7 +162,7 @@
 ## 7. ResultsPresenterTests
 
 **Файл**: `ResourceCalculator.Tests/ResultsPresenterTests.cs` (120 рядків)
-**Тестів**: 7
+**Тестів**: 8
 **Тестує**: `ResultsPresenter`
 
 | Тест | Що перевіряє |
@@ -171,6 +174,7 @@
 | ExportExcel → workbook | Excel створюється |
 | ExportPdf → PDF | PDF створюється |
 | Missing infra → critical | Відсутні вузли → Critical |
+| All present → node validations | Повний набір вузлів → валідація по кожному |
 
 ---
 
@@ -194,7 +198,7 @@
 ## 9. DiskAdvisorTests
 
 **Файл**: `ResourceCalculator.Tests/DiskAdvisorTests.cs` (87 рядків)
-**Тестів**: 5
+**Тестів**: 6
 **Тестує**: `DiskAdvisor`
 
 | Тест | Що перевіряє |
@@ -204,6 +208,7 @@
 | Node with IOPS | Вузол з IOPS → показує IOPS/латентність |
 | App server with pagefile | App сервер з pagefile |
 | SQL with matrix split | SQL з розбиттям з матриці |
+| Non-DB node → OS disk | Не-БД вузол без розбиття все одно показує OS-диск |
 
 ---
 

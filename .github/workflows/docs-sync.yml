@@ -1,0 +1,17 @@
+name: Docs sync
+
+# Легка перевірка синхрону документації з кодом: секунди на ubuntu, без збірки.
+# Навмисно тільки PR + ручний запуск — пуші в main/master до 01.10.2026 не чіпаємо (ліміти Actions).
+on:
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check docs sync
+        shell: pwsh
+        run: ./scripts/Update-Docs.ps1 -Check

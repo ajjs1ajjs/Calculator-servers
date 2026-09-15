@@ -3,6 +3,8 @@
 > **Призначення**: Швидкий довідник по всіх публічних методах кожного класу.
 > Використовуй цей файл коли потрібно знайти конкретний метод, зрозуміти його сигнатуру або викликати з нового місця.
 
+<!-- AUTO:stamp -->Verified: 2026-09-14, commit `398ecf2` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+
 ---
 
 ## Зміст
@@ -27,6 +29,7 @@
 18. [ResourceRequirement](#18-resourcerequirement)
 19. [InfrastructureNode](#19-infrastructurenode)
 20. [DocumentRequirements](#20-documentrequirements)
+21. [DialogService (Avalonia)](#21-dialogservice-avalonia)
 
 ---
 
@@ -116,14 +119,14 @@ void NormalizeModulePolicy();
 **Файл**: `ResourceCalculator.Core/Services/ConfigExportService.cs`
 
 ```csharp
-byte[] ExportExcel(ProjectConfig config, ResourceRequirement req, List<EnvironmentReport> envReports);
-byte[] ExportPdf(ProjectConfig config, ResourceRequirement req, List<EnvironmentReport> envReports);
+byte[] ExportExcel(ResourceRequirement req, ProjectConfig config, List<EnvironmentReport>? envReports = ...);
+byte[] ExportPdf(ResourceRequirement req, ProjectConfig config, List<EnvironmentReport>? envReports = ...);
 ```
 
 | Метод | Параметри | Повертає | Опис |
 |---|---|---|---|
-| `ExportExcel` | `config, req, envReports` | `byte[]` | Excel .xlsx (EPPlus) |
-| `ExportPdf` | `config, req, envReports` | `byte[]` | PDF (QuestPDF, A4 landscape) |
+| `ExportExcel` | `req, config, envReports` | `byte[]` | Excel .xlsx (EPPlus); заголовки інфраструктури включають к-сть користувачів |
+| `ExportPdf` | `req, config, envReports` | `byte[]` | PDF (QuestPDF, A4 landscape) |
 
 ---
 
@@ -146,6 +149,7 @@ List<EnvironmentReport> Build(ProjectConfig config, EnvironmentSettings envSetti
 **Файл**: `ResourceCalculator.Core/Services/AccessService.cs`
 
 ```csharp
+bool IsPasswordSet { get; }
 bool Verify(string password);
 void SetPassword(string newPassword);
 string GetPasswordHint();
@@ -154,10 +158,13 @@ void EnsureInitialized();
 
 | Метод | Параметри | Повертає | Опис |
 |---|---|---|---|
+| `IsPasswordSet` | — | `bool` | Чи існує settings.json |
 | `Verify` | `string password` | `bool` | Перевірка пароля (SHA-256 + salt) |
 | `SetPassword` | `string newPassword` | `void` | Встановлення нового пароля |
 | `GetPasswordHint` | — | `string` | Контакти розробника |
 | `EnsureInitialized` | — | `void` | Створює settings.json з дефолтним паролем |
+
+Асинхронне розблокування матриці — на `MatrixViewModel.EnsureUnlockedAsync()` (§15), не тут.
 
 ---
 
@@ -187,9 +194,11 @@ Task<UpdateCheckResult> CheckForUpdateAsync();
 
 | Метод | Параметри | Повертає | Опис |
 |---|---|---|---|
-| `CheckForUpdateAsync` | — | `Task<UpdateCheckResult>` | GitHub API: є нова версія? |
+| `CheckForUpdateAsync` | — | `Task<UpdateCheckResult>` | GitHub API `/releases/latest`: є нова версія? 3 ретраї з backoff, таймаут 15с, помилки → `Failed` (не кидає) |
 
-**UpdateCheckResult**: `{ Status: NoUpdate/UpdateAvailable/Failed, Update?: { Version, DownloadUrl } }`
+**UpdateCheckResult**: `{ Status: NoUpdate/UpdateAvailable/Failed, Update?: UpdateInfo }`
+
+**UpdateInfo**: `record UpdateInfo(string Version, string DownloadUrl, string? ReleaseNotes = null, long SizeBytes = 0)` — прямий `browser_download_url` exe-ассета `ITE.ResourceCalculator.exe`, нотатки з `body`, розмір з `size`. Жодних переходів у браузер — оновлення повністю всередині програми (`App.CheckForUpdatesAsync` → `UpdateAvailableDialog` → `StartUpdateAsync`).
 
 ---
 
@@ -257,8 +266,8 @@ static string Build(InfrastructureNode node);
 List<ValidationResult> CompareProfiles(ResourceRequirement p1, ResourceRequirement p2);
 List<ValidationResult> Validate(ResourceRequirement required, ResourceRequirement allocated);
 List<ValidationResult> ValidateProject(ProjectConfig config, ResourceRequirement calculated, List<InfrastructureNode> actual);
-byte[] ExportExcel(ProjectConfig config, ResourceRequirement req, List<EnvironmentReport> envReports);
-byte[] ExportPdf(ProjectConfig config, ResourceRequirement req, List<EnvironmentReport> envReports);
+byte[] ExportExcel(ResourceRequirement req, ProjectConfig config, List<EnvironmentReport>? envReports = ...);
+byte[] ExportPdf(ResourceRequirement req, ProjectConfig config, List<EnvironmentReport>? envReports = ...);
 ```
 
 Делегує відповідним сервісам (фасад).
@@ -299,14 +308,18 @@ byte[] ExportPdf(ProjectConfig config, ResourceRequirement req, List<Environment
 |---|---|
 | `SaveMatrixCommand` | Збереження матриці (з перевіркою пароля) |
 | `RecalculateMatrixCommand` | Перерахунок після зміни матриці |
-| `ResetMatrixCommand` | Скидання до дефолтів |
+| `ResetMatrixCommand` | Скидання до дефолтів (без пароля) |
+| `AddRowCommand` | Додавання рядка в гріди |
 
 ### Ключові методи
 | Метод | Опис |
 |---|---|
-| `EnsureUnlocked()` | Перевірка пароля перед редагуванням |
+| `EnsureUnlockedAsync()` | Асинхронна перевірка пароля перед редагуванням (`Task<bool>`); викликається Save/Recalculate |
+| `EnsureUnlocked()` | Синхронна версія (для сумісності) |
 | `LoadMatrixGrids()` | Завантаження даних з матриці в гріди |
 | `SyncGridsToMatrix()` | Синхронізація грідів → матриця |
+
+Захист комірки DataGrid — у code-behind `Views/MatrixTabControl.xaml.cs` (`BeginningEdit` + `Dispatcher.UIThread.Post` + повторний `BeginEdit` після розблокування).
 
 ---
 
@@ -395,14 +408,31 @@ static List<DocComparisonItem> Compare(ProjectConfig config, ResourceRequirement
 
 ---
 
+## 21. DialogService (Avalonia)
+
+**Файл**: `ResourceCalculator/Dialogs/DialogService.cs` (реєструється як `IDialogService` + `IFileSaveService`)
+**Допоміжний**: `ResourceCalculator/Dialogs/ThemeService.cs` — міст `IThemeService` → static `Themes.ThemeService`
+
+```csharp
+Task<bool> ConfirmAsync(string message, string title);
+Task InfoAsync(string message, string title);
+Task ErrorAsync(string message, string title);
+Task<bool> ShowPasswordDialogAsync();
+Task<string?> PickSavePathAsync(string defaultFileName, string filterDescription, string extension);
+```
+
+Вікна оновлення — `Views/UpdateAvailableDialog` (версії, розмір, «Що нового», Пізніше/Оновити зараз) і `Views/UpdateProgressDialog` (`SetProgress/SetCompleted/SetError`, `RetryRequested`, токен скасування). Оркестрація — `App.CheckForUpdatesAsync` / `App.StartUpdateAsync` (див. ARCHITECTURE.md §6).
+
+---
+
 ## Шпаргалка: якщо потрібно...
 
 | Завдання | Метод | Файл |
 |---|---|---|
 | Порахувати ресурси | `SizingEngine.Calculate()` | IMPLEMENTATION.md §1 |
 | Зберегти матрицю | `MatrixManager.Save()` | IMPLEMENTATION.md §3 |
-| Експорт Excel | `ConfigExportService.ExportExcel()` | IMPLEMENTATION.md §4 |
-| Експорт PDF | `ConfigExportService.ExportPdf()` | IMPLEMENTATION.md §4 |
+| Експорт Excel | `ConfigExportService.ExportExcel(req, config, ...)` | IMPLEMENTATION.md §4 |
+| Експорт PDF | `ConfigExportService.ExportPdf(req, config, ...)` | IMPLEMENTATION.md §4 |
 | Валідувати ресурси | `ValidationEngine.Validate()` | IMPLEMENTATION.md §5 |
 | Побудувати середовища | `EnvironmentBuilder.Build()` | IMPLEMENTATION.md §6 |
 | Перевірити пароль | `AccessService.Verify()` | IMPLEMENTATION.md §7 |

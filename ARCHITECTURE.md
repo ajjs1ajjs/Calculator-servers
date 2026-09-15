@@ -3,6 +3,8 @@
 > **Призначення**: Загальний огляд архітектури, структури рішення, залежностей та патернів.
 > Використовуй цей файл для розуміння як проєкт організований і як компоненти пов'язані.
 
+<!-- AUTO:stamp -->Verified: 2026-09-14, commit `398ecf2` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+
 ---
 
 ## Зміст
@@ -39,18 +41,25 @@
 ```
 ResourceCalculator.slnx                     -- Рішення (.NET 10 XML-формат)
 │
-├── ResourceCalculator/                      -- WPF UI проєкт (тільки Windows)
-│   ├── App.xaml / App.xaml.cs               -- Точка входу, DI-контейнер
+├── ResourceCalculator/                      -- Avalonia UI проєкт (тільки Windows)
+│   ├── Program.cs                           -- Точка входу (AppBuilder, StartWithClassicDesktopLifetime)
+│   ├── App.xaml / App.xaml.cs               -- DI-контейнер, CheckForUpdatesAsync/StartUpdateAsync
 │   ├── MainWindow.xaml / .cs                -- Головне вікно (3 вкладки)
-│   ├── Views/                               -- User Controls (вкладки)
+│   ├── Views/                               -- User Controls (вкладки + діалоги)
 │   │   ├── MatrixTabControl.xaml            -- Вкладка 1: Редагування матриці
 │   │   ├── CalculatorTabControl.xaml        -- Вкладка 2: Параметри розрахунку
 │   │   ├── ResultsTabControl.xaml           -- Вкладка 3: Результати
-│   │   ├── PasswordDialog.xaml              -- Діалог пароля
-│   │   └── UpdateProgressDialog.xaml        -- Діалог оновлення
-│   ├── Converters/                          -- WPF конвертери значень
-│   ├── Dialogs/                             -- Реалізації IDialogService для WPF
-│   ├── Themes/                              -- XAML-ресурси тем (Catppuccin)
+│   │   ├── PasswordDialog.xaml              -- Діалог пароля (+перегенерація)
+│   │   ├── UpdateAvailableDialog.xaml       -- Діалог «Доступне оновлення»
+│   │   └── UpdateProgressDialog.xaml        -- Діалог прогресу оновлення (retry)
+│   ├── Converters/                          -- Avalonia конвертери значень
+│   ├── Dialogs/                             -- Реалізації IDialogService/IFileSaveService/IThemeService
+│   │   ├── DialogService.cs                 -- Avalonia-діалоги + MessageBox.Avalonia
+│   │   └── ThemeService.cs                  -- міст до Themes.ThemeService
+│   ├── Themes/                              -- Стилі (тільки світла тема)
+│   │   ├── AppStyles.xaml                   -- корінь `<Styles>`, класи card/chip/pillgroup/...
+│   │   ├── LightTheme.xaml                  -- палітра Catppuccin Latte
+│   │   └── ThemeService.cs                  -- static Initialize()/SetDark()
 │   └── Localization/                        -- LocExtension для XAML-біндінгів
 │
 ├── ResourceCalculator.Core/                 -- Бібліотека бізнес-логіки (UI-агностик)
@@ -77,7 +86,8 @@ ResourceCalculator.slnx                     -- Рішення (.NET 10 XML-фо�
 | Категорія | Технологія | Версія |
 |---|---|---|
 | **Runtime** | .NET | 10.0 (SDK 10.0.302) |
-| **UI Framework** | WPF | net10.0-windows |
+| **UI Framework** | Avalonia | 12.1.2 (`net10.0-windows`) |
+| **UI доповнення** | Avalonia.Controls.DataGrid, FluentTheme, ReactiveUI.Avalonia, MessageBox.Avalonia | 12.x |
 | **Архітектура** | MVVM | + DI |
 | **DI Container** | Microsoft.Extensions.DependencyInjection | 10.0.9 |
 | **Excel** | EPPlus | 7.6.0 |
@@ -93,10 +103,10 @@ ResourceCalculator.slnx                     -- Рішення (.NET 10 XML-фо�
 
 ### MVVM (Model-View-ViewModel)
 
-**View** (WPF проєкт):
+**View** (Avalonia проєкт):
 - XAML-вю з data binding до ViewModel
 - Конвертери для UI-логіки
-- Мінімум code-behind (тільки оновлення + scroll)
+- Code-behind: оновлення (`CheckForUpdatesAsync`/`StartUpdateAsync` в `App.xaml.cs`), `BeginningEdit` + `Dispatcher.UIThread.Post` для парольного захисту комірок матриці, скрол
 
 **ViewModel** (Core проєкт):
 - `MainViewModel` — головний: таби, розрахунок, експорт, історія, мова/тема
@@ -122,14 +132,14 @@ ResourceCalculator.slnx                     -- Рішення (.NET 10 XML-фо�
 - `IUpdateCheckService` — перевірка оновлень
 - `ISelfUpdateService` — саме оновлення
 
-**WPF реалізації** підключаються в DI-контейнері: `WpfDialogService`, `WpfThemeService`.
+**Avalonia-реалізації** підключаються в DI-контейнері: `DialogService` (IDialogService + IFileSaveService), `Dialogs.ThemeService` (IThemeService → static `Themes.ThemeService`).
 
 ---
 
 ## 5. Залежності між проєктами
 
 ```
-ResourceCalculator (WPF)
+ResourceCalculator (Avalonia)
     └──参照──→ ResourceCalculator.Core
                     ↑
 ResourceCalculator.Tests
@@ -137,7 +147,7 @@ ResourceCalculator.Tests
 ```
 
 - **Core** не залежить від жодного UI-фреймворку
-- **WPF** містить тільки UI: вю, конвертери, теми, WPF-діалоги
+- **Avalonia-проєкт** містить тільки UI: вю, конвертери, теми, діалоги
 - **Tests** тестують тільки Core
 
 ---
@@ -148,12 +158,16 @@ ResourceCalculator.Tests
 
 ```csharp
 // Singleton (один на всю програму)
-services.AddSingleton<ILocalizationService>(LocalizationService.Instance);
+services.AddSingleton<ILocalizationService>(_ => LocalizationService.Instance);
 services.AddSingleton<SizingMatrix>();
 services.AddSingleton<MatrixManager>();
 services.AddSingleton<AccessService>();
-services.AddSingleton<IThemeService, WpfThemeService>();
-services.AddSingleton<ISizingEngine>(sp => new SizingEngine(mm.Matrix));
+services.AddSingleton<IDialogService>(sp =>
+    new DialogService(sp.GetRequiredService<AccessService>(),
+        () => (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow));
+services.AddSingleton<IFileSaveService>(sp => (IFileSaveService)sp.GetRequiredService<IDialogService>());
+services.AddSingleton<IThemeService, ThemeService>();          // ResourceCalculator.Dialogs.ThemeService
+services.AddSingleton<ISizingEngine>(sp => new SizingEngine(sp.GetRequiredService<MatrixManager>().Matrix));
 services.AddSingleton<IUpdateCheckService, UpdateCheckService>();
 services.AddSingleton<ISelfUpdateService, SelfUpdateService>();
 
@@ -172,6 +186,8 @@ services.AddTransient<MainViewModel>();
 - `MatrixManager` — CRUD для матриці
 - `AccessService` — пароль (SHA-256 + salt)
 - `SizingEngine` — рушій розрахунку (отримує Matrix з DI)
+
+Теми: `App.xaml` (`RequestedThemeVariant="Light"` + `FluentTheme` + `Avalonia.Controls.DataGrid` Fluent-стилі), `Themes.ThemeService.Initialize()` в `App.Initialize()`. Lifetime — тільки `IClassicDesktopStyleApplicationLifetime` (`Program` стартує `StartWithClassicDesktopLifetime`).
 
 ---
 
@@ -202,9 +218,11 @@ services.AddTransient<MainViewModel>();
 
 | Workflow | Тригер | Призначення |
 |---|---|---|
-| `ci.yml` | Push to main, PRs | Build + Test + Coverage + Vulnerability check |
+| `ci.yml` | Push to main, PRs | Build + Test + Coverage + Vulnerability check (guard `[skip actions]` в main до 01.10.2026) |
 | `release.yml` | Push tag `v*` | Build + Test + Publish EXE + GitHub Release |
 | `pages.yml` | Push to main | Deploy landing page to GitHub Pages |
+| `docs-sync.yml` | PRs, manual | Легка перевірка синхрону доків (`scripts/Update-Docs.ps1 -Check`, без збірки) |
+| `deferred-release.yml` | Scheduler 01.10.2026 03:00 UTC (живе в `main`) | Мердж `release/oct-1` → бамп `AppVersion` → тег → штатний реліз |
 
 ### Процес релізу
 1. Змінити `AppVersion` в `Directory.Build.props`

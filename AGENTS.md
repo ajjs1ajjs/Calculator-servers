@@ -32,37 +32,26 @@
 Репозиторій: `github.com/ajjs1ajjs/Calculator-servers` (гілка `master`, pуш за замовчуванням).
 Робоча тека: `E:\Code\Calculator-servers`.
 
-## Виправлення міграції на Avalonia (2026-09-14, ще не закомічено)
+## Що зроблено в `release/oct-1` (закомічено `398ecf2`, чекає мерджу 1 жовтня)
 
-- `Themes/AppStyles.xaml` — корінь `<Styles>`; `x:Key` у `Style` заборонено (класи `card/cardheader/iconbadge/iconglyph/chip/pillgroup/kpicard/envtoggle`). `ThemeService` вантажить його як `Styles` у `app.Styles`. Глобальний `Border` без класу заборонено — ламає шаблони (DataGrid).
-- Таблицям матриці явно задано `HeadersVisibility="Column"` (дефолт Avalonia — None); автоколонки увімкнено як у WPF (широкі таблиці з дублями). `FluentTheme` + тема DataGrid підключені в `App.xaml`; `RequestedThemeVariant="Light"`.
-- Глобальний `Style Selector="Border"` ламає лейаут усередині шаблонів (DataGrid малював текст нульовою шириною) → замінено на `Border.card`, клас `card` додано всім карткам у XAML.
-- `Expander` за замовчуванням `Left` → у стилі `Expander` додано `Stretch` (+ `HorizontalContentAlignment`).
-- Кастомний шаблон `Button` — у `ContentPresenter` потрібен `Content="{TemplateBinding Content}"`, інакше кнопки порожні.
-- Побите кодування кирилиці (UTF-8 прочитане як CP1251) у `CalculatorTabControl.xaml`, `ResultsTabControl.xaml`, `UpdateProgressDialog.xaml` — відновлено. Не писати .xaml/.cs через PowerShell `Set-Content`.
-- Таблицям матриці явно задано `AutoGenerateColumns="False" HeadersVisibility="Column".
-
-## Оновлення всередині програми (2026-09-14, ще не закомічено)
-
-- Жодних переходів у браузер/GitHub: `UpdateCheckService` резолвить прямий `browser_download_url` exe-ассета + парсить `body` (нотатки) і `size`; `SelfUpdateService` качає, перевіряє SHA256 і підміняє exe bat-скриптом з авторестартом.
-- `Views/UpdateAvailableDialog.*` — вікно «Доступне оновлення»: чипи поточна→нова версія, розмір файлу, «Що нового» (scroll), кнопки «Пізніше» / «Оновити зараз». `App.CheckForUpdatesAsync` показує його замість `MessageBox YesNo`.
-- `Views/UpdateProgressDialog.*` — редизайн: етап (завантаження/встановлення), прогрес-бар + `%` + `завантажено/всього`, «Скасувати»; після помилки — текст помилки + «Закрити» / «Спробувати ще» (`RetryRequested`, цикл у `App.StartUpdateAsync`). Після успіху — `SetCompleted()` + пауза 1.5с, щоб було видно, потім `Environment.Exit(0)`.
-- Локалізація: `update.message` переформульовано на автозавантаження (без «відкрити сторінку»); нові ключі `update.updateNow/later/whatsNew/currentVersion/newVersion/downloading/installing/completed/cancel/close/retry/downloadedOf` (uk+en).
-- `UpdateInfo` розширено: `(Version, DownloadUrl, ReleaseNotes?, SizeBytes)`.
+- **Міграція на Avalonia 12.1.2** (`c98f90b`): `Program.cs` (`StartWithClassicDesktopLifetime`), `App.xaml` (`FluentTheme` + DataGrid-тема, `RequestedThemeVariant="Light"`), `Dialogs/DialogService.cs` + `Dialogs/ThemeService.cs` (замість `Wpf*`), `Themes/AppStyles.xaml` (корінь `<Styles>`, класи `card/chip/pillgroup/...`), `DarkTheme.xaml`/`Styles.xaml` видалено.
+- Нюанси Avalonia: `x:Key` у `Style` заборонено; глобальний `Border` без класу ламає шаблони (DataGrid малював текст нульовою шириною) → `Border.card`; таблицям матриці явно `HeadersVisibility="Column"`; `Expander` → `Stretch`; кастомний шаблон `Button` потребує `Content="{TemplateBinding Content}"`.
+- Не писати .xaml/.cs через PowerShell `Set-Content` — псує кирилицю (було відновлення UTF-8/CP1251 в трьох файлах); тільки edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
+- **Оновлення всередині програми** (`c98f90b`): `UpdateCheckService` резолвить прямий `browser_download_url` exe-ассета + `body`/`size`; `UpdateInfo(Version, DownloadUrl, ReleaseNotes?, SizeBytes)`; `Views/UpdateAvailableDialog` (чипи версій, розмір, «Що нового», Пізніше/Оновити зараз); `Views/UpdateProgressDialog` (етап, `%`, завантажено/всього, Скасувати; після помилки — Закрити/Спробувати ще, retry-цикл в `App.StartUpdateAsync`; після успіху пауза 1.5с → `Environment.Exit(0)`); нові ключі локалізації `update.*` + `dialog.yes/no` (uk+en).
+- **Іконка exe** (`80d14d9`): потрібні ОДНОЧАСНО `<ApplicationIcon>icon.ico</ApplicationIcon>` і `TargetFramework=net10.0-windows` — з чистим `net10.0` MSBuild мовчки ігнорує ApplicationIcon.
 
 ## Відкладений реліз 1 жовтня 2026 (ліміти Actions)
 
-- Код чекає в гілці `release/oct-1`; у `main` лише guard `[skip actions]` у `ci.yml` + `.github/workflows/deferred-release.yml`.
-- 2026-10-01 03:00 UTC scheduler хмарно: мердж `release/oct-1` (`-X theirs` + повернення guard), бамп `AppVersion → 2.4.13`, тег `v2.4.13` → штатний `release.yml` публікує реліз. Ручний запуск — кнопка Run workflow.
-- ⚠️ До 1 жовтня не пушити в `main` (щоб не з'їсти ліміти і не розійтись зі staging).
-- Іконка exe: потрібні ОДНОЧАСНО `<ApplicationIcon>icon.ico</ApplicationIcon>` і `TargetFramework=net10.0-windows` — з чистим `net10.0` MSBuild мовчки ігнорує ApplicationIcon (як було після міграції).
+- Код чекає в гілці `release/oct-1` (поточна гілка, в синхроні з origin); у `main` лише guard `[skip actions]` у `ci.yml` + `.github/workflows/deferred-release.yml`. У staging-гілці цих файлів свідомо немає (guard лише в main, scheduler живе тільки в main) — не копіювати їх у `release/oct-1`.
+- 2026-10-01 03:00 UTC scheduler хмарно: мердж `release/oct-1` (`-X theirs` + повернення guard), бамп `AppVersion → 2.4.13`, тег `v2.4.13` → штатний `release.yml` публікує реліз. Ручний запуск — кнопка Run workflow. ⚠️ Після мерджу staging-версія файлів перемагає — доки комітити тільки в `release/oct-1`, не в `main`.
+- ⚠️ До 1 жовтня не пушити в `main` (щоб не з'їсти ліміти і не розійтись зі staging). Пуші в `release/*` CI не тригерять (CI слухає лише main/master) — вони безкоштовні.
 
-## Ключові факти стану (на 2026-09-14)
+## Ключові факти стану (на 2026-09-15, гілка `release/oct-1`)
 
-- **Поточна версія: 2.4.12** (Windows portable, тільки світла тема; міграція на Avalonia — код у робочій теці, ще не закомічено). `AppVersion` у `Directory.Build.props`.
-- Останні коміти (від новіших): `bee9e9e` (документація ARCHITECTURE/DATA-MODELS/IMPLEMENTATION/FUNCTIONS/TESTS), `ce94295` (один шлях релізу), `02f99f1` (вбудоване оновлення, чистка репозиторію, 2.4.12), `ffd4c9d` (Reset без пароля, прибрано ChangePassword).
+- **Поточна версія: <!-- AUTO:app-version -->2.4.12<!-- /AUTO -->** (`AppVersion` у `Directory.Build.props`; 2.4.13 буде виставлено автоматично 1 жовтня). UI — Avalonia 12.1.2, тільки світла тема, Windows portable.
+- Останні коміти (від новіших): `398ecf2` (нотатка про іконку), `80d14d9` (іконка ApplicationIcon + net10.0-windows), `c98f90b` (Avalonia-міграція + вікна оновлення — стейджинг для 1 жовтня), `bee9e9e` (документація ARCHITECTURE/DATA-MODELS/IMPLEMENTATION/FUNCTIONS/TESTS), далі `ce94295`/`02f99f1`/`ffd4c9d` (див. `git log`).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
-- **Тестів: 130, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
+- **Тестів: <!-- AUTO:tests-total -->130<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
 ## Архітектура (після рефакторингу)
 
@@ -143,4 +132,20 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 - Пароль матриці змінюється тільки перегенерацією через діалог розблокування (кнопки «Змінити пароль» немає), дефолт див. вище.
 - README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 130/License/Platform), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
 - ⚠️ GitHub кешує зображення через camo. Якщо прев'ю/фото на сторінці «не те»: додавати кеш-бастер `?v=N` до URL у README, а найнадійніше — **перейменувати файл** (новий шлях = новий URL без кешу). Останній скріншот — `main.png` (вкладка «Параметри розрахунку»).
-- ⚠️ Оновлення `AGENTS.md`: після кожної значущої зміни оновлювати цей файл (версія, коміти, рішення). Нова сесія має спершу прочитати його.
+
+## Протокол Docs-sync (щоб доки не протухали)
+
+1. **Старт сесії** → прочитай цей файл + таблицю свіжості нижче. Якщо штамп доку старіший за `git log` по коду — доку не довіряй, читай код.
+2. **Після кожної зміни коду/функціоналу** → запусти `powershell -File scripts/Update-Docs.ps1` (перераховує к-сть тестів, версію, штампи, ловить розсинхрон API). Вручну допиши тільки змістовні зміни (нові методи/флоу), цифри скрипт підставить сам.
+3. **Коміт** → доки комітяться разом з кодом одним комітом. Локальний pre-commit хук (`.githooks/`, установка: `git config core.hooksPath .githooks`) сам дооновлює маркери і додає їх у коміт.
+4. **CI** → `docs-sync.yml` на PR перевіряє `Update-Docs.ps1 -Check` (секунди на ubuntu, без збірки, ліміти не їсть).
+
+### Таблиця свіжості (оновлюється скриптом)
+
+| Документ | Звірено з комітом | Дата |
+|---|---|---|
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-14<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-14<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-14<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-14<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`398ecf2`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-14<!-- /AUTO --> |

@@ -3,6 +3,8 @@
 > **Призначення**: Як працюють сервіси, рушій розрахунку, експорт, валідація та інші компоненти.
 > Використовуй цей файл для розуміння внутрішньої логіки без читання вихідного коду.
 
+<!-- AUTO:stamp -->Verified: 2026-09-14, commit `398ecf2` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+
 ---
 
 ## Зміст
@@ -153,7 +155,7 @@ Calculate(config)
 **Файл**: `ResourceCalculator.Core/Services/ConfigExportService.cs` (970 рядків)
 **Залежності**: EPPlus, QuestPDF
 
-### ExportExcel(config, requirements, envReports)
+### ExportExcel(req, config, envReports)
 Створює Excel-робочий аркуш:
 
 **Аркуші**:
@@ -161,7 +163,7 @@ Calculate(config)
 2. **Середовища** — порівняльна таблиця PROD/DEV/TEST/PreProd
 3. **ВМ по середовищах** — розбивка вузлів для кожного середовища
 4. **Компоненти по середовищах** — поди/компоненти для кожного середовища
-5. **Інфраструктура** — деталізована таблиця вузлів з дисками
+5. **Інфраструктура** — деталізована таблиця вузлів з дисками (заголовки блоків включають к-сть користувачів)
 6. **Компоненти** — деталізована таблиця компонентів
 
 **Кольорова палітра** (Catppuccin Latte):
@@ -169,7 +171,7 @@ Calculate(config)
 - Success: #40A02B (зелений)
 - Danger: #D20F39 (червоний)
 
-### ExportPdf(config, requirements, envReports)
+### ExportPdf(req, config, envReports)
 Створює PDF-документ (A4, landscape):
 
 **Секції**:
@@ -312,18 +314,22 @@ Build()
 
 ## 10. UpdateCheckService — перевірка оновлень
 
-**Файл**: `ResourceCalculator.Core/Services/UpdateCheckService.cs` (139 рядків)
+**Файл**: `ResourceCalculator.Core/Services/UpdateCheckService.cs` (145 рядків)
 **Інтерфейс**: `IUpdateCheckService`
 
 ### CheckForUpdateAsync()
 ```
 1. GET https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest
-2. Retry 3 рази з backoff
-3. Порівняти версії (парсингMajor.Minor.Patch)
-4. Повернути UpdateCheckResult
+2. Retry 3 рази з backoff (1с, 2с)
+3. Порівняти версії (парсинг Major.Minor.Patch, префікс v/суфікс +build відкидаються)
+4. Знайти в assets прямий browser_download_url ITE.ResourceCalculator.exe (+size) та body (нотатки)
+5. Повернути UpdateCheckResult(UpdateAvailable, UpdateInfo(Version, DownloadUrl, ReleaseNotes, SizeBytes))
+   або NoUpdate / Failed (мережа, rate-limit, немає ассета — не кидає, пише в update-check.log)
 ```
 
 **Таймаут**: 15 секунд.
+
+> Повний флоу оновлення всередині програми: `App.CheckForUpdatesAsync` → `Views/UpdateAvailableDialog` → `App.StartUpdateAsync` → `SelfUpdateService` → `Views/UpdateProgressDialog` (retry-цикл). Деталі — FUNCTIONS.md §9–10, §21.
 
 ---
 
