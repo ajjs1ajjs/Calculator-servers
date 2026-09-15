@@ -19,10 +19,10 @@ namespace ResourceCalculator.Services;
 public class AccessService
 {
     // Контакти підтримки для відновлення доступу, якщо пароль забуто.
+    // Телефон свідомо не показуємо в UI — лише пошти (клікабельні, з копіюванням).
     public const string DevEmail1 = "yaroslav.andreichuk@gmail.com";
     public const string DevEmail2 = "andreichuk.y@it-enterprise.com";
-    public const string DevPhone = "+380979454941";
-    public const string DevContacts = $"Email: {DevEmail1} · {DevEmail2}\nТелефон: {DevPhone}";
+    public const string DevContacts = $"Email: {DevEmail1} · {DevEmail2}";
 
     public const int MinPasswordLength = 12;
     private const int Pbkdf2Iterations = 210_000;

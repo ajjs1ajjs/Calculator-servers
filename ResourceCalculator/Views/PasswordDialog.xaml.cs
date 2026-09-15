@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using ResourceCalculator.Localization;
 using ResourceCalculator.Services;
@@ -40,6 +41,15 @@ public partial class PasswordDialog : Window
         {
             TxtPassword.Focus();
         }
+        // Контакти підтримки: помітні, клікабельні, з копіюванням. Телефон не показуємо.
+        Email1Text.Text = AccessService.DevEmail1;
+        Email1Text.Tag = AccessService.DevEmail1;
+        Email1WriteBtn.Tag = AccessService.DevEmail1;
+        Email1CopyBtn.Tag = AccessService.DevEmail1;
+        Email2Text.Text = AccessService.DevEmail2;
+        Email2Text.Tag = AccessService.DevEmail2;
+        Email2WriteBtn.Tag = AccessService.DevEmail2;
+        Email2CopyBtn.Tag = AccessService.DevEmail2;
     }
 
     public string PasswordHint => _access?.GetPasswordHint() ?? "";
@@ -127,5 +137,49 @@ public partial class PasswordDialog : Window
     {
         TxtError.Text = message;
         TxtError.IsVisible = true;
+    }
+
+    // Клік по адресі — написати листа (поштовий клієнт за замовчуванням).
+    private void Email_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if ((sender as TextBlock)?.Tag is string email && !string.IsNullOrEmpty(email))
+            OpenMail(email);
+    }
+
+    private void EmailWrite_Click(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is string email && !string.IsNullOrEmpty(email))
+            OpenMail(email);
+    }
+
+    private static void OpenMail(string email)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo($"mailto:{email}")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
+
+    // Копіювання адреси в буфер обміну з підтвердженням на кнопці.
+    private async void EmailCopy_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string email || string.IsNullOrEmpty(email))
+            return;
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        if (clipboard is null) return;
+        try
+        {
+            await clipboard.SetTextAsync(email);
+            var loc = LocalizationService.Instance;
+            var original = btn.Content;
+            btn.Content = "✓ " + loc["access.copied"];
+            await System.Threading.Tasks.Task.Delay(1500);
+            btn.Content = original;
+        }
+        catch { }
     }
 }

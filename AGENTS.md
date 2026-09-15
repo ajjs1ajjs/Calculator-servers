@@ -141,8 +141,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 | Документ | Звірено з комітом | Дата |
 |---|---|---|
-| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-15<!-- /AUTO --> |
-| DATA-MODELS.md | <!-- AUTO:data-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-15<!-- /AUTO --> |
-| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-15<!-- /AUTO --> |
-| FUNCTIONS.md | <!-- AUTO:func-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-15<!-- /AUTO --> |
-| TESTS.md | <!-- AUTO:tests-commit -->`10355a9`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-15<!-- /AUTO --> |
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-15<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-15<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-15<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-15<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-15<!-- /AUTO --> |

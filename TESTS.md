@@ -3,7 +3,7 @@
 > **Призначення**: Структура, покриття та опис кожного тестового файлу.
 > Використовуй цей файл для швидкого розуміння які тести існують і що вони перевіряють.
 
-<!-- AUTO:stamp -->Verified: 2026-09-15, commit `10355a9` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `2b4af5b` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -226,7 +226,7 @@
 | SetPassword rejects weak passwords | Короткі/порожні відхиляються |
 | Verify legacy SHA-256 migrates | Старий хеш приймається раз і перехешовується |
 | Verify throttles repeated failures | Прогресивна затримка блокує повтори |
-| DevContacts contains email+phone | Контакти містять email і телефон |
+| DevContacts contains emails, no phone | Контакти містять email і телефон |
 | GetPasswordHint does not leak secret | Підказка без вбудованого пароля |
 
 ---

@@ -105,10 +105,12 @@ public class AccessServiceTests
     }
 
     [Fact]
-    public void DevContacts_ContainsEmailAndPhone()
+    public void DevContacts_ContainsEmails_NoPhone()
     {
         Assert.Contains("yaroslav.andreichuk@gmail.com", AccessService.DevContacts);
-        Assert.Contains("+380979454941", AccessService.DevContacts);
+        Assert.Contains("andreichuk.y@it-enterprise.com", AccessService.DevContacts);
+        // Телефон у парольній підказці не світимо.
+        Assert.DoesNotContain("+380979454941", AccessService.DevContacts);
     }
 
     [Fact]
@@ -120,7 +122,7 @@ public class AccessServiceTests
             var hint = svc.GetPasswordHint();
             Assert.Contains("yaroslav.andreichuk@gmail.com", hint);
             Assert.Contains("andreichuk.y@it-enterprise.com", hint);
-            Assert.Contains("+380979454941", hint);
+            Assert.DoesNotContain("+380979454941", hint);
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
