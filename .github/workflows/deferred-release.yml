@@ -34,7 +34,7 @@ jobs:
   ship:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -89,7 +89,16 @@ jobs:
           print(f"AppVersion -> ${{ env.VERSION }}")
           EOF
           grep -o "<AppVersion>[^<]*</AppVersion>" Directory.Build.props
-          git add Directory.Build.props .github/workflows/ci.yml
+          # AUTO-маркери доків (версія, к-сть тестів) читають Directory.Build.props,
+          # тож оновлюємо їх ПІСЛЯ бампа. Скрипт приїхав разом з merge staging-гілки;
+          # без цього кроку AGENTS.md лишався б з попередньою версією і перший же
+          # PR після релізу падав би на docs-sync.
+          if [ -f scripts/Update-Docs.ps1 ]; then
+            pwsh -NoProfile -NonInteractive -File scripts/Update-Docs.ps1 || echo "::warning::Update-Docs не спрацював — AUTO-маркери лишилися старими"
+          else
+            echo "::warning::scripts/Update-Docs.ps1 не знайдено — маркери не оновлено"
+          fi
+          git add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -m "chore: bump version to ${{ env.VERSION }}"
           git tag "v${{ env.VERSION }}"
