@@ -136,7 +136,9 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 - `.github/workflows/release.yml` — реліз на push тега `v*`: build → test → publish self-contained exe (тільки win-x64) → GitHub Release з одним артефактом.
   Нотатки генеруються автоматично (`--generate-notes`).
 - `.github/workflows/ci.yml` — CI на push у `main`/`master`/`release/**` і PR: build + test + coverage (cobertura-артефакт) + реальний гейт уразливих пакетів + publish exe (лише на push). `concurrency: ci-${{ github.ref }}` з `cancel-in-progress`.
-- ⚠️ **Бамп-коміт версії — завжди без `[skip ci]`.** GitHub пропускає workflow для будь-якої push-події з цим маркером у головному коміті, включно з пушем тега: тег на такому коміті релізу не запустить. Аварійний вихід — ручний запуск `release.yml` (`workflow_dispatch`, поле «Тег релізу»).
+- ⚠️ **Бамп-коміт версії — завжди без маркера пропуску CI.** GitHub пропускає workflow для push-подій, якщо в повідомленні головного коміта є `[skip ci]`. Аварійний вихід — ручний запуск `release.yml` (`workflow_dispatch`, поле «Тег релізу»).
+- ⚠️ **Маркер діє з УСЬОГО повідомлення, не лише з теми.** Перевірено на практиці 2026-09-17: коміт `72e1f3b` мав чисту тему, але в тілі було пояснення «…обидва останні коміти з [skip ci]…» — і GitHub не створив жодного прогону. Після amend без літерала CI відпрацював. Тобто **не цитувати маркер у повідомленнях комітів** — писати «маркер пропуску CI» словами. У файлах (доки, workflow) літерал безпечний.
+- Документація GitHub каже, що маркер діє для подій `push` і `pull_request`; про пуш тега окремо не сказано, тож на нього не покладаємось — `deferred-release.yml` і так тегує власний бот-коміт без маркера.
 - ⚠️ Тексти релізів/CHANGELOG — **тільки українською**. Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
 - Реліз без підпису: MSI-інсталятор, `sign.ps1` і самопідписаний сертифікат прибрано разом із `release.ps1` — SmartScreen попереджатиме, доки не буде сертифіката від CA.
 - **⚠️ Кирилиця в коді**: файли `.cs/.xaml/.csproj` мають бути UTF-8 (без BOM ок). Не використовувати PowerShell `Set-Content` для перезапису .cs/.xaml — псує кодування; використовувати edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
@@ -160,8 +162,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 | Документ | Звірено з комітом | Дата |
 |---|---|---|
-| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-15<!-- /AUTO --> |
-| DATA-MODELS.md | <!-- AUTO:data-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-15<!-- /AUTO --> |
-| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-15<!-- /AUTO --> |
-| FUNCTIONS.md | <!-- AUTO:func-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-15<!-- /AUTO --> |
-| TESTS.md | <!-- AUTO:tests-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-15<!-- /AUTO --> |
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-17<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-17<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-17<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-17<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-17<!-- /AUTO --> |
