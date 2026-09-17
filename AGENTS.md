@@ -143,7 +143,7 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 - **Реліз підписаний Authenticode, перевірка обов'язкова.** `release.yml` підписує exe через `signtool` (сертифікат з секретів `SIGNING_PFX_BASE64` / `SIGNING_PFX_PASSWORD`, таймстемп DigiCert) ДО підрахунку хеша й атестації, бо signtool змінює файл. `SelfUpdateService.VerifyAuthenticode` відкидає оновлення без підпису, зі зламаним дайджестом або підписане чужим сертифікатом.
 - Сертифікат самопідписаний (`CN=IT-Enterprise Resource Calculator`, RSA-3072/SHA-256, до 2036). Довіру несе **пін SHA-256 відбитка** у `SelfUpdateService.SigningCertSha256Thumbprint`, а не системне сховище — корінь у Trusted Root ставити не потрібно. `CERT_E_UNTRUSTEDROOT` приймається лише разом із збігом піна.
 - ⚠️ **Заміна сертифіката = дві зміни одночасно:** новий PFX у секрети + новий відбиток у код. Розійдуться — реліз впаде на кроці «Verify signature with the app's own check» (виконує той самий код, що й застосунок). Це навмисно: реліз, який неможливо встановити, гірший за відсутність релізу.
-- Приватний ключ лежить поза репозиторієм: `C:\Users\Admin\.ite-signing\` (`ite-codesign.pfx`, `pfx-base64.txt`, `pfx-password.txt`, публічний `ite-codesign.cer`). У git не потрапляє (`.gitignore`: `*.pfx`).
+- Приватний ключ лежить поза репозиторієм (локальне сховище власника, шлях у публічних доках не фіксується). У git не потрапляє (`.gitignore`: `*.pfx`).
 - SmartScreen попереджатиме далі — це лікує лише сертифікат від публічної CA з репутацією.
 - **⚠️ Кирилиця в коді**: файли `.cs/.xaml/.csproj` мають бути UTF-8 (без BOM ок). Не використовувати PowerShell `Set-Content` для перезапису .cs/.xaml — псує кодування; використовувати edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
 
@@ -167,8 +167,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 | Документ | Звірено з комітом | Дата |
 |---|---|---|
-| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`1571551`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-17<!-- /AUTO --> |
-| DATA-MODELS.md | <!-- AUTO:data-commit -->`1571551`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-17<!-- /AUTO --> |
-| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`1571551`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-17<!-- /AUTO --> |
-| FUNCTIONS.md | <!-- AUTO:func-commit -->`1571551`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-17<!-- /AUTO --> |
-| TESTS.md | <!-- AUTO:tests-commit -->`1571551`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-17<!-- /AUTO --> |
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`4004997`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-17<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`4004997`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-17<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`4004997`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-17<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`4004997`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-17<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`4004997`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-17<!-- /AUTO --> |
