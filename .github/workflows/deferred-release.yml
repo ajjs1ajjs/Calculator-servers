@@ -1,6 +1,13 @@
 name: Deferred release (Oct 1)
 
 # Відкладений реліз: ліміти GitHub Actions відновлюються 1 жовтня 2026.
+#
+# ⚠️ Чому тег ставить саме цей workflow, а не людина руками: GitHub пропускає
+# workflow для БУДЬ-ЯКОЇ push-події, якщо в повідомленні головного коміта є
+# [skip ci] — включно з пушем тега. Обидва останні коміти release/oct-1 мають
+# цей маркер, тож тег на них release.yml не запустив би. Тут тег лягає на
+# власний коміт "chore: bump version to X" без маркера, тому все спрацює.
+# Аварійний вихід — release.yml → Run workflow з полем «Тег релізу».
 # До того код чекає в гілці release/oct-1, а цей workflow живе в main
 # (cron спрацьовує тільки з дефолтної гілки) і 1 жовтня 03:00 UTC хмарно:
 # мерджить staging → бампить AppVersion → ставить тег → штатний release.yml
@@ -13,7 +20,12 @@ on:
       version:
         description: 'Версія релізу (без префікса v)'
         required: false
-        default: '2.4.13'
+        # 2.5.0, а не 2.4.13: у release/oct-1 накопичилися міграція на Avalonia,
+        # вбудоване оновлення, раунд безпеки, виправлення розрахунку (маппінг вузлів
+        # матриці) і бамп SizingMatrix.CurrentSchemaVersion 10 → 11. Останнє скидає
+        # збережений matrix.json у користувачів до дефолтів коду — помітна для
+        # користувача зміна, патч-версією її позначати не можна.
+        default: '2.5.0'
 
 permissions:
   contents: write
@@ -37,7 +49,7 @@ jobs:
       - name: Guardrails
         run: |
           git fetch origin release/oct-1 || { echo "::error::Гілка origin/release/oct-1 не знайдена"; exit 1; }
-          VERSION="${{ github.event.inputs.version || '2.4.13' }}"
+          VERSION="${{ github.event.inputs.version || '2.5.0' }}"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
             echo "::error::Тег v$VERSION уже існує — реліз не створюю, щоб не перезаписати опубліковане"
