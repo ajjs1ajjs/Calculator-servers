@@ -62,13 +62,20 @@ jobs:
           $pfx = Join-Path $env:RUNNER_TEMP "codesign.pfx"
           [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
           try {
-            $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
-              Where-Object { $_.FullName -match '\\x64\\' } | Sort-Object FullName -Descending | Select-Object -First 1
-            if (-not $signtool) { Write-Host "::error::signtool.exe не знайдено на раннері"; exit 1 }
-            Write-Host "signtool: $($signtool.FullName)"
+            # Windows SDK на образі windows-2025 присутній (10.0.26100.0), але
+            # signtool не гарантовано в PATH — шукаємо у Windows Kits, потім у PATH.
+            $signtoolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '\\x64\\' } | Sort-Object FullName -Descending |
+              Select-Object -First 1 -ExpandProperty FullName
+            if (-not $signtoolPath) { $signtoolPath = (Get-Command signtool -ErrorAction SilentlyContinue).Source }
+            if (-not $signtoolPath) {
+              Write-Host "::error::signtool.exe не знайдено ні у Windows Kits, ні в PATH — підписати нічим"
+              exit 1
+            }
+            Write-Host "signtool: $signtoolPath"
             # Таймстемп обов'язковий: без нього підпис стає невалідним у день,
             # коли протермінується сертифікат, і оновлення розвалюються самі.
-            & $signtool.FullName sign /f $pfx /p $env:SIGNING_PFX_PASSWORD `
+            & $signtoolPath sign /f $pfx /p $env:SIGNING_PFX_PASSWORD `
               /fd SHA256 /tr "http://timestamp.digicert.com" /td SHA256 `
               "publish/win/ITE.ResourceCalculator.exe"
             if ($LASTEXITCODE -ne 0) {
