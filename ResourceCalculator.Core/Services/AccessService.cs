@@ -34,6 +34,7 @@ public class AccessService
 
     private int _failedAttempts;
     private DateTime _lockoutUntilUtc = DateTime.MinValue;
+    private bool _lockoutLoaded;
 
     public string SettingsPath => _settingsPath;
 
@@ -45,8 +46,32 @@ public class AccessService
         _settingsPath = Path.Combine(_dataDir, "settings.json");
     }
 
-    // Повертає true, якщо пароль уже встановлено/ініціалізовано.
-    public bool IsPasswordSet => File.Exists(_settingsPath);
+    // Повертає true, лише якщо у файлі справді є придатні для перевірки поля.
+    // Раніше перевірялося саме існування файла: обірваний або зіпсований settings.json
+    // (є файл, немає хеша/солі) переводив UI у стан «пароль встановлено», а Verify
+    // завжди повертав false — доступ до матриці губився назовсім, без шляху
+    // відновлення з інтерфейсу. Тепер такий файл вважається невстановленим паролем,
+    // і UI пропонує створити його заново.
+    public bool IsPasswordSet
+    {
+        get
+        {
+            if (!File.Exists(_settingsPath)) return false;
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(_settingsPath));
+                return doc.RootElement.TryGetProperty("MatrixPasswordHash", out var h)
+                       && !string.IsNullOrWhiteSpace(h.GetString())
+                       && doc.RootElement.TryGetProperty("MatrixPasswordSalt", out var sa)
+                       && !string.IsNullOrWhiteSpace(sa.GetString());
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"AccessService.IsPasswordSet failed: {ex.Message}");
+                return false;
+            }
+        }
+    }
 
     // Гарантує існування каталогу даних. Пароль НЕ створює: за відсутності
     // settings.json доступ заборонено (fail closed), UI пропонує його створити.
@@ -220,10 +245,64 @@ public class AccessService
     public string GetPasswordHint()
         => "Пароль не збережено у програмі. Для відновлення доступу зверніться: " + DevContacts;
 
-    private bool IsLockedOut() => DateTime.UtcNow < _lockoutUntilUtc;
+    // Стан блокування лежить окремим файлом, щоб не чіпати файл із хешем пароля.
+    private string LockoutPath => Path.Combine(_dataDir, "lockout.json");
+
+    private bool IsLockedOut()
+    {
+        LoadLockoutState();
+        return DateTime.UtcNow < _lockoutUntilUtc;
+    }
+
+    // Лічильник спроб раніше жив лише в пам'яті процесу, тож і прогресивна затримка,
+    // і 5-хвилинне блокування обходилися звичайним перезапуском програми.
+    private void LoadLockoutState()
+    {
+        if (_lockoutLoaded) return;
+        _lockoutLoaded = true;
+        try
+        {
+            if (!File.Exists(LockoutPath)) return;
+            using var doc = JsonDocument.Parse(File.ReadAllText(LockoutPath));
+            if (doc.RootElement.TryGetProperty("FailedAttempts", out var fa) && fa.TryGetInt32(out var n))
+                _failedAttempts = Math.Clamp(n, 0, MaxFailedAttempts);
+            if (doc.RootElement.TryGetProperty("LockoutUntilUtc", out var lu)
+                && lu.TryGetDateTime(out var until))
+            {
+                // Час у файлі не довіряємо далі, ніж на максимальне вікно блокування:
+                // підправлений вручну LockoutUntilUtc не має блокувати доступ назовсім.
+                var cap = DateTime.UtcNow.AddMinutes(5);
+                _lockoutUntilUtc = until > cap ? cap : until;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"AccessService.LoadLockoutState failed: {ex.Message}");
+        }
+    }
+
+    private void SaveLockoutState()
+    {
+        try
+        {
+            Directory.CreateDirectory(_dataDir);
+            var payload = new Dictionary<string, object>
+            {
+                ["FailedAttempts"] = _failedAttempts,
+                ["LockoutUntilUtc"] = _lockoutUntilUtc
+            };
+            File.WriteAllText(LockoutPath, JsonSerializer.Serialize(payload));
+            RestrictToCurrentUser(LockoutPath);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"AccessService.SaveLockoutState failed: {ex.Message}");
+        }
+    }
 
     private void RegisterFailure()
     {
+        LoadLockoutState();
         _failedAttempts++;
         // Прогресивна затримка 1с → 2с → 4с … до 30с; після ліміту — жорстке блокування на 5 хв.
         if (_failedAttempts >= MaxFailedAttempts)
@@ -236,12 +315,16 @@ public class AccessService
             var delaySec = Math.Min(30, 1 << Math.Min(_failedAttempts, 5));
             _lockoutUntilUtc = DateTime.UtcNow.AddSeconds(delaySec);
         }
+        SaveLockoutState();
     }
 
     private void ResetFailures()
     {
         _failedAttempts = 0;
         _lockoutUntilUtc = DateTime.MinValue;
+        _lockoutLoaded = true;
+        try { if (File.Exists(LockoutPath)) File.Delete(LockoutPath); }
+        catch (Exception ex) { Debug.WriteLine($"AccessService.ResetFailures failed: {ex.Message}"); }
     }
 
     private static string Pbkdf2Hash(string password, string saltBase64, int iterations)

@@ -131,16 +131,55 @@ public class MainViewModelTests
         Assert.True(vm.HasHistory);
     }
 
+    // Раніше на нечислове введення GetConfig тихо брав 100 користувачів і видавав
+    // повноцінний звіт для зовсім іншого розміру. Тепер розрахунок не виконується.
     [Fact]
-    public void CalculateCommand_InvalidUserCount_FallsBackWithoutThrow()
+    public void CalculateCommand_InvalidUserCount_ShowsErrorInsteadOfSilentFallback()
     {
-        var vm = BuildVm(out _);
+        var vm = BuildVm(out var history);
         vm.UserCount = "не-число";
 
         var ex = Record.Exception(() => vm.CalculateCommand.Execute(null));
 
         Assert.Null(ex);
-        Assert.NotEqual("0", vm.TotalCpu);             // відкат на 100 користувачів
+        Assert.NotNull(vm.ValidateInputs());
+        Assert.Empty(history.Items);                   // розрахунку не було
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("0")]
+    [InlineData("-5")]
+    [InlineData("5001")]
+    [InlineData("1e3")]
+    [InlineData("100 користувачів")]
+    public void ValidateInputs_RejectsOutOfRangeUserCount(string raw)
+    {
+        var vm = BuildVm(out _);
+        vm.UserCount = raw;
+        Assert.NotNull(vm.ValidateInputs());
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("100")]
+    [InlineData(" 250 ")]
+    [InlineData("5000")]
+    public void ValidateInputs_AcceptsSupportedUserCount(string raw)
+    {
+        var vm = BuildVm(out _);
+        vm.UserCount = raw;
+        Assert.Null(vm.ValidateInputs());
+    }
+
+    [Fact]
+    public void ValidateInputs_RejectsNonNumericDbSize()
+    {
+        var vm = BuildVm(out _);
+        vm.UserCount = "100";
+        vm.ProdDbSizeGb = "багато";
+        Assert.NotNull(vm.ValidateInputs());
     }
 
     [Fact]

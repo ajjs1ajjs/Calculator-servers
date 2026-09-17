@@ -32,14 +32,14 @@ public static class MatrixValidator
         ValidateModules(errors, m.Modules);
         ValidateModules(errors, m.DocumentFlowModules);
 
-        ValidateNode(errors, "K8s SQL", m.DefaultK8sSql);
-        ValidateNode(errors, "K8s Master", m.DefaultK8sMaster);
-        ValidateNode(errors, "K8s Worker", m.DefaultK8sWorker);
-        ValidateNode(errors, "Windows SQL", m.DefaultWindowsSql);
-        ValidateNode(errors, "Windows App", m.DefaultWindowsApp);
-        ValidateNode(errors, "Windows Web", m.DefaultWindowsWeb);
-        ValidateNode(errors, "Сервер звітів", m.DefaultReportingServer);
-        ValidateNode(errors, "HAProxy", m.DefaultHaProxy);
+        ValidateNode(errors, "K8s SQL", m.DefaultK8sSql, NodeSlot.K8sSql);
+        ValidateNode(errors, "K8s Master", m.DefaultK8sMaster, NodeSlot.K8sMaster);
+        ValidateNode(errors, "K8s Worker", m.DefaultK8sWorker, NodeSlot.K8sWorker);
+        ValidateNode(errors, "Windows SQL", m.DefaultWindowsSql, NodeSlot.WindowsSql);
+        ValidateNode(errors, "Windows App", m.DefaultWindowsApp, NodeSlot.WindowsApp);
+        ValidateNode(errors, "Windows Web", m.DefaultWindowsWeb, NodeSlot.WindowsWeb);
+        ValidateNode(errors, "Сервер звітів", m.DefaultReportingServer, NodeSlot.ReportingServer);
+        ValidateNode(errors, "HAProxy", m.DefaultHaProxy, NodeSlot.HaProxy);
 
         ValidateEngine(errors, m.Engine);
         return errors;
@@ -98,9 +98,14 @@ public static class MatrixValidator
         }
     }
 
-    private static void ValidateNode(List<string> errors, string role, InfrastructureNode? n)
+    private static void ValidateNode(List<string> errors, string role, InfrastructureNode? n, NodeSlot expectedSlot)
     {
         if (n is null) return;
+        // Slot — інваріант коду, а не даних: саме за ним правки гріда повертаються
+        // у свій слот матриці. Файл із чужим/порожнім Slot приймати не можна, інакше
+        // редактор матриці тихо писав би значення в неправильний вузол.
+        if (n.Slot != expectedSlot)
+            errors.Add($"{role}: очікувався Slot={expectedSlot}, у файлі {n.Slot}.");
         if (n.Name is not null && n.Name.Length > 200) errors.Add($"{role}: задовга назва.");
         if (!IsFiniteNonNeg(n.Cpu, MaxCpu) || !IsFiniteNonNeg(n.Ghz, 1000) || !IsFiniteNonNeg(n.RamGb, MaxRamGb))
             errors.Add($"{role}: CPU/RAM поза межами.");

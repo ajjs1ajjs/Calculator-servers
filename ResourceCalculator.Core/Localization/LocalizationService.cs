@@ -243,6 +243,9 @@ public class LocalizationService : ILocalizationService
         ["error.calculation_failed"] = "Не вдалося виконати розрахунок: {0}",
         ["error.export_failed"] = "Не вдалося зберегти файл: {0}",
         ["error.invalid_input"] = "Некоректні вхідні дані: {0}",
+        ["error.userCountNotNumber"] = "«Кількість користувачів»: «{0}» — не ціле число. Введіть значення від {1} до {2}.",
+        ["error.userCountRange"] = "«Кількість користувачів»: {0} поза межами матриці. Допустимий діапазон — від {1} до {2}.",
+        ["error.sizeNotNumber"] = "«{0}»: «{1}» — не ціле невід'ємне число.",
         ["error.unknown"] = "Сталася непередбачена помилка: {0}",
         ["dialog.matrixSaved"] = "Матрицю збережено",
         ["dialog.validationError"] = "Помилка перевірки матриці",
@@ -506,6 +509,9 @@ public class LocalizationService : ILocalizationService
         ["error.calculation_failed"] = "Calculation failed: {0}",
         ["error.export_failed"] = "Failed to save file: {0}",
         ["error.invalid_input"] = "Invalid input: {0}",
+        ["error.userCountNotNumber"] = "\"Number of users\": \"{0}\" is not a whole number. Enter a value between {1} and {2}.",
+        ["error.userCountRange"] = "\"Number of users\": {0} is outside the matrix. Allowed range is {1} to {2}.",
+        ["error.sizeNotNumber"] = "\"{0}\": \"{1}\" is not a non-negative whole number.",
         ["error.unknown"] = "An unexpected error occurred: {0}",
         ["dialog.matrixSaved"] = "Matrix saved",
         ["dialog.validationError"] = "Matrix validation error",
@@ -563,6 +569,10 @@ public class LocalizationService : ILocalizationService
         OnPropertyChanged(nameof(Flag));
         OnPropertyChanged(nameof(LangName));
     }
+
+    // Ключі активного словника — для тесту парності uk/en: пропущений ключ в одному
+    // зі словників помітний лише вручну, на потрібній вкладці, у потрібній мові.
+    public IReadOnlyCollection<string> Keys => _strings.Keys;
 
     public string this[string key] => _strings.TryGetValue(key, out var val) ? val : $"[{key}]";
 

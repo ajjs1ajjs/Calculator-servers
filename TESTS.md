@@ -3,7 +3,7 @@
 > **Призначення**: Структура, покриття та опис кожного тестового файлу.
 > Використовуй цей файл для швидкого розуміння які тести існують і що вони перевіряють.
 
-<!-- AUTO:stamp -->Verified: 2026-09-15, commit `2b4af5b` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `66d7251` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -32,7 +32,7 @@
 | **Проєкт** | ResourceCalculator.Tests (net10.0) |
 | **Залежність** | ResourceCalculator.Core |
 | **Файлів тестів** | 10 |
-| **Загальна кількість тестів** | <!-- AUTO:tests-total -->157<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 132, з них theory дають 25 кейсів через `[InlineData]`) |
+| **Загальна кількість тестів** | <!-- AUTO:tests-total -->185<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 132, з них theory дають 25 кейсів через `[InlineData]`) |
 
 ---
 

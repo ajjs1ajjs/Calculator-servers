@@ -161,7 +161,7 @@ public partial class App : Application
             SelfUpdateResult updateResult;
             try
             {
-                updateResult = await updateService.UpdateAsync(info.DownloadUrl, cts.Token);
+                updateResult = await updateService.UpdateAsync(info, cts.Token);
             }
             catch (Exception ex)
             {

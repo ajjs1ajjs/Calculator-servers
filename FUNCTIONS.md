@@ -3,7 +3,7 @@
 > **Призначення**: Швидкий довідник по всіх публічних методах кожного класу.
 > Використовуй цей файл коли потрібно знайти конкретний метод, зрозуміти його сигнатуру або викликати з нового місця.
 
-<!-- AUTO:stamp -->Verified: 2026-09-15, commit `2b4af5b` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `66d7251` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -127,7 +127,16 @@ static List<string> Validate(SizingMatrix m); // порожньо = придат
 ---
 ## 5. ConfigExportService
 
-**Файл**: `ResourceCalculator.Core/Services/ConfigExportService.cs`
+**Файл**: `ResourceCalculator.Core/Services/ConfigExportService.cs` — фасад. Сама генерація
+розведена по трьох файлах, бо один клас на ~1000 рядків тримав і QuestPDF-, і EPPlus-код,
+і правка одного звіту змушувала читати обидва:
+
+| Файл | Роль |
+|---|---|
+| `ConfigExportService.cs` | публічний фасад (`ExportPdf`/`ExportExcel`/`Xl`/`NodeRole`), делегує білдерам |
+| `PdfReportBuilder.cs` | PDF (QuestPDF, A4 landscape), палітра `Pdf*`, `ComposePdf*` |
+| `ExcelReportBuilder.cs` | XLSX (EPPlus), `Build*Sheet`, `StyleTable`, `WriteHeader` |
+| `ReportCommon.cs` | спільні підписи й назви: `DbName`, `DeployName`, `ReportTitle`, `PodDistribution`, `Xl`, `NodeRole` |
 
 ```csharp
 byte[] ExportExcel(ResourceRequirement req, ProjectConfig config, List<EnvironmentReport>? envReports = ...);
@@ -138,6 +147,11 @@ byte[] ExportPdf(ResourceRequirement req, ProjectConfig config, List<Environment
 |---|---|---|---|
 | `ExportExcel` | `req, config, envReports` | `byte[]` | Excel .xlsx (EPPlus); заголовки інфраструктури включають к-сть користувачів |
 | `ExportPdf` | `req, config, envReports` | `byte[]` | PDF (QuestPDF, A4 landscape) |
+
+> ⚠️ Тексти звітів (заголовки таблиць, глосарій, примітки) — **завжди українською**,
+> незалежно від мови UI: це клієнтські документи для українських замовників.
+> Локалізація звітів у скоуп не входить; якщо знадобиться — це окрема задача,
+> а не побічний ефект перемикача мови.
 
 ---
 
@@ -213,7 +227,7 @@ Task<UpdateCheckResult> CheckForUpdateAsync();
 
 **UpdateCheckResult**: `{ Status: NoUpdate/UpdateAvailable/Failed, Update?: UpdateInfo }`
 
-**UpdateInfo**: `record UpdateInfo(string Version, string DownloadUrl, string? ReleaseNotes = null, long SizeBytes = 0)` — прямий `browser_download_url` exe-ассета `ITE.ResourceCalculator.exe`, нотатки з `body`, розмір з `size`. Жодних переходів у браузер — оновлення повністю всередині програми (`App.CheckForUpdatesAsync` → `UpdateAvailableDialog` → `StartUpdateAsync`).
+**UpdateInfo**: `record UpdateInfo(string Version, string DownloadUrl, string? ReleaseNotes = null, long SizeBytes = 0, string? Sha256 = null)` — прямий `browser_download_url` exe-ассета `ITE.ResourceCalculator.exe`, нотатки з `body`, розмір з `size`, `Sha256` — з поля `digest` того самого ассета (`sha256:<64 hex>`, інші форми відкидаються). `Sha256` резолвиться тут, а не в `SelfUpdateService`: раніше той робив другий запит до `/releases/latest` уже після завантаження — зайвий удар по rate-limit (60/год на IP) і вікно, в яке «latest» міг стати наступним релізом, через що перевірка падала на коректному файлі. Жодних переходів у браузер — оновлення повністю всередині програми (`App.CheckForUpdatesAsync` → `UpdateAvailableDialog` → `StartUpdateAsync`).
 
 ---
 
@@ -324,13 +338,17 @@ byte[] ExportPdf(ResourceRequirement req, ProjectConfig config, List<Environment
 | `SaveMatrixCommand` | Збереження матриці (з перевіркою пароля) |
 | `RecalculateMatrixCommand` | Перерахунок після зміни матриці |
 | `ResetMatrixCommand` | Скидання до дефолтів (без пароля) |
-| `AddRowCommand` | Додавання рядка в гріди |
+
+> Команди додавання рядка немає свідомо: модель матриці має рівно вісім слотів вузлів
+> (`NodeSlot`), тож рядок без слота нікуди не зберігався б. Колишні `AddRowCommand`/
+> `AddRowAsync` не були прив'язані ні до одного елемента XAML — мертвий код, що виглядав
+> як робоча функція.
 
 ### Ключові методи
 | Метод | Опис |
 |---|---|
 | `EnsureUnlockedAsync()` | Асинхронна перевірка пароля перед редагуванням (`Task<bool>`); викликається Save/Recalculate |
-| `EnsureUnlocked()` | Синхронна версія (для сумісності) |
+| `SyncGridsToMatrix()` | Гріди → матриця; повертає список помилок валідації (порожній = застосовано) |
 | `LoadMatrixGrids()` | Завантаження даних з матриці в гріди |
 | `SyncGridsToMatrix()` | Синхронізація грідів → матриця |
 

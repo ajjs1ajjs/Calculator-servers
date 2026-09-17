@@ -53,9 +53,9 @@ public class MatrixManagerTests
 
         var appRange = new UserLoadRange { MinUsers = 1, MaxUsers = 10, Cpu = 2, RamRec = 4, InstanceCount = 1, Ghz = 2.4 };
         var pgRange = new UserLoadRange { MinUsers = 1, MaxUsers = 25, Cpu = 1, RamRec = 2, Iops = 100 };
-        var sqlNode = new InfrastructureNode { Name = "SQL Server", Cpu = 8, RamGb = 32, Os = "Windows Server 2022", StorageGb = 300 };
-        var windowsApp = new InfrastructureNode { Name = "Сервери додатків", Cpu = 4, RamGb = 16 };
-        var reporting = new InfrastructureNode { Name = "Сервер звітів", Cpu = 2, RamGb = 4 };
+        var sqlNode = new InfrastructureNode { Slot = NodeSlot.K8sSql, Name = "SQL Server", Cpu = 8, RamGb = 32, Os = "Windows Server 2022", StorageGb = 300 };
+        var windowsApp = new InfrastructureNode { Slot = NodeSlot.WindowsApp, Name = "Сервери додатків", Cpu = 4, RamGb = 16 };
+        var reporting = new InfrastructureNode { Slot = NodeSlot.ReportingServer, Name = "Сервер звітів", Cpu = 2, RamGb = 4 };
 
         manager.SyncGridsToMatrix(
             new List<UserLoadRange> { appRange },

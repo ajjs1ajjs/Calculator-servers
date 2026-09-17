@@ -3,7 +3,7 @@
 > **Призначення**: Загальний огляд архітектури, структури рішення, залежностей та патернів.
 > Використовуй цей файл для розуміння як проєкт організований і як компоненти пов'язані.
 
-<!-- AUTO:stamp -->Verified: 2026-09-15, commit `2b4af5b` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `66d7251` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -68,15 +68,23 @@ ResourceCalculator.slnx                     -- Рішення (.NET 10 XML-фо�
 │   │   └── DocumentRequirements.cs          -- Еталон з документа D-AD-ADM-E
 │   ├── Models/                              -- Моделі даних (13 файлів)
 │   ├── Interfaces/                          -- Абстракції сервісів (10 файлів)
-│   ├── Services/                            -- Реалізація сервісів (14 файлів)
+│   ├── Services/                            -- Реалізація сервісів
+│   │   ├── ConfigExportService.cs           -- фасад експорту (делегує білдерам)
+│   │   ├── PdfReportBuilder.cs              -- PDF-звіт (QuestPDF)
+│   │   ├── ExcelReportBuilder.cs            -- XLSX-звіт (EPPlus)
+│   │   ├── ReportCommon.cs                  -- спільні підписи/назви обох звітів
+│   │   ├── GitHubRelease.cs                 -- спільні константи й лог оновлень
+│   │   └── ... (SizingEngine, MatrixManager, AccessService, ...)
 │   ├── ViewModels/                          -- MVVM ViewModels (4 файли)
 │   └── Localization/                        -- Сервіс локалізації (243+ ключі)
 │
 └── ResourceCalculator.Tests/                -- Unit-тести (xUnit)
-    ├── SizingEngineTests.cs                 -- 57 тестів (найбільший файл)
-    ├── MainViewModelTests.cs                -- 14 тестів
-    ├── ValidationEngineTests.cs             -- 7 тестів
-    └── ... (9 файлів загалом)
+    ├── SizingEngineTests.cs                 -- найбільший файл
+    ├── MainViewModelTests.cs                -- команди/властивості VM + валідація введення
+    ├── MatrixNodeSlotTests.cs               -- регресія маппінгу вузлів за NodeSlot
+    ├── LocalizationTests.cs                 -- парність ключів uk/en
+    ├── SecurityRegressionTests.cs           -- валідація матриці, Xl(), allowlist URL, digest
+    └── ... (11 файлів загалом)
 ```
 
 ---
@@ -175,7 +183,7 @@ services.AddSingleton<ISelfUpdateService, SelfUpdateService>();
 services.AddTransient<IDataService, DataService>();
 services.AddTransient<ICalculationHistoryService, CalculationHistoryService>();
 services.AddTransient<IValidationEngine, ValidationEngine>();
-services.AddTransient<ConfigExportService>();
+services.AddTransient<ConfigExportService>();   // фасад; PdfReportBuilder + ExcelReportBuilder всередині
 services.AddTransient<ResultsPresenter>();
 services.AddTransient<EnvironmentBuilder>();
 services.AddTransient<MainViewModel>();
@@ -198,7 +206,8 @@ services.AddTransient<MainViewModel>();
 | Файл | Шлях | Опис |
 |---|---|---|
 | `matrix.json` | `%LOCALAPPDATA%\ResourceCalculator\data\` | Матриця розмірування |
-| `settings.json` | `%LOCALAPPDATA%\ResourceCalculator\data\` | Хеш пароля + salt |
+| `settings.json` | `%LOCALAPPDATA%\ResourceCalculator\data\` | Хеш пароля + salt + `Iterations` |
+| `lockout.json` | `%LOCALAPPDATA%\ResourceCalculator\data\` | Лічильник невдалих спроб і час блокування (раніше жив лише в пам'яті процесу — обходився рестартом) |
 | `history.json` | `%LOCALAPPDATA%\ResourceCalculator\` | Останні 20 розрахунків |
 
 ### Атомарний запис
@@ -208,7 +217,11 @@ services.AddTransient<MainViewModel>();
 3. Перейменування `.tmp` у основний
 
 ### Версіонування схеми
-`SizingMatrix.CurrentSchemaVersion = 10`. Якщо збережена матриця має `SchemaVersion < 10` — вона відкидається і створюється нова з дефолтними значеннями.
+`SizingMatrix.CurrentSchemaVersion = 11`. Якщо збережена матриця має `SchemaVersion < 11` — вона відкидається і створюється нова з дефолтними значеннями.
+
+Версія 11 додала `InfrastructureNode.Slot` (`NodeSlot`): роль вузла тепер задана явно,
+а не вгадується з назви. Побічний ефект бампа — збережений `matrix.json` версії 10
+відкидається, тож локальні правки матриці після оновлення треба внести заново.
 
 ---
 
@@ -218,17 +231,24 @@ services.AddTransient<MainViewModel>();
 
 | Workflow | Тригер | Призначення |
 |---|---|---|
-| `ci.yml` | Push to main, PRs | Build + Test + Coverage + Vulnerability check (guard `[skip actions]` в main до 01.10.2026) |
-| `release.yml` | Push tag `v*` | Build + Test + Publish EXE + GitHub Release |
+| `ci.yml` | Push у `main`/`master`/`release/**`, PRs | Build + Test + Coverage (cobertura) + Vulnerability check; publish exe лише на push; `concurrency` скасовує застарілі прогони (guard `[skip actions]` у `main` до 01.10.2026) |
+| `release.yml` | Push tag `v*`, ручний запуск | Build + Test + Publish EXE + provenance-атестація + GitHub Release |
 | `pages.yml` | Push to main | Deploy landing page to GitHub Pages |
 | `docs-sync.yml` | PRs, manual | Легка перевірка синхрону доків (`scripts/Update-Docs.ps1 -Check`, без збірки) |
 | `deferred-release.yml` | Scheduler 01.10.2026 03:00 UTC (живе в `main`) | Мердж `release/oct-1` → бамп `AppVersion` → тег → штатний реліз |
 
 ### Процес релізу
 1. Змінити `AppVersion` в `Directory.Build.props`
-2. `git commit && git push`
+2. `git commit && git push` — ⚠️ **без `[skip ci]` у повідомленні цього коміта**
 3. `git tag vX.Y.Z && git push origin vX.Y.Z`
 4. GitHub Actions автоматично створить реліз з EXE
+
+> ⚠️ GitHub пропускає workflow для **будь-якої** push-події, якщо в повідомленні
+> головного коміта є `[skip ci]` — включно з пушем тега. Тег, що ліг на такий коміт,
+> релізу не запустить. Тому бамп-коміт завжди без `[skip ci]`; аварійний вихід —
+> ручний запуск `release.yml` (`workflow_dispatch`, поле «Тег релізу»).
+> `deferred-release.yml` цього не боїться: він сам створює бамп-коміт
+> `chore: bump version to X` і тегує саме його.
 
 ---
 

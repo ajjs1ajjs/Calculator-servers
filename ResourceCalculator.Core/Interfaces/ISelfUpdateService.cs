@@ -11,5 +11,5 @@ public interface ISelfUpdateService
     event DownloadProgressHandler? Progress;
     // URL передається параметром, а не mutable-властивістю синглтона:
     // паралельні перевірки оновлень не можуть перехрестити завантаження.
-    Task<SelfUpdateResult> UpdateAsync(string downloadUrl, CancellationToken cancellationToken = default);
+    Task<SelfUpdateResult> UpdateAsync(UpdateInfo info, CancellationToken cancellationToken = default);
 }

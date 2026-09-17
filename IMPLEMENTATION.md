@@ -3,7 +3,7 @@
 > **Призначення**: Як працюють сервіси, рушій розрахунку, експорт, валідація та інші компоненти.
 > Використовуй цей файл для розуміння внутрішньої логіки без читання вихідного коду.
 
-<!-- AUTO:stamp -->Verified: 2026-09-15, commit `2b4af5b` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-15, commit `66d7251` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -152,8 +152,12 @@ Calculate(config)
 
 ## 4. ConfigExportService — експорт Excel/PDF
 
-**Файл**: `ResourceCalculator.Core/Services/ConfigExportService.cs` (970 рядків)
-**Залежності**: EPPlus, QuestPDF
+**Файли**: `ConfigExportService.cs` (фасад) → `PdfReportBuilder.cs`, `ExcelReportBuilder.cs`, `ReportCommon.cs`
+**Залежності**: EPPlus (XLSX), QuestPDF (PDF) — див. нотатку про ліцензії в README «Ліцензії залежностей»
+
+> Було одним класом на ~1000 рядків із двома бібліотеками всередині; правка одного
+> звіту змушувала читати обидва. Публічний API фасада не змінився.
+> Тексти звітів — завжди українською, незалежно від мови UI (клієнтські документи).
 
 ### ExportExcel(req, config, envReports)
 Створює Excel-робочий аркуш:
@@ -242,30 +246,55 @@ Build()
 
 ## 7. AccessService — захист паролем
 
-**Файл**: `ResourceCalculator.Core/Services/AccessService.cs` (109 рядків)
-**Залежності**: `SHA256`, `RandomNumberGenerator`
-**Шлях**: `%LOCALAPPDATA%\ResourceCalculator\data\settings.json`
+**Файл**: `ResourceCalculator.Core/Services/AccessService.cs`
+**Залежності**: `Rfc2898DeriveBytes.Pbkdf2`, `RandomNumberGenerator`
+**Шляхи**: `%LOCALAPPDATA%\ResourceCalculator\data\settings.json` (хеш) і `lockout.json` (спроби)
 
-### Verify(password)
+> ⚠️ Конкретних паролів у документації немає й не має бути: репозиторій публічний.
+> Значення живе тільки у `settings.json` на машині користувача (ACL — лише поточний
+> обліковий запис), у вигляді PBKDF2-хеша.
+
+### Verify(password) / Verify(SecureString)
 ```
-1. Завантажити settings.json (hash + salt)
-2. Обчислити SHA-256 від password + salt
-3. Порівняти через CryptographicOperations.FixedTimeEquals (constant-time)
-4. Повернути true/false
+1. Перевірити блокування (lockout.json — переживає перезапуск процесу)
+2. Завантажити settings.json (MatrixPasswordHash + MatrixPasswordSalt + Iterations)
+3. Fail closed: немає файла або полів → відмова + реєстрація невдалої спроби
+4. PBKDF2-SHA256(password, salt, Iterations, 32 байти)
+   Легасі-файли без поля Iterations: single-round SHA-256 лише для міграції,
+   після успіху пароль одразу перехешовується в PBKDF2
+5. Порівняти через CryptographicOperations.FixedTimeEquals (constant-time)
 ```
+Перевантаження з `SecureString` не створює immutable-копій пароля в купі:
+BSTR → pinned `char[]` → UTF-8 байти, усе зануляється у `finally`.
 
 ### SetPassword(newPassword)
 ```
-1. Згенерувати випадковий salt (16 байт)
-2. Обчислити SHA-256(newPassword + salt)
-3. Зберегти у settings.json
+1. Відкинути пароль коротше 12 символів (виняток, не тихий no-op)
+2. Згенерувати випадковий salt (16 байт)
+3. PBKDF2-SHA256 з 210 000 ітерацій
+4. Атомарний запис у settings.json + ACL «тільки поточний користувач»
 ```
 
+### IsPasswordSet
+`true` лише якщо у файлі справді є непорожні `MatrixPasswordHash` і
+`MatrixPasswordSalt`. Раніше перевірялося саме існування файла: обірваний
+`settings.json` (файл є, полів немає) переводив UI у стан «пароль встановлено», а
+`Verify` завжди повертав false — доступ до матриці губився назовсім, без шляху
+відновлення з інтерфейсу.
+
 ### EnsureInitialized()
-Якщо `settings.json` не існує — створює з паролем за замовчуванням: `yF2jrX7inC4w`.
+Створює лише каталог даних. Вбудованого дефолтного пароля **немає** (fail closed):
+за відсутності `settings.json` перший запуск показує режим СТВОРЕННЯ пароля.
+
+### Блокування після невдалих спроб
+Прогресивна затримка 1с→2с→4с…→30с, після 10 спроб — блок на 5 хвилин. Лічильник і
+час лежать у `lockout.json` поряд із хешем: раніше вони жили лише в пам'яті процесу,
+тож і затримка, і блок обходилися звичайним перезапуском програми. Час із файла
+обрізається максимальним вікном блокування, щоб підправлений вручну `LockoutUntilUtc`
+не заблокував доступ назовсім.
 
 ### GetPasswordHint()
-Повертає контакти розробника: email + телефон.
+Повертає контакти підтримки — **лише пошти** (телефон свідомо не показуємо).
 
 ---
 
@@ -294,11 +323,12 @@ Build()
 **Файл**: `ResourceCalculator.Core/Services/SelfUpdateService.cs` (223 рядки)
 **Інтерфейс**: `ISelfUpdateService`
 
-### UpdateAsync(cancellationToken)
+### UpdateAsync(info, cancellationToken)
 ```
-1. Завантажити EXE з DownloadUrl (300с таймаут)
-2. Записати у тимчасовий файл
-3. Перевірити SHA-256 хеш (VerifyHashAsync)
+0. Відкинути, якщо UpdateInfo.Sha256 не є повним sha256 (fail closed ДО завантаження)
+1. Завантажити EXE з info.DownloadUrl (300с таймаут, allowlist хостів GitHub, ліміт 500 МБ)
+2. Записати у тимчасовий файл з випадковим іменем (проти squat/TOCTOU у %TEMP%)
+3. Перевірити SHA-256 проти info.Sha256 (VerifyHashAsync — лише диск, без мережі)
 4. Згенерувати .bat скрипт для заміни:
    - tasklist.exe чекає вихід процесу
    - Копіює новий EXE замість старого
@@ -309,6 +339,24 @@ Build()
 
 ### Прогрес
 Подія `Progress` звітує про завантаження кожні ~100мс.
+
+### Межа гарантії цілісності (важливо)
+Очікуваний SHA-256 приходить із поля `digest` того самого ассета GitHub API, з якого
+взято URL (`UpdateInfo.Sha256`). Отже перевірка захищає від **псування в дорозі**
+(обрив, проксі, підміна на шляху), але **не** від компрометації самого релізу або
+акаунта: хеш і файл походять з одного джерела.
+
+Раніше було гірше: `VerifyHashAsync` робив **другий** запит до `/releases/latest` уже
+після завантаження — зайвий удар по rate-limit (60/год на IP) і вікно, в яке «latest»
+міг стати наступним релізом, через що перевірка падала на цілком коректному файлі.
+
+Що закриває залишковий ризик (ще не зроблено):
+- Authenticode-підпис exe — `VerifyAuthenticodeIfPresent` уже вимагає валідний ланцюжок,
+  **якщо** підпис є; непідписані білди поки проходять із записом у лог. Стане
+  обов'язковим після отримання сертифіката CA.
+- `release.yml` уже публікує provenance-атестацію (`actions/attest-build-provenance`),
+  але застосунок її не перевіряє. Альтернатива без CA — minisign/sigstore-підпис у
+  workflow з публічним ключем, вшитим у застосунок.
 
 ---
 
@@ -322,8 +370,8 @@ Build()
 1. GET https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest
 2. Retry 3 рази з backoff (1с, 2с)
 3. Порівняти версії (парсинг Major.Minor.Patch, префікс v/суфікс +build відкидаються)
-4. Знайти в assets прямий browser_download_url ITE.ResourceCalculator.exe (+size) та body (нотатки)
-5. Повернути UpdateCheckResult(UpdateAvailable, UpdateInfo(Version, DownloadUrl, ReleaseNotes, SizeBytes))
+4. Знайти в assets прямий browser_download_url ITE.ResourceCalculator.exe (+size, +digest) та body (нотатки)
+5. Повернути UpdateCheckResult(UpdateAvailable, UpdateInfo(Version, DownloadUrl, ReleaseNotes, SizeBytes, Sha256))
    або NoUpdate / Failed (мережа, rate-limit, немає ассета — не кидає, пише в update-check.log)
 ```
 
@@ -379,7 +427,15 @@ Build()
 
 ## 14. MainViewModel — головний ViewModel
 
-**Файл**: `ResourceCalculator.Core/ViewModels/MainViewModel.cs` (675 рядків)
+**Файл**: `ResourceCalculator.Core/ViewModels/MainViewModel.cs`
+
+### ValidateInputs()
+Повертає текст помилки або `null`. `CalculateAsync` викликає його **перед** розрахунком
+і на помилці показує діалог, не рахуючи нічого. Раніше `GetConfig` на будь-яке
+нечислове/порожнє/нульове значення тихо брав 100 користувачів, а на сміття в обсягах
+БД — нулі: програма видавала правдоподібний звіт для зовсім іншого розміру, і в
+готовому PDF у клієнта це вже ніяк не видно. Межі — `MinUserCount=1`,
+`MaxUserCount=5000` (діапазон, у якому визначена матриця).
 
 ### Ключові властивості
 - `UserCount`, `DeploymentType`, `DatabaseType`, `LoadProfile`
@@ -408,7 +464,7 @@ Build()
 
 ## 15. MatrixViewModel — ViewModel матриці
 
-**Файл**: `ResourceCalculator.Core/ViewModels/MatrixViewModel.cs` (224 рядки)
+**Файл**: `ResourceCalculator.Core/ViewModels/MatrixViewModel.cs`
 
 ### Ключові властивості
 - `MsSqlRanges`, `AppServerRanges`, `WebServerRanges`, `PostgresRanges`, `OracleRanges`
@@ -420,6 +476,10 @@ Build()
 - `SaveMatrixCommand` — збереження
 - `RecalculateMatrixCommand` — перерахунок
 - `ResetMatrixCommand` — скидання до дефолтів
+
+Команди додавання рядка немає: модель матриці має рівно вісім слотів вузлів (`NodeSlot`),
+тож рядок без слота нікуди не зберігався б. Колишні `AddRowCommand`/`AddRowAsync` не були
+прив'язані ні до одного елемента XAML — мертвий код, що виглядав як робоча функція.
 
 ### EnsureUnlocked()
 Перевіряє пароль перед редагуванням матриці. Викликає `AccessService` → `PasswordDialog`.

@@ -2,12 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    # release/** теж збирається: реліз-гілка з кількома комітами раніше йшла до тега
+    # жодного разу не пройшовши pipeline.
+    branches: [ main, master, 'release/**' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, 'release/**' ]
 
 permissions:
   contents: read
+
+# Швидкі послідовні пуші не множать паралельні прогони (ліміти Actions).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-windows:
@@ -30,25 +37,45 @@ jobs:
     - name: Test with coverage
       run: dotnet test --no-restore --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
 
-    - name: Install coverage tool
-      run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.4.5
-
-    - name: Generate coverage report
-      run: reportgenerator -reports:coverage/**/coverage.cobertura.xml -targetdir:coverage/report -reporttypes:Html
-
-    - name: Check for vulnerable packages
-      run: dotnet list package --vulnerable --include-transitive || exit 1
-
-    - name: Upload coverage report
+    # HTML-звіт покриття більше не генеруємо на кожен прогін: це встановлення
+    # глобального тула + окремий крок заради артефакта, який майже ніхто не відкриває.
+    # Cobertura-XML лежить в артефакті — його читає і IDE, і будь-який зовнішній сервіс.
+    - name: Upload coverage (cobertura)
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
-        name: coverage-report
-        path: coverage/report
+        name: coverage-cobertura
+        path: coverage/**/coverage.cobertura.xml
 
+    # `dotnet list package --vulnerable` завершується кодом 0 навіть коли знаходить
+    # CVE — він лише друкує таблицю. Попередній `|| exit 1` не спрацьовував ніколи,
+    # тож крок лише виглядав як гейт. Тепер вирок ставиться за виводом.
+    - name: Check for vulnerable packages
+      shell: pwsh
+      run: |
+        $out = dotnet list package --vulnerable --include-transitive | Out-String
+        Write-Host $out
+        if ($out -match 'has the following vulnerable packages') {
+          Write-Host "::error::Знайдено уразливі пакети — див. таблицю вище"
+          exit 1
+        }
+        # Fail closed: якщо очікуваного «has no vulnerable packages» немає взагалі,
+        # значить команда не спрацювала або змінила формат виводу — не вдаємо,
+        # що перевірка пройшла.
+        if ($out -notmatch 'has no vulnerable packages') {
+          Write-Host "::error::Не вдалося розпізнати вивід dotnet list package --vulnerable"
+          exit 1
+        }
+        Write-Host "Уразливих пакетів не знайдено."
+
+    # Публікацію single-file exe (~150-200 МБ, найдовший крок) робимо лише на пушах
+    # у гілки. На PR вона нічого не перевіряє понад `dotnet build`, а релізний
+    # артефакт усе одно збирає release.yml.
     - name: Publish Windows (win-x64)
+      if: github.event_name == 'push'
       run: dotnet publish ResourceCalculator/ResourceCalculator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win
 
     - name: Upload Windows artifact
+      if: github.event_name == 'push'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: windows-publish

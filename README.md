@@ -166,7 +166,7 @@ dotnet build ResourceCalculator.slnx -c Release
 **Платформа:** C# / Avalonia (Windows) · .NET 10 · MVVM
 **Архітектура:** Microsoft.Extensions.DependencyInjection (DI-контейнер), `ResourceCalculator.Core` (спільна логіка)
 **Excel/PDF:** EPPlus 7.6 / QuestPDF 2026.6
-**Тести:** xUnit (131 тест) + збір звітів покриття (ReportGenerator)
+**Тести:** xUnit + збір покриття (cobertura)
 
 ---
 
@@ -188,7 +188,7 @@ ResourceCalculator.slnx
 │   ├── Interfaces/                  # абстракції UI-діалогів і сервісів
 │   ├── Data/                        # матриця сайзингу за замовчуванням
 │   └── Localization/                # рядки інтерфейсу (uk/en)
-├── ResourceCalculator.Tests/        # модульні тести (xUnit, 130)
+├── ResourceCalculator.Tests/        # модульні тести (xUnit)
 ├── .github/workflows/               # CI + реліз на push тегу
 ├── docs/                            # банер та скріншоти
 └── index.html                       # лендінг GitHub Pages
@@ -203,7 +203,31 @@ ResourceCalculator.slnx
 ---
 
 
-> **Внутрішнє використання.** Застосунок — власна розробка для своїх людей в компанії, розповсюджується лише всередині. Зовнішнє поширення бінарників (за межі компанії) не передбачено — зокрема через умови бібліотек звітів (EPPlus NonCommercial, QuestPDF Community).
+> **Внутрішнє використання.** Застосунок — власна розробка для своїх людей в компанії, розповсюджується лише всередині. Зовнішнє поширення бінарників (за межі компанії) не передбачено.
+
+---
+
+## ⚖️ Ліцензії залежностей (до вирішення)
+
+Код проєкту — MIT. Але дві бібліотеки звітів використовуються у безкоштовних режимах,
+умови яких **не покривають комерційну організацію**. Це відкрите питання до юридичної
+частини, а не технічний борг — код навмисно не переписувався.
+
+| Бібліотека | Режим у коді | Умова режиму | Статус |
+|---|---|---|---|
+| **EPPlus 7.6** | `ExcelPackage.LicenseContext = LicenseContext.NonCommercial` (`ExcelReportBuilder.cs`) | Polyform Noncommercial: лише некомерційне використання. Внутрішній інструмент комерційної компанії під це не підпадає | ⚠️ потрібна платна ліцензія **або** заміна на ClosedXML (MIT) |
+| **QuestPDF 2026.6** | `QuestPDF.Settings.License = LicenseType.Community` (`PdfReportBuilder.cs`) | Community: для організацій з річним доходом < $1M USD | ⚠️ перевірити відповідність, інакше Professional/Enterprise |
+
+**Варіанти вирішення:**
+1. Докупити ліцензії (EPPlus Commercial + QuestPDF Professional) — нічого не змінюється в коді.
+2. Перевести Excel-експорт на **ClosedXML** (MIT) — порт ~580 рядків `ExcelReportBuilder.cs`;
+   для PDF рівноцінної безкоштовної альтернативи немає, тож QuestPDF лишається питанням ліцензії.
+
+Доки бінарник не виходить за межі компанії, ризик обмежений, але формально режими
+порушено вже зараз. Рішення — за власником продукту.
+
+---
+
 ## 📜 Ліцензія
 
 [MIT](LICENSE) © [ajjs1ajjs](https://github.com/ajjs1ajjs)

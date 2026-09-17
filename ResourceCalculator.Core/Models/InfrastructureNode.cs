@@ -2,6 +2,10 @@ namespace ResourceCalculator.Models;
 
 public class InfrastructureNode
 {
+    // Роль вузла у матриці. Задається кодом (дефолти SizingMatrix), не користувачем:
+    // саме за нею MatrixManager повертає відредагований рядок гріда у правильний слот,
+    // бо Name — вільний текст і назви перетинаються між собою.
+    public NodeSlot Slot { get; set; } = NodeSlot.None;
     public string Name { get; set; } = "";
     public string Os { get; set; } = "";
     public double Cpu { get; set; }

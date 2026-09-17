@@ -52,7 +52,13 @@
 
   <Target Name="CleanPublishExtras" AfterTargets="Publish">
     <RemoveDir Directories="$(PublishDir)LatoFont" />
-    <Delete Files="$(PublishDir)$(AssemblyName).pdb" />
+    <!-- Усі .pdb, а не лише свій: Skia/HarfBuzz кладуть у publish ~105 МБ символів
+         (більше, ніж сам exe). У реліз вони й так не потрапляли (workflow вантажить
+         тільки exe), але засмічували артефакт CI і локальний publish. -->
+    <ItemGroup>
+      <PublishPdbFiles Include="$(PublishDir)*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(PublishPdbFiles)" />
   </Target>
 
 </Project>

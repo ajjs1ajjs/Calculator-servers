@@ -13,9 +13,6 @@ namespace ResourceCalculator.Services;
 
 public class SelfUpdateService : ISelfUpdateService
 {
-    private static readonly string ReleasesUrl = "https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest";
-    private const string ExpectedAssetName = "ITE.ResourceCalculator.exe";
-
     // Ліміт завантаження: захист від безмежного/брехливого стріму (лише дисковий DoS-бар'єр;
     // реальний exe ~100-200 МБ, беремо з запасом).
     private const long MaxDownloadBytes = 500L * 1024 * 1024;
@@ -33,10 +30,21 @@ public class SelfUpdateService : ISelfUpdateService
 
     public event DownloadProgressHandler? Progress;
 
-    public async Task<SelfUpdateResult> UpdateAsync(string downloadUrl, CancellationToken cancellationToken = default)
+    public async Task<SelfUpdateResult> UpdateAsync(UpdateInfo info, CancellationToken cancellationToken = default)
     {
+        if (info is null) return new SelfUpdateResult(SelfUpdateStatus.Failed, "Немає даних про оновлення");
+        var downloadUrl = info.DownloadUrl;
         if (!IsAllowedDownloadUrl(downloadUrl, out var urlError))
             return new SelfUpdateResult(SelfUpdateStatus.Failed, urlError);
+
+        // Fail closed до завантаження: без очікуваного хеша звіряти буде нічим,
+        // тож немає сенсу тягнути сотні мегабайт.
+        var expectedHash = NormalizeSha256(info.Sha256);
+        if (expectedHash is null)
+        {
+            Log("no sha256 digest for asset — update aborted");
+            return new SelfUpdateResult(SelfUpdateStatus.Failed, "Не вдалося перевірити цілісність оновлення");
+        }
 
         // Унікальне ім'я на завантаження: фіксований temp-файл у спільному каталозі
         // можна підмінити/зайняти іншим локальним процесом (squat/TOCTOU).
@@ -87,7 +95,7 @@ public class SelfUpdateService : ISelfUpdateService
             // й підміни exe, інакше SHA256 читав би заблокований файл.
             await fileStream.DisposeAsync();
 
-            var verify = await VerifyHashAsync(tempPath, cancellationToken);
+            var verify = await VerifyHashAsync(tempPath, expectedHash, cancellationToken);
             if (!verify.Ok)
                 return new SelfUpdateResult(SelfUpdateStatus.Failed, verify.Error ?? "Hash verification failed");
 
@@ -116,67 +124,44 @@ public class SelfUpdateService : ISelfUpdateService
         }
     }
 
-    // Fail closed: будь-яка невизначеність (мережа, відсутній digest, виняток) —
-    // це провал перевірки, оновлення переривається. Тихого «пускаємо далі» більше немає.
-    private async Task<(bool Ok, string? Error)> VerifyHashAsync(string filePath, CancellationToken cancellationToken)
+    // Очікуваний SHA-256 приходить із тієї самої відповіді GitHub API, у якій знайдено
+    // URL ассета (UpdateInfo.Sha256). Раніше цей метод робив ДРУГИЙ запит до
+    // /releases/latest уже після завантаження: зайвий удар по rate-limit (60/год на IP)
+    // і вікно, в яке «latest» міг стати наступним релізом — тоді перевірка падала на
+    // цілком коректному файлі. Мережі тут більше немає, лише читання з диска.
+    //
+    // Межа гарантії не змінилася: digest приходить з того ж джерела, що й файл, тож це
+    // захист від псування в дорозі, а не від компрометації релізу. Останнє закриває
+    // лише підпис (див. VerifyAuthenticodeIfPresent і нотатку в IMPLEMENTATION.md).
+    private static async Task<(bool Ok, string? Error)> VerifyHashAsync(
+        string filePath, string expectedHashHex, CancellationToken cancellationToken)
     {
         try
         {
-            using var response = await Http.GetAsync(ReleasesUrl, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            await using var fileStream = File.OpenRead(filePath);
+            var actual = await SHA256.HashDataAsync(fileStream, cancellationToken);
+            var expected = Convert.FromHexString(expectedHashHex);
+            if (!CryptographicOperations.FixedTimeEquals(actual, expected))
             {
-                Log($"hash UNVERIFIED: releases API HTTP {(int)response.StatusCode} — update aborted");
-                return (false, "Не вдалося перевірити цілісність оновлення");
+                Log("hash MISMATCH — update aborted");
+                return (false, "Контрольна сума оновлення не збіглася");
             }
-
-            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            if (!json.RootElement.TryGetProperty("assets", out var assets))
-            {
-                Log("hash UNVERIFIED: no assets in releases response — update aborted");
-                return (false, "Не вдалося перевірити цілісність оновлення");
-            }
-
-            foreach (var asset in assets.EnumerateArray())
-            {
-                if (!asset.TryGetProperty("name", out var nameProp)
-                    || nameProp.GetString() != ExpectedAssetName)
-                    continue;
-
-                if (!asset.TryGetProperty("digest", out var digestProp))
-                {
-                    Log("hash UNVERIFIED: asset has no digest — update aborted");
-                    return (false, "Не вдалося перевірити цілісність оновлення");
-                }
-                var expectedHash = digestProp.GetString() ?? "";
-                if (expectedHash.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
-                    expectedHash = expectedHash[7..];
-                if (string.IsNullOrWhiteSpace(expectedHash))
-                {
-                    Log("hash UNVERIFIED: empty digest — update aborted");
-                    return (false, "Не вдалося перевірити цілісність оновлення");
-                }
-
-                using var sha = SHA256.Create();
-                await using var fileStream = File.OpenRead(filePath);
-                var actual = sha.ComputeHash(fileStream);
-                var expected = Convert.FromHexString(expectedHash.Trim());
-                if (!CryptographicOperations.FixedTimeEquals(actual, expected))
-                {
-                    Log("hash MISMATCH — update aborted");
-                    return (false, "Контрольна сума оновлення не збіглася");
-                }
-                return (true, null);
-            }
-
-            Log("hash UNVERIFIED: expected asset not found — update aborted");
-            return (false, "Не вдалося перевірити цілісність оновлення");
+            return (true, null);
         }
         catch (Exception ex)
         {
             Log($"hash UNVERIFIED: {ex.GetType().Name} — update aborted");
             return (false, "Не вдалося перевірити цілісність оновлення");
         }
+    }
+
+    // Приймаємо і "sha256:<hex>", і чистий hex; усе інше — не хеш.
+    public static string? NormalizeSha256(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var hex = raw.Trim();
+        if (hex.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)) hex = hex[7..];
+        return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
     }
 
     // Якщо файл має Authenticode-підпис (майбутні підписані релізи) — вимагаємо валідний.
@@ -230,25 +215,20 @@ public class SelfUpdateService : ISelfUpdateService
         return false;
     }
 
-    private static void Log(string message)
-    {
-        Debug.WriteLine($"Self-update: {message}");
-        try
-        {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ResourceCalculator");
-            Directory.CreateDirectory(dir);
-            File.AppendAllText(Path.Combine(dir, "update-check.log"),
-                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} self-update: {message}" + Environment.NewLine);
-        }
-        catch { /* logging must never break the update */ }
-    }
+    private static void Log(string message) => GitHubRelease.Log("self-update", message);
 
     private void ApplyUpdate(string newExePath)
     {
-        var currentExe = Environment.ProcessPath ?? Assembly.GetExecutingAssembly().Location;
-        if (string.IsNullOrEmpty(currentExe)) return;
+        // Тільки Environment.ProcessPath. Фолбек на Assembly.Location тут був не просто
+        // марним, а й ламав publish: у single-file застосунку Location завжди повертає
+        // порожній рядок, і аналізатор IL3000 разом із TreatWarningsAsErrors валив
+        // `dotnet publish -p:PublishSingleFile=true` (збірка релізу) з помилкою.
+        var currentExe = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(currentExe))
+        {
+            Log("ApplyUpdate: Environment.ProcessPath недоступний — підміну exe скасовано");
+            return;
+        }
 
         var currentDir = Path.GetDirectoryName(currentExe);
         var oldExePath = Path.Combine(currentDir!, Path.GetFileName(currentExe) + ".old");

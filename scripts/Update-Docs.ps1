@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Sync docs with code (counters, version, stamps, API-drift detection).
@@ -55,6 +55,7 @@ $agents = Read-File 'AGENTS.md'
 $testsDoc = Read-File 'TESTS.md'
 $updateSvc = Read-File 'ResourceCalculator.Core/Interfaces/IUpdateCheckService.cs'
 $exportSvc = Read-File 'ResourceCalculator.Core/Services/ConfigExportService.cs'
+$matrixVm  = Read-File 'ResourceCalculator.Core/ViewModels/MatrixViewModel.cs'
 
 # --- Content-drift checks ---
 # 1. ARCHITECTURE must not describe WPF (Avalonia migration done in c98f90b)
@@ -64,7 +65,7 @@ foreach ($pat in $wpfPatterns) {
 }
 
 # 2. Code <-> docs symmetry for UpdateInfo fields
-foreach ($field in @('ReleaseNotes', 'SizeBytes')) {
+foreach ($field in @('ReleaseNotes', 'SizeBytes', 'Sha256')) {
     $inCode = $updateSvc.Contains($field)
     $inDoc = $func.Contains($field)
     if ($inCode -and -not $inDoc) { $failures += "FUNCTIONS.md misses UpdateInfo.$field (present in IUpdateCheckService.cs)" }
@@ -74,8 +75,33 @@ if ($exportSvc.Contains('ExportExcel(ResourceRequirement req, ProjectConfig conf
     -not $func.Contains('ExportExcel(ResourceRequirement req, ProjectConfig config')) {
     $failures += 'FUNCTIONS.md has old ExportExcel param order (must be req, config)'
 }
-foreach ($m in @('EnsureUnlockedAsync', 'AddRowCommand')) {
-    if (-not $func.Contains($m)) { $failures += "FUNCTIONS.md misses '$m' (present in MatrixViewModel)" }
+# Перевірка двонаправлена: раніше список був односторонній (тільки "немає в доці"),
+# тож видалений з коду AddRowCommand так і лишався задокументованим як робоча фіча.
+foreach ($m in @('EnsureUnlockedAsync', 'SaveMatrixCommand', 'ResetMatrixCommand', 'AddRowCommand')) {
+    # Шукаємо ОГОЛОШЕННЯ, а не підрядок: згадка в коментарі («раніше тут жив AddRowCommand»)
+    # не має вважатися наявним членом, інакше перевірка стає беззубою.
+    $inCode = $matrixVm -match ("(?m)^\s*(public|private|internal).*\b" + $m + "\b")
+    # Доку теж читаємо структурно: член вважається задокументованим, якщо стоїть
+    # у клітинці таблиці (| `Name` | ... |). Пояснення в прозі («колишній
+    # AddRowCommand прибрано») не має вважатися описом живого члена.
+    $docPattern = "(?m)^\|\s*" + [char]96 + $m + "(\(\))?" + [char]96
+    $inDoc = $func -match $docPattern
+    if ($inCode -and -not $inDoc) { $failures += "FUNCTIONS.md misses '$m' (present in MatrixViewModel)" }
+    if ($inDoc -and -not $inCode) { $failures += "FUNCTIONS.md mentions '$m' (gone from MatrixViewModel)" }
+}
+
+# 2b. Розділення експорту: доки мусять описувати білдери, а не один клас-моноліт.
+foreach ($cls in @('PdfReportBuilder', 'ExcelReportBuilder')) {
+    if (-not (Test-Path (Join-Path $Root "ResourceCalculator.Core/Services/$cls.cs"))) {
+        $failures += "Немає ResourceCalculator.Core/Services/$cls.cs"
+    }
+    if (-not $arch.Contains($cls)) { $failures += "ARCHITECTURE.md не згадує $cls" }
+}
+
+# 2c. Маппінг вузлів матриці — за NodeSlot, а не за назвою.
+$matrixMgr = Read-File 'ResourceCalculator.Core/Services/MatrixManager.cs'
+if ($matrixMgr -match 'Name\.Contains\("SQL"') {
+    $failures += 'MatrixManager знову маппить вузли за назвою (очікується NodeSlot)'
 }
 
 # 3. Numeric markers match code

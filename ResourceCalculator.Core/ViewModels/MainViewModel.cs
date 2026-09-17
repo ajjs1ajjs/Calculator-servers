@@ -371,10 +371,42 @@ public class MainViewModel : INotifyPropertyChanged
 
     #region Command Implementations
 
+    // Межі, у яких визначена матриця діапазонів користувачів.
+    public const int MinUserCount = 1;
+    public const int MaxUserCount = 5000;
+
+    // Явна перевірка введеного замість тихої підстановки. Раніше GetConfig на будь-яке
+    // нечислове/порожнє/нульове значення брав 100 користувачів, а на сміття в обсягах БД —
+    // нулі: програма видавала правдоподібний звіт для зовсім іншого розміру, і в готовому
+    // PDF у клієнта це вже ніяк не видно. Повертає текст помилки або null, якщо все гаразд.
+    public string? ValidateInputs()
+    {
+        var rawUsers = UserCount?.Trim() ?? "";
+        if (!int.TryParse(rawUsers, out var uc))
+            return string.Format(_loc["error.userCountNotNumber"], rawUsers, MinUserCount, MaxUserCount);
+        if (uc < MinUserCount || uc > MaxUserCount)
+            return string.Format(_loc["error.userCountRange"], uc, MinUserCount, MaxUserCount);
+
+        foreach (var (label, raw) in new[]
+                 {
+                     (_loc["env.dbData"], ProdDbSizeGb),
+                     (_loc["env.contentData"], ProdContentDbSizeGb)
+                 })
+        {
+            var trimmed = raw?.Trim() ?? "";
+            if (trimmed.Length == 0) continue;   // порожнє поле = 0, це свідомий стан
+            if (!int.TryParse(trimmed, out var size) || size < 0)
+                return string.Format(_loc["error.sizeNotNumber"], label.TrimEnd(':'), trimmed);
+        }
+        return null;
+    }
+
     private ProjectConfig GetConfig(int? userCountOverride = null)
     {
-        if (!int.TryParse(UserCount, out var uc) || uc < 1) uc = 100;
-        uc = Math.Clamp(uc, 1, 5000);
+        // Значення вже пройшли ValidateInputs() у CalculateAsync; Clamp лишається
+        // останнім бар'єром для рушія, а не способом «полагодити» введене.
+        _ = int.TryParse(UserCount?.Trim(), out var uc);
+        uc = Math.Clamp(uc, MinUserCount, MaxUserCount);
         if (!int.TryParse(ProdDbSizeGb, out var dbSize) || dbSize < 0) dbSize = 0;
         if (!int.TryParse(ProdContentDbSizeGb, out var contentSize) || contentSize < 0) contentSize = 0;
         return new ProjectConfig
@@ -400,6 +432,9 @@ public class MainViewModel : INotifyPropertyChanged
 
     private Task CalculateAsync()
     {
+        var invalid = ValidateInputs();
+        if (invalid is not null)
+            return _dialogs.ErrorAsync(invalid, _loc["error.title"]);
         try
         {
             var config = GetConfig();

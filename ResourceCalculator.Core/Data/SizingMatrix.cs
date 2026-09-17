@@ -16,7 +16,7 @@ public class SizingMatrix
     //     та повні редактори всіх діапазонів/вузлів. Старі збереження відкидаються.
     // v10: Лише один профіль навантаження (Performance) — прибрано Basic-версії діапазонів
     //      MSSQL/App/Web. Старі збереження відкидаються.
-    public const int CurrentSchemaVersion = 10;
+    public const int CurrentSchemaVersion = 11;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
     // Налаштування рушія розрахунку (редагуються через матрицю, зберігаються в matrix.json).
@@ -193,7 +193,7 @@ public class SizingMatrix
 
     public InfrastructureNode? DefaultK8sSql { get; set; } = new()
     {
-        Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, Ghz = 2.4, RamGb = 0, NodeCount = 1,
+        Slot = NodeSlot.K8sSql, Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, Ghz = 2.4, RamGb = 0, NodeCount = 1,
         StorageType = "SSD", StorageGb = 150,
         StorageType2 = "SSD", StorageGb2 = 150,
         StorageType3 = "SSD", StorageGb3 = 300,
@@ -204,19 +204,19 @@ public class SizingMatrix
     // postgres). Еталонний шаблон задавав 4/6, але на практиці master завжди 2/4.
     public InfrastructureNode? DefaultK8sMaster { get; set; } = new()
     {
-        Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
+        Slot = NodeSlot.K8sMaster, Name = "Master node", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 100
     };
 
     public InfrastructureNode? DefaultK8sWorker { get; set; } = new()
     {
-        Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, Ghz = 2.4, RamGb = 32, NodeCount = 1,
+        Slot = NodeSlot.K8sWorker, Name = "Worker-node", Os = "Ubuntu 24.04", Cpu = 8, Ghz = 2.4, RamGb = 32, NodeCount = 1,
         StorageType = "SSD", StorageGb = 200
     };
 
     public InfrastructureNode? DefaultWindowsSql { get; set; } = new()
     {
-        Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, Ghz = 2.4, RamGb = 0, NodeCount = 1,
+        Slot = NodeSlot.WindowsSql, Name = "SQL Server", Os = "Windows Server 2022", Cpu = 0, Ghz = 2.4, RamGb = 0, NodeCount = 1,
         StorageType = "SSD", StorageGb = 150,
         StorageType2 = "SSD", StorageGb2 = 150,
         StorageType3 = "SSD", StorageGb3 = 300,
@@ -225,13 +225,13 @@ public class SizingMatrix
 
     public InfrastructureNode? DefaultWindowsApp { get; set; } = new()
     {
-        Name = "Сервери додатків", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 0,
+        Slot = NodeSlot.WindowsApp, Name = "Сервери додатків", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 0,
         StorageType = "SSD", StorageGb = 150
     };
 
     public InfrastructureNode? DefaultWindowsWeb { get; set; } = new()
     {
-        Name = "Веб сервери (IIS)", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 0,
+        Slot = NodeSlot.WindowsWeb, Name = "Веб сервери (IIS)", Os = "Windows Server 2022", Cpu = 0, RamGb = 0, NodeCount = 0,
         StorageType = "SSD", StorageGb = 150
     };
 
@@ -240,7 +240,7 @@ public class SizingMatrix
     // HAProxy 2/4. SQL Secondary — клон первинного вузла БД (failover-кластер), без окремого дефолта.
     public InfrastructureNode? DefaultReportingServer { get; set; } = new()
     {
-        Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
+        Slot = NodeSlot.ReportingServer, Name = "Сервер звітів", Os = "Windows Server 2022", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 150, Iops = 250, IopsProfile = "50r/50w", Latency = 10
     };
 
@@ -248,7 +248,7 @@ public class SizingMatrix
     // жоден вендорський стандарт не задає тут IOPS/latency/pagefile/розподіл дисків.
     public InfrastructureNode? DefaultHaProxy { get; set; } = new()
     {
-        Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
+        Slot = NodeSlot.HaProxy, Name = "HAProxy", Os = "Ubuntu 24.04", Cpu = 2, Ghz = 2.4, RamGb = 4, NodeCount = 1,
         StorageType = "SSD", StorageGb = 100,
         DiskSplitNotApplicable = true, PageFileNotApplicable = true, IopsNotApplicable = true
     };

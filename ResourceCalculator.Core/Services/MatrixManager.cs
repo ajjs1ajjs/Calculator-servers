@@ -137,44 +137,32 @@ public class MatrixManager
         return candidate;
     }
 
-    // Правила злиття вузлів за іменами — в одному місці, перевикористовуються
-    // і бойовим шляхом, і валідаційним кандидатом.
+    // Розкладає відредаговані гріди вузлів по слотах матриці за явним Slot.
+    // Слот, якого немає у грідах, лишається з попереднім значенням; рядок без слота
+    // (NodeSlot.None) ігнорується — модель матриці має рівно ці вісім вузлів.
+    //
+    // Раніше маппінг ішов через Name.Contains(...) і ламався на назвах, що
+    // перетинаються: "Веб сервери (IIS)" містить "сервер" і потрапляв у слот
+    // сервера додатків раніше, ніж перевірялася гілка Web — правки веб-вузла
+    // губилися, а сервер додатків отримував чужі назву й диски.
     private static void ApplyNodes(SizingMatrix target,
         List<InfrastructureNode> k8s, List<InfrastructureNode> win, List<InfrastructureNode> opt)
     {
-        var (sql, master, worker) = SyncNodes(k8s);
-        if (sql != null) target.DefaultK8sSql = sql;
-        if (master != null) target.DefaultK8sMaster = master;
-        if (worker != null) target.DefaultK8sWorker = worker;
-        foreach (var n in win)
+        foreach (var n in k8s.Concat(win).Concat(opt))
         {
-            if (n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)) target.DefaultWindowsSql = n;
-            else if (n.Name.Contains("Сервер", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("App", StringComparison.OrdinalIgnoreCase)) target.DefaultWindowsApp = n;
-            else if (n.Name.Contains("Веб", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("IIS", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("Web", StringComparison.OrdinalIgnoreCase)) target.DefaultWindowsWeb = n;
+            if (n is null) continue;
+            switch (n.Slot)
+            {
+                case NodeSlot.K8sSql: target.DefaultK8sSql = n; break;
+                case NodeSlot.K8sMaster: target.DefaultK8sMaster = n; break;
+                case NodeSlot.K8sWorker: target.DefaultK8sWorker = n; break;
+                case NodeSlot.WindowsSql: target.DefaultWindowsSql = n; break;
+                case NodeSlot.WindowsApp: target.DefaultWindowsApp = n; break;
+                case NodeSlot.WindowsWeb: target.DefaultWindowsWeb = n; break;
+                case NodeSlot.ReportingServer: target.DefaultReportingServer = n; break;
+                case NodeSlot.HaProxy: target.DefaultHaProxy = n; break;
+            }
         }
-        foreach (var n in opt)
-        {
-            if (n.Name.Contains("звіт", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("report", StringComparison.OrdinalIgnoreCase)) target.DefaultReportingServer = n;
-            else if (n.Name.Contains("HAProxy", StringComparison.OrdinalIgnoreCase)
-                || n.Name.Contains("haproxy", StringComparison.OrdinalIgnoreCase)) target.DefaultHaProxy = n;
-        }
-    }
-
-    private static (InfrastructureNode? sql, InfrastructureNode? master, InfrastructureNode? worker)
-        SyncNodes(List<InfrastructureNode> nodes)
-    {
-        InfrastructureNode? sql = null, master = null, worker = null;
-        foreach (var n in nodes)
-        {
-            if (n.Name.Contains("SQL", StringComparison.OrdinalIgnoreCase)) sql = n;
-            else if (n.Name.Contains("Master", StringComparison.OrdinalIgnoreCase)) master = n;
-            else if (n.Name.Contains("Worker", StringComparison.OrdinalIgnoreCase)) worker = n;
-        }
-        return (sql, master, worker);
     }
 
     private static void SyncComponentsToModules(List<ServiceComponent> components, List<ProjectModule> modules)

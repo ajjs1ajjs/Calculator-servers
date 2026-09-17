@@ -14,9 +14,6 @@ namespace ResourceCalculator.Services;
 /// </summary>
 public class UpdateCheckService : IUpdateCheckService
 {
-    private const string LatestReleaseUrl =
-        "https://api.github.com/repos/ajjs1ajjs/Calculator-servers/releases/latest";
-
     private static readonly HttpClient Http = CreateHttpClient();
 
     private static HttpClient CreateHttpClient()
@@ -42,7 +39,7 @@ public class UpdateCheckService : IUpdateCheckService
         {
             try
             {
-                using var response = await Http.GetAsync(LatestReleaseUrl).ConfigureAwait(false);
+                using var response = await Http.GetAsync(GitHubRelease.LatestReleaseUrl).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     LogCheck($"HTTP {(int)response.StatusCode}");
@@ -71,10 +68,10 @@ public class UpdateCheckService : IUpdateCheckService
                 // Резолвимо прямий URL exe-ассета з того ж відповіді API, щоб далі качати
                 // саме файл, а не HTML-сторінку релізу (html_url). Жодних переходів
                 // у браузер: усе оновлення відбувається всередині програми.
-                var (assetUrl, assetSize) = FindExeAsset(root);
+                var (assetUrl, assetSize, assetSha) = FindExeAsset(root);
                 if (string.IsNullOrWhiteSpace(assetUrl))
                 {
-                    LogCheck($"no {ExeAssetName} asset in {tagName}");
+                    LogCheck($"no {GitHubRelease.ExeAssetName} asset in {tagName}");
                     return new UpdateCheckResult(UpdateCheckStatus.Failed);
                 }
 
@@ -83,7 +80,12 @@ public class UpdateCheckService : IUpdateCheckService
                 // не роздував діалог і пам'ять.
                 if (notes is not null && notes.Length > MaxNotesLength)
                     notes = notes[..MaxNotesLength] + "…";
-                return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable, new UpdateInfo(tagName, assetUrl, notes, assetSize));
+                // Порожній digest — не привід ховати оновлення: fail-closed зробить
+                // SelfUpdateService, коли не буде з чим звіряти завантажений файл.
+                if (string.IsNullOrWhiteSpace(assetSha))
+                    LogCheck($"asset in {tagName} has no sha256 digest — self-update will refuse it");
+                return new UpdateCheckResult(UpdateCheckStatus.UpdateAvailable,
+                    new UpdateInfo(tagName, assetUrl, notes, assetSize, assetSha));
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException)
             {
@@ -95,50 +97,50 @@ public class UpdateCheckService : IUpdateCheckService
         return new UpdateCheckResult(UpdateCheckStatus.Failed);
     }
 
-    private const string ExeAssetName = "ITE.ResourceCalculator.exe";
     private const int MaxNotesLength = 8000;
     // Розмір sanity-cap: брехливий size з API не має ламати форматування/UI.
     private const long MaxAssetSize = 2L * 1024 * 1024 * 1024;
 
-    // Шукає прямий browser_download_url exe-ассета у вже отриманому JSON релізу.
-    private static (string? Url, long Size) FindExeAsset(JsonElement root)
+    // Шукає прямий browser_download_url exe-ассета і його digest у вже отриманому
+    // JSON релізу — щоб SelfUpdateService не робив другий запит до API за хешем.
+    private static (string? Url, long Size, string? Sha256) FindExeAsset(JsonElement root)
     {
         try
         {
-            if (!root.TryGetProperty("assets", out var assets)) return (null, 0);
+            if (!root.TryGetProperty("assets", out var assets)) return (null, 0, null);
             foreach (var asset in assets.EnumerateArray())
             {
                 if (!asset.TryGetProperty("name", out var nameProp)
-                    || nameProp.GetString() != ExeAssetName)
+                    || nameProp.GetString() != GitHubRelease.ExeAssetName)
                     continue;
                 if (!asset.TryGetProperty("browser_download_url", out var urlProp))
-                    return (null, 0);
+                    return (null, 0, null);
                 var url = urlProp.GetString();
                 var size = asset.TryGetProperty("size", out var sizeProp) && sizeProp.TryGetInt64(out var s) ? s : 0;
                 if (size < 0 || size > MaxAssetSize) size = 0;
-                return (url, size);
+                return (url, size, ParseDigest(asset));
             }
         }
         catch (InvalidOperationException) { }
-        return (null, 0);
+        return (null, 0, null);
+    }
+
+    // digest приходить як "sha256:<64 hex>"; інші алгоритми/форми не приймаємо.
+    public static string? ParseDigest(JsonElement asset)
+    {
+        if (!asset.TryGetProperty("digest", out var digestProp)) return null;
+        var raw = digestProp.GetString();
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        raw = raw.Trim();
+        if (!raw.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)) return null;
+        var hex = raw[7..];
+        return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
     }
 
     private static Task DelayBackoff(int attempt) =>
         Task.Delay(TimeSpan.FromSeconds(attempt));
 
-    private static void LogCheck(string message)
-    {
-        Debug.WriteLine($"Update check: {message}");
-        try
-        {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ResourceCalculator");
-            Directory.CreateDirectory(dir);
-            File.AppendAllText(Path.Combine(dir, "update-check.log"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}\n");
-        }
-        catch { /* logging must never break the app */ }
-    }
+    private static void LogCheck(string message) => GitHubRelease.Log("update-check", message);
 
     private static string GetCurrentVersion()
     {

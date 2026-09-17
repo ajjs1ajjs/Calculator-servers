@@ -40,10 +40,25 @@
 - **Оновлення всередині програми** (`c98f90b`): `UpdateCheckService` резолвить прямий `browser_download_url` exe-ассета + `body`/`size`; `UpdateInfo(Version, DownloadUrl, ReleaseNotes?, SizeBytes)`; `Views/UpdateAvailableDialog` (чипи версій, розмір, «Що нового», Пізніше/Оновити зараз); `Views/UpdateProgressDialog` (етап, `%`, завантажено/всього, Скасувати; після помилки — Закрити/Спробувати ще, retry-цикл в `App.StartUpdateAsync`; після успіху пауза 1.5с → `Environment.Exit(0)`); нові ключі локалізації `update.*` + `dialog.yes/no` (uk+en).
 - **Іконка exe** (`80d14d9`): потрібні ОДНОЧАСНО `<ApplicationIcon>icon.ico</ApplicationIcon>` і `TargetFramework=net10.0-windows` — з чистим `net10.0` MSBuild мовчки ігнорує ApplicationIcon.
 
+### Другий блок (раунд зауважень, вересень 2026)
+
+- **🔴 Розблоковано збірку релізу.** `dotnet publish -p:PublishSingleFile=true` падав з `error IL3000` (`SelfUpdateService.ApplyUpdate`: `Assembly.GetExecutingAssembly().Location` у single-file завжди порожній, а `TreatWarningsAsErrors=true` з `2b4af5b` робить це помилкою). Реліз був зламаний з `2b4af5b` — 1 жовтня відкладений реліз впав би на publish. Не помітили, бо обидва останні коміти з `[skip ci]`, а CI не слухав `release/**`. Фолбек прибрано (лишився `Environment.ProcessPath`), CI тепер слухає `release/**` і робить publish на push. ⚠️ Мораль: `[skip ci]` + відсутність CI на реліз-гілці = поломка релізу, яку видно тільки в день релізу.
+- **Виправлено маппінг вузлів матриці** (`MatrixManager.ApplyNodes`): був через `Name.Contains("SQL"/"Сервер"/"Web")`, і назва «Веб сервери (IIS)» містить «сервер» → падала у слот сервера додатків раніше, ніж перевірялася гілка Web. Наслідок: після «Зберегти матрицю» сервер додатків у звіті отримував назву й диски веб-сервера, а правки веб-вузла зникали. Тепер — явний `InfrastructureNode.Slot` (`NodeSlot`), `SchemaVersion 10 → 11`, `MatrixValidator` відкидає файл із чужим слотом. Регресія: `MatrixNodeSlotTests`.
+- **Розділено `ConfigExportService`** (~1000 рядків, дві бібліотеки в одному класі) на `ConfigExportService` (фасад) + `PdfReportBuilder` + `ExcelReportBuilder` + `ReportCommon`. Публічний API не змінився.
+- **Явна валідація введеного** (`MainViewModel.ValidateInputs`): нечислова/нульова к-сть користувачів більше не підмінюється тихо на 100 — розрахунок не виконується, показується помилка. Те саме для обсягів БД/Content.
+- **Оновлення**: `UpdateInfo.Sha256` резолвиться разом з URL ассета; `SelfUpdateService` більше не робить другий запит до `/releases/latest` за digest після завантаження (rate-limit + вікно, в яке «latest» ставав іншим релізом) і відмовляється качати без валідного sha256. Спільні константи й лог — `GitHubRelease.cs`.
+- **`AccessService`**: `IsPasswordSet` перевіряє наявність полів хеша/солі, а не самого файла (обірваний `settings.json` назовсім забирав доступ); лічильник спроб і блокування переїхали в `lockout.json` (раніше жили в пам'яті → обходилися рестартом). Сам пароль і крипто не змінювалися.
+- **Прибрано мертвий `AddRowCommand`/`AddRowAsync`** з `MatrixViewModel` — не були прив'язані ні до одного елемента XAML.
+- **CI**: `ci.yml` слухає ще й `release/**` (гілка релізу раніше йшла до тега без жодного прогону), `concurrency` скасовує застарілі прогони, гейт уразливих пакетів реально падає (`dotnet list package --vulnerable` завершується кодом 0 навіть коли знаходить CVE — попередній `|| exit 1` не спрацьовував ніколи), publish exe лише на push, HTML-звіт покриття замінено на cobertura-артефакт. `release.yml` отримав `workflow_dispatch` з полем тега.
+- **Доки**: прибрано дефолтний пароль з `IMPLEMENTATION.md` і телефон з `AGENTS.md` (репозиторій публічний); `README` отримав секцію «Ліцензії залежностей»; `Update-Docs.ps1` тепер перевіряє двонаправлено (видалений з коду член, що лишився в доці, ловиться) і має UTF-8 BOM (PS 5.1 інакше ламався на кирилиці).
+- **Нові тести**: `MatrixNodeSlotTests` (5), `LocalizationTests` (парність uk/en), валідація введення в `MainViewModelTests`, digest-перевірки в `SecurityRegressionTests`. Разом <!-- AUTO:tests-total -->185<!-- /AUTO -->.
+
 ## Відкладений реліз 1 жовтня 2026 (ліміти Actions)
 
 - Код чекає в гілці `release/oct-1` (поточна гілка, в синхроні з origin); у `main` лише guard `[skip actions]` у `ci.yml` + `.github/workflows/deferred-release.yml`. У staging-гілці цих файлів свідомо немає (guard лише в main, scheduler живе тільки в main) — не копіювати їх у `release/oct-1`.
-- 2026-10-01 03:00 UTC scheduler хмарно: мердж `release/oct-1` (`-X theirs` + повернення guard), бамп `AppVersion → 2.4.13`, тег `v2.4.13` → штатний `release.yml` публікує реліз. Ручний запуск — кнопка Run workflow. ⚠️ Після мерджу staging-версія файлів перемагає — доки комітити тільки в `release/oct-1`, не в `main`.
+- 2026-10-01 03:00 UTC scheduler хмарно: мердж `release/oct-1` (`-X theirs` + повернення guard), бамп `AppVersion → 2.5.0`, тег `v2.5.0` → штатний `release.yml` публікує реліз. Ручний запуск — кнопка Run workflow. ⚠️ Після мерджу staging-версія файлів перемагає — доки комітити тільки в `release/oct-1`, не в `main`.
+- **Чому 2.5.0, а не 2.4.13** (дефолт у `deferred-release.yml` змінено): реліз накопичив міграцію на Avalonia, вбудоване оновлення, раунд безпеки, виправлення розрахунку (маппінг вузлів) і бамп `SchemaVersion 10 → 11`. Останнє означає, що збережений `matrix.json` у користувачів відкидається й матриця повертається до дефолтів коду — це помітна для користувача зміна, патч-версією її позначати не можна. ⚠️ Згадати про скидання матриці в нотатках релізу.
+- ⚠️ `[skip ci]` у повідомленні коміта пропускає workflow для **будь-якої** push-події, включно з пушем тега. Ручне тегування поточного HEAD (два останні коміти з `[skip ci]`) релізу не запустить. `deferred-release.yml` цього не боїться: він сам створює коміт `chore: bump version to X` без маркера і тегує саме його. Аварійний вихід — `release.yml` → Run workflow з полем «Тег релізу».
 - ⚠️ До 1 жовтня не пушити в `main` (щоб не з'їсти ліміти і не розійтись зі staging). Пуші в `release/*` CI не тригерять (CI слухає лише main/master) — вони безкоштовні.
 
 ## Ключові факти стану (на 2026-09-15, гілка `release/oct-1`)
@@ -51,7 +66,7 @@
 - **Поточна версія: <!-- AUTO:app-version -->2.4.12<!-- /AUTO -->** (`AppVersion` у `Directory.Build.props`; 2.4.13 буде виставлено автоматично 1 жовтня). UI — Avalonia 12.1.2, тільки світла тема, Windows portable.
 - Останні коміти (від новіших): `398ecf2` (нотатка про іконку), `80d14d9` (іконка ApplicationIcon + net10.0-windows), `c98f90b` (Avalonia-міграція + вікна оновлення — стейджинг для 1 жовтня), `bee9e9e` (документація ARCHITECTURE/DATA-MODELS/IMPLEMENTATION/FUNCTIONS/TESTS), далі `ce94295`/`02f99f1`/`ffd4c9d` (див. `git log`).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
-- **Тестів: <!-- AUTO:tests-total -->157<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
+- **Тестів: <!-- AUTO:tests-total -->185<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
 ## Архітектура (після рефакторингу)
 
@@ -72,7 +87,10 @@
 - Зміна чутливих даних матриці (Save/Recalculate/Reset/додавання рядків/редагування клітинки) потребує пароля. Редагування клітинки — через `BeginningEdit` (`MatrixTabControl.xaml.cs`): скасування + асинхронний пароль через `Dispatcher.UIThread.Post` (діалог всередині події DataGrid зависає) + повторний `BeginEdit` після розблокування.
 - Усі таблиці матриці заблоковані (`IsReadOnly={Binding MatrixVM.IsUnlocked, Converter=BoolInverse}` — конвертер зареєстровано в `App.xaml`), панель Engine — `IsEnabled` від `IsUnlocked`; розблоковуються на сесію після `EnsureUnlockedAsync()` (парольний діалог). Синхронний шим `EnsureUnlocked()` прибрано (дедлок на UI-потоці).
 - `AccessService` — PBKDF2-SHA256 (210k ітерацій) + сіль 16Б + поле `Iterations`, файл `settings.json` у `%LOCALAPPDATA%\ResourceCalculator\data\` з ACL тільки поточному користувачеві. Легасі SHA-256 приймається лише для міграції (одразу перехешовується).
-- Вбудованого дефолтного пароля НЕМАЄ (fail closed): за відсутності `settings.json` перший запуск показує режим СТВОРЕННЯ пароля (мінімум 12 символів). Невдалі спроби — прогресивна затримка 1с→30с, після 10 — блок на 5 хв.
+- Вбудованого дефолтного пароля НЕМАЄ (fail closed): за відсутності `settings.json` перший запуск показує режим СТВОРЕННЯ пароля (мінімум 12 символів). Невдалі спроби — прогресивна затримка 1с→30с, після 10 — блок на 5 хв; лічильник у `lockout.json` (переживає перезапуск).
+- `IsPasswordSet` перевіряє НАЯВНІСТЬ полів хеша/солі, а не самого файла: обірваний `settings.json` інакше означав «пароль є», а `Verify` завжди false → доступ губився назовсім.
+- ⚠️ **Межа фічі.** Це запобіжник від випадкової/недбалої правки матриці в UI, а не криптозахист даних: `matrix.json` лежить відкритим JSON у `%LOCALAPPDATA%`, а дефолти матриці скомпільовані в exe і відкриті у `SizingMatrix.cs` публічного репозиторію. Не описувати це як «захист чутливих даних» — і не будувати на цьому рішень.
+- ⚠️ Репозиторій мусить лишатися **публічним**: вбудоване оновлення читає GitHub Releases API без авторизації. Приватний репозиторій зламає самооновлення в усіх установках.
 - Діалог: `Views/PasswordDialog.*` (розблокування / створення; TextBox+PasswordChar — штатного PasswordBox в Avalonia 12 немає).
 - `AccessService` зареєстровано в DI (`App.xaml.cs`), передається в `MatrixViewModel`.
 
@@ -117,16 +135,17 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
   Порядок: бампнути `AppVersion` у `Directory.Build.props` → коміт → `git push origin main` → `git tag vX.Y.Z && git push origin vX.Y.Z`.
 - `.github/workflows/release.yml` — реліз на push тега `v*`: build → test → publish self-contained exe (тільки win-x64) → GitHub Release з одним артефактом.
   Нотатки генеруються автоматично (`--generate-notes`).
-- `.github/workflows/ci.yml` — CI на push у `main`/PR: build + test + coverage (ReportGenerator) + перевірка вразливих пакетів + publish exe як артефакт.
+- `.github/workflows/ci.yml` — CI на push у `main`/`master`/`release/**` і PR: build + test + coverage (cobertura-артефакт) + реальний гейт уразливих пакетів + publish exe (лише на push). `concurrency: ci-${{ github.ref }}` з `cancel-in-progress`.
+- ⚠️ **Бамп-коміт версії — завжди без `[skip ci]`.** GitHub пропускає workflow для будь-якої push-події з цим маркером у головному коміті, включно з пушем тега: тег на такому коміті релізу не запустить. Аварійний вихід — ручний запуск `release.yml` (`workflow_dispatch`, поле «Тег релізу»).
 - ⚠️ Тексти релізів/CHANGELOG — **тільки українською**. Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
 - Реліз без підпису: MSI-інсталятор, `sign.ps1` і самопідписаний сертифікат прибрано разом із `release.ps1` — SmartScreen попереджатиме, доки не буде сертифіката від CA.
 - **⚠️ Кирилиця в коді**: файли `.cs/.xaml/.csproj` мають бути UTF-8 (без BOM ок). Не використовувати PowerShell `Set-Content` для перезапису .cs/.xaml — псує кодування; використовувати edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
 
 ## Контакти та поточні домовленості
 
-- Розробник: пошти `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`, тел. `+380979454941`.
+- Розробник: пошти `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`. **Телефон у репозиторії не тримаємо** — репозиторій публічний; у UI теж лише пошти (`AccessService.DevContacts`).
 - Користувач тестує v2.0.2. Наступні зміни/релізи — за його відгуком після тестів.
-- Пароль матриці змінюється тільки перегенерацією через діалог розблокування (кнопки «Змінити пароль» немає), дефолт див. вище.
+- Пароль матриці змінюється тільки перегенерацією через діалог розблокування (кнопки «Змінити пароль» немає). **Вбудованого дефолта немає** (fail closed): без `settings.json` перший запуск пропонує СТВОРИТИ пароль. ⚠️ Конкретних паролів у репозиторії не тримаємо — він публічний.
 - README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 130/License/Platform), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
 - ⚠️ GitHub кешує зображення через camo. Якщо прев'ю/фото на сторінці «не те»: додавати кеш-бастер `?v=N` до URL у README, а найнадійніше — **перейменувати файл** (новий шлях = новий URL без кешу). Останній скріншот — `main.png` (вкладка «Параметри розрахунку»).
 
@@ -141,8 +160,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 | Документ | Звірено з комітом | Дата |
 |---|---|---|
-| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-15<!-- /AUTO --> |
-| DATA-MODELS.md | <!-- AUTO:data-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-15<!-- /AUTO --> |
-| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-15<!-- /AUTO --> |
-| FUNCTIONS.md | <!-- AUTO:func-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-15<!-- /AUTO --> |
-| TESTS.md | <!-- AUTO:tests-commit -->`2b4af5b`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-15<!-- /AUTO --> |
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-15<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-15<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-15<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-15<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`66d7251`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-15<!-- /AUTO --> |

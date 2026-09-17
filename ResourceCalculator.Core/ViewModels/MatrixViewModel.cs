@@ -38,14 +38,17 @@ public class MatrixViewModel : INotifyPropertyChanged
     // Налаштування рушія (редагування через матрицю).
     public EngineSettings Engine { get; private set; } = new();
 
+    // Кнопок «Додати рядок» для таблиць вузлів немає свідомо: модель матриці має рівно
+    // вісім слотів (NodeSlot), тож новий рядок без слота нікуди не зберігався б. Раніше
+    // тут жили AddRowCommand/AddRowAsync, не прив'язані ні до одного елемента XAML —
+    // мертвий код, який виглядав як робоча функція.
+
     // Допустимі формули реплік для колонки «Формула» (DataGridComboBoxColumn).
     public IReadOnlyList<ReplicaFormula> FormulaOptions { get; } = Enum.GetValues<ReplicaFormula>();
 
     public ICommand SaveMatrixCommand { get; }
     public ICommand RecalculateMatrixCommand { get; }
     public ICommand ResetMatrixCommand { get; }
-    // Додавання нового рядка в одну з таблиць матриці.
-    public ICommand AddRowCommand { get; }
 
     public event System.Action? MatrixChanged;
 
@@ -69,7 +72,6 @@ public class MatrixViewModel : INotifyPropertyChanged
         SaveMatrixCommand = new RelayCommand(_ => SaveMatrix());
         RecalculateMatrixCommand = new RelayCommand(_ => RecalculateMatrix());
         ResetMatrixCommand = new RelayCommand(_ => ResetMatrix());
-        AddRowCommand = new RelayCommand(p => AddRow(p?.ToString()));
     }
 
     // Розблоковано (пароль підтверджено) — дозволяє змінювати чутливі дані матриці.
@@ -221,31 +223,6 @@ public class MatrixViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(InfraNodes));
         OnPropertyChanged(nameof(WindowsInfraNodes));
         OnPropertyChanged(nameof(OptionalInfraNodes));
-    }
-
-    private void AddRow(string? key)
-    {
-        _ = AddRowAsync(key).ContinueWith(t =>
-            System.Diagnostics.Debug.WriteLine($"AddRowAsync crashed: {t.Exception?.InnerException?.Message}"),
-            TaskContinuationOptions.OnlyOnFaulted);
-    }
-
-    // Додавання рядка мутує живі колекції — теж вимагає розблокування.
-    private async Task AddRowAsync(string? key)
-    {
-        if (!await EnsureUnlockedAsync()) return;
-        switch (key)
-        {
-            case "MsSql": MsSqlRanges.Add(new UserLoadRange()); break;
-            case "AppServer": AppServerRanges.Add(new UserLoadRange()); break;
-            case "WebServer": WebServerRanges.Add(new UserLoadRange()); break;
-            case "Postgres": PostgresRanges.Add(new UserLoadRange()); break;
-            case "Oracle": OracleRanges.Add(new UserLoadRange()); break;
-            case "K8s": K8sDocumentFlowComponents.Add(new ServiceComponent { Name = "New component", Formula = ReplicaFormula.Fixed }); break;
-            case "Infra": InfraNodes.Add(new InfrastructureNode()); break;
-            case "WindowsInfra": WindowsInfraNodes.Add(new InfrastructureNode()); break;
-            case "OptionalInfra": OptionalInfraNodes.Add(new InfrastructureNode()); break;
-        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

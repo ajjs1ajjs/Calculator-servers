@@ -90,6 +90,38 @@ public class SecurityRegressionTests
         Assert.Equal(expected, SelfUpdateService.IsAllowedDownloadUrl(url, out _));
     }
 
+    // Перевірка цілісності оновлення тепер звіряється з digest, що приїхав разом
+    // з URL ассета. Сміття/чужий алгоритм/обрізаний хеш мусять відкидатися ДО
+    // завантаження, інакше fail-closed перетворюється на «перевірили якось».
+    [Theory]
+    [InlineData("sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", true)]
+    [InlineData("9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08", true)]
+    [InlineData("  sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08  ", true)]
+    [InlineData("sha512:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", false)]
+    [InlineData("9f86d081", false)]
+    [InlineData("zzzzd081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08!", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void NormalizeSha256_AcceptsOnlyFullSha256(string? raw, bool expected)
+    {
+        Assert.Equal(expected, SelfUpdateService.NormalizeSha256(raw) is not null);
+    }
+
+    [Fact]
+    public async Task SelfUpdate_WithoutDigest_RefusesBeforeDownload()
+    {
+        var svc = new SelfUpdateService();
+        var info = new ResourceCalculator.Interfaces.UpdateInfo(
+            "v9.9.9",
+            "https://github.com/ajjs1ajjs/Calculator-servers/releases/download/v9.9.9/ITE.ResourceCalculator.exe",
+            Sha256: null);
+
+        var result = await svc.UpdateAsync(info);
+
+        Assert.Equal(ResourceCalculator.Interfaces.SelfUpdateStatus.Failed, result.Status);
+        Assert.Contains("цілісність", result.Error);
+    }
+
     [Fact]
     public void GetSeverity_DegenerateInputs_ReturnUnknown()
     {

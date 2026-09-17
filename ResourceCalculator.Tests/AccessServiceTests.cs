@@ -109,8 +109,11 @@ public class AccessServiceTests
     {
         Assert.Contains("yaroslav.andreichuk@gmail.com", AccessService.DevContacts);
         Assert.Contains("andreichuk.y@it-enterprise.com", AccessService.DevContacts);
-        // Телефон у парольній підказці не світимо.
-        Assert.DoesNotContain("+380979454941", AccessService.DevContacts);
+        // Телефон у парольній підказці не світимо. Перевіряємо ПАТЕРНОМ, а не конкретним
+        // номером: сам номер у публічному репозиторії теж тримати не варто, а регресію
+        // «знову додали телефон» ловить будь-який +380… чи довга цифрова послідовність.
+        Assert.DoesNotContain("+380", AccessService.DevContacts);
+        Assert.DoesNotMatch(@"\d{6,}", AccessService.DevContacts);
     }
 
     [Fact]
@@ -122,7 +125,8 @@ public class AccessServiceTests
             var hint = svc.GetPasswordHint();
             Assert.Contains("yaroslav.andreichuk@gmail.com", hint);
             Assert.Contains("andreichuk.y@it-enterprise.com", hint);
-            Assert.DoesNotContain("+380979454941", hint);
+            Assert.DoesNotContain("+380", hint);
+            Assert.DoesNotMatch(@"\d{6,}", hint);
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
