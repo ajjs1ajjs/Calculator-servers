@@ -3,7 +3,6 @@
 # IT-Enterprise Resource Calculator — Source Code
 
 [![Deployed to](https://img.shields.io/badge/Deployed_to-Calculator--servers-blue)](https://github.com/ajjs1ajjs/Calculator-servers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Це репозиторій з вихідним кодом IT-Enterprise Resource Calculator.**
 > Готовий продукт деплоїться в: **https://github.com/ajjs1ajjs/Calculator-servers**
@@ -17,10 +16,9 @@
 [![Release](https://img.shields.io/github/v/release/ajjs1ajjs/Calculator-servers?label=release&color=7B2FFF)](https://github.com/ajjs1ajjs/Calculator-servers/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ajjs1ajjs/Calculator-servers/total?label=downloads&color=00E5FF)](https://github.com/ajjs1ajjs/Calculator-servers/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ajjs1ajjs/Calculator-servers/ci.yml?label=CI)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
-[![Tests](https://img.shields.io/badge/tests-130%20passing-00C853)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
+[![Tests](https://img.shields.io/badge/tests-185%20passing-00C853)](https://github.com/ajjs1ajjs/Calculator-servers/actions)
 [![Platform](https://img.shields.io/badge/platform-Windows-00E5FF)]()
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)]()
-[![License](https://img.shields.io/badge/license-MIT-26A69A)](LICENSE)
 
 **Avalonia · MVVM · .NET 10** — десктоп-застосунок для автоматизованого розрахунку ресурсів IT-інфраструктури.
 Працює на **Windows 10/11**.
@@ -209,9 +207,10 @@ ResourceCalculator.slnx
 
 ## ⚖️ Ліцензії залежностей (до вирішення)
 
-Код проєкту — MIT. Але дві бібліотеки звітів використовуються у безкоштовних режимах,
-умови яких **не покривають комерційну організацію**. Це відкрите питання до юридичної
-частини, а не технічний борг — код навмисно не переписувався.
+Власної ліцензії проєкт не має свідомо (див. «Права» нижче). Але дві бібліотеки звітів
+використовуються у безкоштовних режимах, умови яких **не покривають комерційну
+організацію**. Це відкрите питання до юридичної частини, а не технічний борг — код
+навмисно не переписувався.
 
 | Бібліотека | Режим у коді | Умова режиму | Статус |
 |---|---|---|---|
@@ -228,9 +227,18 @@ ResourceCalculator.slnx
 
 ---
 
-## 📜 Ліцензія
+## 📜 Права
 
-[MIT](LICENSE) © [ajjs1ajjs](https://github.com/ajjs1ajjs)
+**Усі права застережено.** Ліцензії проєкт не має свідомо — репозиторій публічний лише
+технічно (вбудоване оновлення читає GitHub Releases API без авторизації), а не для
+повторного використання. Відсутність ліцензії означає, що права за замовчуванням не
+надаються нікому: копіювання, використання, модифікація й поширення коду та бінарників
+поза компанією не дозволені.
+
+Раніше тут стояв MIT. Його прибрано, бо він одночасно віддавав внутрішній інструмент
+разом із матрицею сайзингу в публічне користування **і** формально суперечив умовам
+залежностей (EPPlus — Polyform Noncommercial; MIT-ліцензувати роботу, що лінкує
+noncommercial-only код, не можна).
 
 ---
 

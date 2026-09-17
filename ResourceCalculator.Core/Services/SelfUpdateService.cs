@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -99,7 +100,11 @@ public class SelfUpdateService : ISelfUpdateService
             if (!verify.Ok)
                 return new SelfUpdateResult(SelfUpdateStatus.Failed, verify.Error ?? "Hash verification failed");
 
-            VerifyAuthenticodeIfPresent(tempPath);
+            if (!VerifyAuthenticode(tempPath, out var signError))
+            {
+                Log($"signature REJECTED: {signError}");
+                return new SelfUpdateResult(SelfUpdateStatus.Failed, signError);
+            }
 
             ApplyUpdate(tempPath);
             keepTemp = true;
@@ -164,35 +169,184 @@ public class SelfUpdateService : ISelfUpdateService
         return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
     }
 
-    // Якщо файл має Authenticode-підпис (майбутні підписані релізи) — вимагаємо валідний.
-    // Непідписані білди пропускаємо з записом у лог (підпис стане обов'язковим після впровадження CA).
-    private static void VerifyAuthenticodeIfPresent(string filePath)
+    // Пін сертифіката підпису: SHA-256 відбиток. Сертифікат самопідписаний
+    // (внутрішній інструмент, публічної CA немає), тому довіру дає не системне
+    // сховище, а саме цей пін — оновлення приймається ЛИШЕ від нього.
+    // Зміна сертифіката = зміна цієї константи + новий PFX у секретах репозиторію.
+    public const string SigningCertSha256Thumbprint =
+        "BA28C80D64940AE5453C4FD1DD4560AC5C27E0BF6DEDF3C580822A7B9788328E";
+
+    // Обов'язкова перевірка Authenticode завантаженого exe. Раніше була
+    // «перевіримо, якщо підпис є» з лише записом у лог — тобто непідписаний або
+    // підписаний будь-ким файл проходив далі.
+    //
+    // Два незалежні бар'єри, обидва мусять пройти:
+    //   1) WinVerifyTrust — стандартний API Windows: підтверджує, що підпис
+    //      математично валідний і що файл не змінювали після підписання
+    //      (модифікований байт → TRUST_E_BAD_DIGEST).
+    //   2) Пін відбитка сертифіката підписанта — щоб валідний підпис ЧУЖИМ
+    //      сертифікатом (у т.ч. виданим публічною CA) не вважався нашим.
+    //
+    // CERT_E_UNTRUSTEDROOT приймається свідомо й лише разом з (2): самопідписаний
+    // корінь за визначенням не лежить у Trusted Root на машинах користувачів, і
+    // ставити його туди не треба — довіру несе пін. Будь-який інший код помилки
+    // (немає підпису, зіпсований дайджест, протермінований сертифікат) — відмова.
+    public static bool VerifyAuthenticode(string filePath, out string error)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            // Fail closed: якщо перевірити підпис нечим — exe не підміняємо.
+            error = "Перевірка підпису оновлення доступна лише у Windows";
+            return false;
+        }
+
+        string signerThumbprint;
         try
         {
-            // SYSLIB0057 придушено свідомо: для витягування сертифіката з Authenticode-підписаного
-            // файла заміни в X509CertificateLoader (.NET 10) не існує — це єдиний API.
+            // Заміни в X509CertificateLoader для витягування сертифіката з
+            // Authenticode-підписаного файла не існує — це єдиний API.
 #pragma warning disable SYSLIB0057
-            using var cert = X509Certificate.CreateFromSignedFile(filePath);
+            var rawCert = X509Certificate.CreateFromSignedFile(filePath).GetRawCertData();
 #pragma warning restore SYSLIB0057
-            using var chain = new X509Chain();
-            chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
-            if (cert is X509Certificate2 cert2)
-            {
-                if (!chain.Build(cert2))
-                    Log("Authenticode: signature present but chain build FAILED");
-                else
-                    Log($"Authenticode: valid signature by {cert2.Subject}");
-            }
+            using var signer = X509CertificateLoader.LoadCertificate(rawCert);
+            signerThumbprint = Convert.ToHexString(signer.GetCertHash(HashAlgorithmName.SHA256));
         }
         catch (CryptographicException)
         {
-            Log("Authenticode: file is not signed (allowed for now)");
+            error = "Оновлення не підписане — установка скасована";
+            return false;
         }
         catch (Exception ex)
         {
-            Log($"Authenticode check error: {ex.GetType().Name}");
+            error = $"Не вдалося прочитати підпис оновлення ({ex.GetType().Name})";
+            return false;
         }
+
+        if (!FixedTimeEqualsHex(signerThumbprint, SigningCertSha256Thumbprint))
+        {
+            Log($"signature thumbprint mismatch: {signerThumbprint}");
+            error = "Оновлення підписане невідомим сертифікатом — установка скасована";
+            return false;
+        }
+
+        var status = WinVerifyTrustFile(filePath);
+        if (status == 0 || status == CERT_E_UNTRUSTEDROOT)
+        {
+            Log($"signature OK (WinVerifyTrust 0x{status:X8}, pinned cert)");
+            error = "";
+            return true;
+        }
+
+        error = status switch
+        {
+            TRUST_E_NOSIGNATURE => "Оновлення не підписане — установка скасована",
+            TRUST_E_BAD_DIGEST => "Підпис оновлення не відповідає файлу — установка скасована",
+            CERT_E_EXPIRED => "Сертифікат підпису оновлення протермінований — установка скасована",
+            CERT_E_REVOKED => "Сертифікат підпису оновлення відкликано — установка скасована",
+            _ => $"Підпис оновлення не пройшов перевірку (0x{status:X8}) — установка скасована"
+        };
+        return false;
+    }
+
+    // --- WinVerifyTrust (wintrust.dll) ---
+    private const int CERT_E_UNTRUSTEDROOT = unchecked((int)0x800B0109);
+    private const int TRUST_E_NOSIGNATURE = unchecked((int)0x800B0100);
+    private const int TRUST_E_BAD_DIGEST = unchecked((int)0x80096010);
+    private const int CERT_E_EXPIRED = unchecked((int)0x800B0101);
+    private const int CERT_E_REVOKED = unchecked((int)0x800B010C);
+
+    private const uint WTD_UI_NONE = 2;
+    private const uint WTD_REVOKE_NONE = 0;
+    private const uint WTD_CHOICE_FILE = 1;
+    private const uint WTD_STATEACTION_VERIFY = 1;
+    private const uint WTD_STATEACTION_CLOSE = 2;
+    private const uint WTD_SAFER_FLAG = 0x100;
+
+    private static int WinVerifyTrustFile(string filePath)
+    {
+        // Ревокацію свідомо не перевіряємо: у самопідписаного сертифіката немає ні
+        // CRL, ні OCSP, тож така перевірка або впала б, або полізла в мережу під час
+        // оновлення. Відкликання тут реалізується зміною піна + новим релізом.
+        var action = new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+        var pathPtr = Marshal.StringToHGlobalUni(filePath);
+        var fileInfoPtr = Marshal.AllocHGlobal(Marshal.SizeOf<WINTRUST_FILE_INFO>());
+        var dataPtr = Marshal.AllocHGlobal(Marshal.SizeOf<WINTRUST_DATA>());
+        try
+        {
+            var fileInfo = new WINTRUST_FILE_INFO
+            {
+                cbStruct = (uint)Marshal.SizeOf<WINTRUST_FILE_INFO>(),
+                pcwszFilePath = pathPtr,
+                hFile = IntPtr.Zero,
+                pgKnownSubject = IntPtr.Zero
+            };
+            var data = new WINTRUST_DATA
+            {
+                cbStruct = (uint)Marshal.SizeOf<WINTRUST_DATA>(),
+                dwUIChoice = WTD_UI_NONE,
+                fdwRevocationChecks = WTD_REVOKE_NONE,
+                dwUnionChoice = WTD_CHOICE_FILE,
+                pFile = fileInfoPtr,
+                dwStateAction = WTD_STATEACTION_VERIFY,
+                dwProvFlags = WTD_SAFER_FLAG
+            };
+            Marshal.StructureToPtr(fileInfo, fileInfoPtr, false);
+            Marshal.StructureToPtr(data, dataPtr, false);
+
+            var result = WinVerifyTrust(IntPtr.Zero, ref action, dataPtr);
+
+            // Закриття стану обов'язкове — інакше течуть хендли провайдера довіри.
+            data = Marshal.PtrToStructure<WINTRUST_DATA>(dataPtr);
+            data.dwStateAction = WTD_STATEACTION_CLOSE;
+            Marshal.StructureToPtr(data, dataPtr, false);
+            WinVerifyTrust(IntPtr.Zero, ref action, dataPtr);
+            return result;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(dataPtr);
+            Marshal.FreeHGlobal(fileInfoPtr);
+            Marshal.FreeHGlobal(pathPtr);
+        }
+    }
+
+    [DllImport("wintrust.dll", ExactSpelling = true, SetLastError = false)]
+    private static extern int WinVerifyTrust(IntPtr hwnd, ref Guid pgActionID, IntPtr pWVTData);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINTRUST_FILE_INFO
+    {
+        public uint cbStruct;
+        public IntPtr pcwszFilePath;
+        public IntPtr hFile;
+        public IntPtr pgKnownSubject;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINTRUST_DATA
+    {
+        public uint cbStruct;
+        public IntPtr pPolicyCallbackData;
+        public IntPtr pSIPClientData;
+        public uint dwUIChoice;
+        public uint fdwRevocationChecks;
+        public uint dwUnionChoice;
+        public IntPtr pFile;
+        public uint dwStateAction;
+        public IntPtr hWVTStateData;
+        public IntPtr pwszURLReference;
+        public uint dwProvFlags;
+        public uint dwUIContext;
+        public IntPtr pSignatureSettings;
+    }
+
+    // Порівняння hex-відбитків за сталий час, без урахування регістру.
+    public static bool FixedTimeEqualsHex(string a, string b)
+    {
+        if (a is null || b is null || a.Length != b.Length) return false;
+        var ab = Encoding.ASCII.GetBytes(a.ToUpperInvariant());
+        var bb = Encoding.ASCII.GetBytes(b.ToUpperInvariant());
+        return CryptographicOperations.FixedTimeEquals(ab, bb);
     }
 
     public static bool IsAllowedDownloadUrl(string? url, out string error)

@@ -3,7 +3,7 @@
 > **Призначення**: Структура, покриття та опис кожного тестового файлу.
 > Використовуй цей файл для швидкого розуміння які тести існують і що вони перевіряють.
 
-<!-- AUTO:stamp -->Verified: 2026-09-17, commit `8063b25` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-17, commit `641371d` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -20,6 +20,9 @@
 9. [DiskAdvisorTests](#9-diskadvisortests)
 10. [AccessServiceTests](#10-accessservicetests)
 11. [SecurityRegressionTests](#11-securityregressiontests)
+12. [MatrixNodeSlotTests](#12-matrixnodeslottests)
+13. [LocalizationTests](#13-localizationtests)
+14. [UpdateSignatureTests](#14-updatesignaturetests)
 
 ---
 
@@ -31,8 +34,8 @@
 | **Coverage** | coverlet.collector 6.0.4 |
 | **Проєкт** | ResourceCalculator.Tests (net10.0) |
 | **Залежність** | ResourceCalculator.Core |
-| **Файлів тестів** | 10 |
-| **Загальна кількість тестів** | <!-- AUTO:tests-total -->185<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 132, з них theory дають 25 кейсів через `[InlineData]`) |
+| **Файлів тестів** | 13 |
+| **Загальна кількість тестів** | <!-- AUTO:tests-total -->195<!-- /AUTO --> (атрибутів `[Fact]`/`[Theory]` — 132, з них theory дають 25 кейсів через `[InlineData]`) |
 
 ---
 
@@ -248,6 +251,59 @@
 | URL allowlist | Лише GitHub HTTPS без портів та кредів |
 | Degenerate severity UNKNOWN | NaN-вхід не виглядає як OK |
 | Corrupt matrix preserved | Битий файл у карантин з міткою |
+
+---
+
+## 12. MatrixNodeSlotTests
+
+**Файл**: `ResourceCalculator.Tests/MatrixNodeSlotTests.cs`
+**Тестує**: `MatrixManager.SyncGridsToMatrix` через `InfrastructureNode.Slot`
+
+Регресія бага, через який правки Windows-вузлів у матриці ламали звіт: маппінг ішов
+за `Name.Contains(...)`, і назва «Веб сервери (IIS)» містить «сервер» → потрапляла у
+слот сервера додатків раніше, ніж перевірялася гілка Web.
+
+| Тест | Що перевіряє |
+|---|---|
+| Windows grid keeps app and web apart | Сервер додатків і веб-сервер не міняються місцями |
+| Renamed node stays in its slot | Перейменування в гріді не переносить вузол в інший слот |
+| K8s and optional grids map to own slots | K8s SQL/Master/Worker + звіти/HAProxy по своїх слотах |
+| Code defaults have slots assigned | Усі вісім дефолтів мають `Slot`, матриця валідна |
+| Validator rejects wrong slot | Файл із переставленими слотами відкидається |
+
+---
+
+## 13. LocalizationTests
+
+**Файл**: `ResourceCalculator.Tests/LocalizationTests.cs`
+**Тестує**: `LocalizationService` (словники uk/en)
+
+| Тест | Що перевіряє |
+|---|---|
+| uk/en have identical key sets | Пропущений ключ в одному словнику (підпис стає `[col.metric]`) |
+| No key has empty translation | Порожній переклад не проходить |
+
+---
+
+## 14. UpdateSignatureTests
+
+**Файл**: `ResourceCalculator.Tests/UpdateSignatureTests.cs`
+**Тестує**: `SelfUpdateService.VerifyAuthenticode`, `FixedTimeEqualsHex`, пін сертифіката
+
+| Тест | Що перевіряє |
+|---|---|
+| Pinned thumbprint is full uppercase SHA-256 hex | Формат піна (64 hex, верхній регістр) |
+| FixedTimeEqualsHex compares case-insensitively | Порівняння відбитків за сталий час |
+| FixedTimeEqualsHex null is never equal | `null` не дорівнює нічому |
+| Unsigned file is rejected | Непідписаний exe відкидається (раніше проходив) |
+| Missing file is rejected | Відсутній файл — відмова, не виняток |
+| Signed release exe is accepted | **Гейт релізу.** Умовний: працює, коли задано `ITE_SIGNED_EXE`. Якщо змінна задана, а файла немає — тест падає, щоб друкарська помилка у шляху не перетворила гейт на no-op |
+
+> Цей файл викликається окремим кроком `release.yml` проти щойно підписаного exe:
+> якщо пін у коді розійдеться з сертифікатом у секретах, реліз впаде замість того,
+> щоб вийти невстановлюваним. Перевірено вручну на трьох сценаріях: наш підписаний
+> exe приймається, підправлений на один байт — відкидається, підписаний іншим
+> сертифікатом — відкидається піном.
 
 ---
 ## Як запустити тести

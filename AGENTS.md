@@ -51,7 +51,7 @@
 - **Прибрано мертвий `AddRowCommand`/`AddRowAsync`** з `MatrixViewModel` — не були прив'язані ні до одного елемента XAML.
 - **CI**: `ci.yml` слухає ще й `release/**` (гілка релізу раніше йшла до тега без жодного прогону), `concurrency` скасовує застарілі прогони, гейт уразливих пакетів реально падає (`dotnet list package --vulnerable` завершується кодом 0 навіть коли знаходить CVE — попередній `|| exit 1` не спрацьовував ніколи), publish exe лише на push, HTML-звіт покриття замінено на cobertura-артефакт. `release.yml` отримав `workflow_dispatch` з полем тега.
 - **Доки**: прибрано дефолтний пароль з `IMPLEMENTATION.md` і телефон з `AGENTS.md` (репозиторій публічний); `README` отримав секцію «Ліцензії залежностей»; `Update-Docs.ps1` тепер перевіряє двонаправлено (видалений з коду член, що лишився в доці, ловиться) і має UTF-8 BOM (PS 5.1 інакше ламався на кирилиці).
-- **Нові тести**: `MatrixNodeSlotTests` (5), `LocalizationTests` (парність uk/en), валідація введення в `MainViewModelTests`, digest-перевірки в `SecurityRegressionTests`. Разом <!-- AUTO:tests-total -->185<!-- /AUTO -->.
+- **Нові тести**: `MatrixNodeSlotTests` (5), `LocalizationTests` (парність uk/en), валідація введення в `MainViewModelTests`, digest-перевірки в `SecurityRegressionTests`. Разом <!-- AUTO:tests-total -->195<!-- /AUTO -->.
 
 ## Відкладений реліз 1 жовтня 2026 (ліміти Actions)
 
@@ -66,7 +66,7 @@
 - **Поточна версія: <!-- AUTO:app-version -->2.4.12<!-- /AUTO -->** (`AppVersion` у `Directory.Build.props`; 2.4.13 буде виставлено автоматично 1 жовтня). UI — Avalonia 12.1.2, тільки світла тема, Windows portable.
 - Останні коміти (від новіших): `398ecf2` (нотатка про іконку), `80d14d9` (іконка ApplicationIcon + net10.0-windows), `c98f90b` (Avalonia-міграція + вікна оновлення — стейджинг для 1 жовтня), `bee9e9e` (документація ARCHITECTURE/DATA-MODELS/IMPLEMENTATION/FUNCTIONS/TESTS), далі `ce94295`/`02f99f1`/`ffd4c9d` (див. `git log`).
 - Тег відкату до стану до рефакторингу: `backup-before-refactor` → `git reset --hard backup-before-refactor`.
-- **Тестів: <!-- AUTO:tests-total -->185<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
+- **Тестів: <!-- AUTO:tests-total -->195<!-- /AUTO -->, усі проходять** (`dotnet test ResourceCalculator.slnx -c Release`).
 
 ## Архітектура (після рефакторингу)
 
@@ -140,7 +140,11 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 - ⚠️ **Маркер діє з УСЬОГО повідомлення, не лише з теми.** Перевірено на практиці 2026-09-17: коміт `72e1f3b` мав чисту тему, але в тілі було пояснення «…обидва останні коміти з [skip ci]…» — і GitHub не створив жодного прогону. Після amend без літерала CI відпрацював. Тобто **не цитувати маркер у повідомленнях комітів** — писати «маркер пропуску CI» словами. У файлах (доки, workflow) літерал безпечний.
 - Документація GitHub каже, що маркер діє для подій `push` і `pull_request`; про пуш тега окремо не сказано, тож на нього не покладаємось — `deferred-release.yml` і так тегує власний бот-коміт без маркера.
 - ⚠️ Тексти релізів/CHANGELOG — **тільки українською**. Уникати російських формулювань (Версия, переимен, инсталятор, расчёт, Документооборот тощо).
-- Реліз без підпису: MSI-інсталятор, `sign.ps1` і самопідписаний сертифікат прибрано разом із `release.ps1` — SmartScreen попереджатиме, доки не буде сертифіката від CA.
+- **Реліз підписаний Authenticode, перевірка обов'язкова.** `release.yml` підписує exe через `signtool` (сертифікат з секретів `SIGNING_PFX_BASE64` / `SIGNING_PFX_PASSWORD`, таймстемп DigiCert) ДО підрахунку хеша й атестації, бо signtool змінює файл. `SelfUpdateService.VerifyAuthenticode` відкидає оновлення без підпису, зі зламаним дайджестом або підписане чужим сертифікатом.
+- Сертифікат самопідписаний (`CN=IT-Enterprise Resource Calculator`, RSA-3072/SHA-256, до 2036). Довіру несе **пін SHA-256 відбитка** у `SelfUpdateService.SigningCertSha256Thumbprint`, а не системне сховище — корінь у Trusted Root ставити не потрібно. `CERT_E_UNTRUSTEDROOT` приймається лише разом із збігом піна.
+- ⚠️ **Заміна сертифіката = дві зміни одночасно:** новий PFX у секрети + новий відбиток у код. Розійдуться — реліз впаде на кроці «Verify signature with the app's own check» (виконує той самий код, що й застосунок). Це навмисно: реліз, який неможливо встановити, гірший за відсутність релізу.
+- Приватний ключ лежить поза репозиторієм: `C:\Users\Admin\.ite-signing\` (`ite-codesign.pfx`, `pfx-base64.txt`, `pfx-password.txt`, публічний `ite-codesign.cer`). У git не потрапляє (`.gitignore`: `*.pfx`).
+- SmartScreen попереджатиме далі — це лікує лише сертифікат від публічної CA з репутацією.
 - **⚠️ Кирилиця в коді**: файли `.cs/.xaml/.csproj` мають бути UTF-8 (без BOM ок). Не використовувати PowerShell `Set-Content` для перезапису .cs/.xaml — псує кодування; використовувати edit-інструменти або `[System.IO.File]::WriteAllText(..., UTF8)`.
 
 ## Контакти та поточні домовленості
@@ -148,7 +152,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 - Розробник: пошти `yaroslav.andreichuk@gmail.com`, `andreichuk.y@it-enterprise.com`. **Телефон у репозиторії не тримаємо** — репозиторій публічний; у UI теж лише пошти (`AccessService.DevContacts`).
 - Користувач тестує v2.0.2. Наступні зміни/релізи — за його відгуком після тестів.
 - Пароль матриці змінюється тільки перегенерацією через діалог розблокування (кнопки «Змінити пароль» немає). **Вбудованого дефолта немає** (fail closed): без `settings.json` перший запуск пропонує СТВОРИТИ пароль. ⚠️ Конкретних паролів у репозиторії не тримаємо — він публічний.
-- README (`README.md`) містить бейджі (Release/Downloads/CI/Tests 130/License/Platform), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
+- README (`README.md`) містить бейджі (Release/Downloads/CI/Tests/Platform/.NET), скріншот `docs/screenshots/main.png`, банер `docs/banner.svg`.
+- ⚠️ **Ліцензії у проєкту немає свідомо.** `LICENSE` (MIT) видалено: він одночасно віддавав внутрішній інструмент разом із матрицею сайзингу в публічне користування і формально суперечив Polyform-умовам EPPlus. Відсутність ліцензії = усі права застережено. Не повертати MIT і не додавати жодної OSS-ліцензії без рішення власника продукту.
 - ⚠️ GitHub кешує зображення через camo. Якщо прев'ю/фото на сторінці «не те»: додавати кеш-бастер `?v=N` до URL у README, а найнадійніше — **перейменувати файл** (новий шлях = новий URL без кешу). Останній скріншот — `main.png` (вкладка «Параметри розрахунку»).
 
 ## Протокол Docs-sync (щоб доки не протухали)
@@ -162,8 +167,8 @@ SmartID, IOPS-профілі, ліміти SQL, pagefile-коефіцієнт, w
 
 | Документ | Звірено з комітом | Дата |
 |---|---|---|
-| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-17<!-- /AUTO --> |
-| DATA-MODELS.md | <!-- AUTO:data-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-17<!-- /AUTO --> |
-| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-17<!-- /AUTO --> |
-| FUNCTIONS.md | <!-- AUTO:func-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-17<!-- /AUTO --> |
-| TESTS.md | <!-- AUTO:tests-commit -->`8063b25`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-17<!-- /AUTO --> |
+| ARCHITECTURE.md | <!-- AUTO:arch-commit -->`641371d`<!-- /AUTO --> | <!-- AUTO:arch-date -->2026-09-17<!-- /AUTO --> |
+| DATA-MODELS.md | <!-- AUTO:data-commit -->`641371d`<!-- /AUTO --> | <!-- AUTO:data-date -->2026-09-17<!-- /AUTO --> |
+| IMPLEMENTATION.md | <!-- AUTO:impl-commit -->`641371d`<!-- /AUTO --> | <!-- AUTO:impl-date -->2026-09-17<!-- /AUTO --> |
+| FUNCTIONS.md | <!-- AUTO:func-commit -->`641371d`<!-- /AUTO --> | <!-- AUTO:func-date -->2026-09-17<!-- /AUTO --> |
+| TESTS.md | <!-- AUTO:tests-commit -->`641371d`<!-- /AUTO --> | <!-- AUTO:tests-date -->2026-09-17<!-- /AUTO --> |

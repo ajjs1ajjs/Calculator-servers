@@ -3,7 +3,7 @@
 > **Призначення**: Швидкий довідник по всіх публічних методах кожного класу.
 > Використовуй цей файл коли потрібно знайти конкретний метод, зрозуміти його сигнатуру або викликати з нового місця.
 
-<!-- AUTO:stamp -->Verified: 2026-09-17, commit `8063b25` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-17, commit `641371d` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -237,15 +237,25 @@ Task<UpdateCheckResult> CheckForUpdateAsync();
 
 ```csharp
 event DownloadProgressHandler? Progress;
-Task<SelfUpdateResult> UpdateAsync(string downloadUrl, CancellationToken cancellationToken = default); // URL параметром, не mutable-властивість
-static bool IsAllowedDownloadUrl(string? url, out string error); // allowlist: лише GitHub HTTPS
+Task<SelfUpdateResult> UpdateAsync(UpdateInfo info, CancellationToken cancellationToken = default); // дані релізу параметром, не mutable-властивість
+static bool IsAllowedDownloadUrl(string? url, out string error);   // allowlist: лише GitHub HTTPS
+static string? NormalizeSha256(string? raw);                       // "sha256:<64 hex>" або чистий hex, інше → null
+static bool VerifyAuthenticode(string filePath, out string error);  // пін відбитка + WinVerifyTrust
+const string SigningCertSha256Thumbprint;                          // пін сертифіката підпису
 ```
 
 | Метод | Параметри | Повертає | Опис |
 |---|---|---|---|
-| `UpdateAsync` | `CancellationToken` | `Task<SelfUpdateResult>` | Завантаження + SHA256 + заміна |
+| `UpdateAsync` | `UpdateInfo, CancellationToken` | `Task<SelfUpdateResult>` | Перевірка digest → завантаження → SHA256 → **обов'язковий Authenticode** → заміна exe |
+| `VerifyAuthenticode` | `filePath, out error` | `bool` | Пін SHA-256 відбитка сертифіката + `WinVerifyTrust`. Обидва бар'єри мусять пройти |
 
 **SelfUpdateResult**: `{ Status: InProgress/Completed/Failed, Error?: string }`
+
+> ⚠️ Підпис — обов'язковий: непідписаний exe, змінений після підписання або підписаний
+> чужим сертифікатом відкидається. Раніше перевірка була нефатальною (`…IfPresent`,
+> лише запис у лог). `CERT_E_UNTRUSTEDROOT` приймається свідомо й лише разом зі збігом
+> піна — сертифікат самопідписаний, довіру несе пін, а не системне сховище.
+> Деталі та порядок заміни сертифіката — IMPLEMENTATION.md §9.
 
 ---
 

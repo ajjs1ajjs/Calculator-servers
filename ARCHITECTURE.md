@@ -3,7 +3,7 @@
 > **Призначення**: Загальний огляд архітектури, структури рішення, залежностей та патернів.
 > Використовуй цей файл для розуміння як проєкт організований і як компоненти пов'язані.
 
-<!-- AUTO:stamp -->Verified: 2026-09-17, commit `8063b25` (scripts/Update-Docs.ps1)<!-- /AUTO -->
+<!-- AUTO:stamp -->Verified: 2026-09-17, commit `641371d` (scripts/Update-Docs.ps1)<!-- /AUTO -->
 
 ---
 
@@ -84,7 +84,8 @@ ResourceCalculator.slnx                     -- Рішення (.NET 10 XML-фо�
     ├── MatrixNodeSlotTests.cs               -- регресія маппінгу вузлів за NodeSlot
     ├── LocalizationTests.cs                 -- парність ключів uk/en
     ├── SecurityRegressionTests.cs           -- валідація матриці, Xl(), allowlist URL, digest
-    └── ... (11 файлів загалом)
+    ├── UpdateSignatureTests.cs              -- обов'язковий Authenticode + пін сертифіката
+    └── ... (13 файлів загалом)
 ```
 
 ---
